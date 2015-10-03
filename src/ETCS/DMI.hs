@@ -20,7 +20,6 @@ data WindowMenuButtonId =
 data MenuWindow =
   MenuWindow {
     _menuWinE       :: Event WindowMenuButtonId,
-    _menuWinCloseE  :: Event (),
     _menuWinCleanup :: IO ()
     }
 

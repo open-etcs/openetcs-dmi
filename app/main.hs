@@ -4,7 +4,7 @@ module Main (
     main
 ) where
 
-import           Control.Monad.IO.Class
+
 import           Data.Maybe
 import           Data.Text                     (Text)
 import qualified Data.Text                     as T
@@ -16,9 +16,11 @@ import           GHCJS.DOM.Element             hiding (click, error)
 import           GHCJS.DOM.EventTarget
 import           GHCJS.DOM.EventTargetClosures
 import           GHCJS.DOM.HTMLButtonElement   as Button
-import           GHCJS.DOM.HTMLElement
 import           GHCJS.DOM.Node
 import           GHCJS.DOM.Types               hiding (Event, Text)
+
+
+
 main :: IO ()
 main = runWebGUI $ \ webView -> do
     enableInspector webView
@@ -26,18 +28,18 @@ main = runWebGUI $ \ webView -> do
     Just body <- getBody doc
 
 
-    mw <- mkMainWindow doc body
+    mw <- mkMainWindow doc body mempty
 
     _ <- sync $ listen (_menuWinE mw) print
-    _ <- sync $ listen (_menuWinCloseE mw) print
 
 
 
     return ()
 
 
-mkMainWindow doc parent =
-  mkMenuWindow doc parent (pure "Main")
+mkMainWindow :: (IsDocument d, IsNode p) => d -> p -> Event Bool -> IO MenuWindow
+mkMainWindow doc parent visible =
+  mkMenuWindow doc parent (pure "Main") visible
   [ (pure "Start", pure True)
   , (pure "Driver ID", pure True)
   , (pure "Train Data", pure True)
@@ -51,54 +53,57 @@ mkMainWindow doc parent =
 
 
 mkMenuWindow :: (IsDocument d, IsNode p) => d -> p
-                -> Behavior Text -> [(Behavior Text, Behavior Bool )]
+                -> Behavior Text -> Event Bool ->[(Behavior Text, Behavior Bool )]
                 -> IO MenuWindow
-mkMenuWindow doc parent bTitle bs = do
-
-  -- the window element
-  w <- fmap (castToHTMLDivElement . fromMaybe (error "unable to create div")) $
-       createElement doc $ pure ("div" :: String)
-  setClassName w ("MenuWindow" :: String)
-
-  -- the window title
-  t <- fmap (castToHTMLDivElement . fromMaybe (error "unable to create div")) $
-       createElement doc $ pure ("div" :: String)
-  cTitle <- sync $ listen (value bTitle) $ setTextContent t . pure
-  setClassName t ("MenuTitle" :: String)
-  _ <- appendChild w (pure t)
-
-
-
-  -- the buttons
-  bsContainer <-
-    fmap (castToHTMLDivElement . fromMaybe (error "unable to create div")) $
-    createElement doc $ pure ("div" :: String)
-  setClassName bsContainer ("MenuButtons" :: String)
-
-  bs' <- sequence $ zipWith (\i f -> f i) [minBound .. maxBound]
-         [ mkButton doc bsContainer b | b <- bs]
-  _ <- appendChild w (pure bsContainer)
-
-
-  -- the close button
-  closeContainer <-
-    fmap (castToHTMLDivElement . fromMaybe (error "unable to create div")) $
-    createElement doc $ pure ("div" :: String)
-  setClassName closeContainer ("MenuClose" :: String)
-  closeButton <- mkButton doc closeContainer (pure "X", pure True) ()
-  _ <- appendChild w (pure closeContainer)
-
-  -- add the thing to the parent
+mkMenuWindow doc parent bTitle eVisible bs = do
+  w <- _mkWindow
+  cTitle <- _mkWindowTitle w
+  bs' <- _mkButtons w
+  closeButton <- _mkCloseButton w
   _ <- appendChild parent (pure w)
 
   return MenuWindow {
     _menuWinE = foldl merge mempty . fmap _buttonE $ bs',
-    _menuWinCloseE = _buttonE closeButton,
     _menuWinCleanup = do _ <- sequence . fmap _buttonCleanup $ bs'
                          cTitle
                          _buttonCleanup closeButton
                          return ()
     }
+  where _mkWindow = do
+          w <- fmap (castToHTMLDivElement . fromMaybe (error "unable to create div")) $
+               createElement doc $ pure ("div" :: String)
+          setClassName w ("MenuWindow" :: String)
+          return w
+        _mkWindowTitle w = do
+          t <- fmap (castToHTMLDivElement . fromMaybe (error "unable to create div")) $
+               createElement doc $ pure ("div" :: String)
+          cTitle <- sync $ listen (value bTitle) $ setTextContent t . pure
+          setClassName t ("MenuTitle" :: String)
+          _ <- appendChild w (pure t)
+          return cTitle
+        _mkButtons w = do
+            bsContainer <-
+              fmap (castToHTMLDivElement . fromMaybe (error "unable to create div")) $
+              createElement doc $ pure ("div" :: String)
+            setClassName bsContainer ("MenuButtons" :: String)
+
+            bs' <- sequence $ zipWith (\i f -> f i) [minBound .. maxBound]
+                   [ mkButton doc bsContainer b | b <- bs]
+            _ <- appendChild w (pure bsContainer)
+            return bs'
+        _mkCloseButton w = do
+            closeContainer <-
+              fmap (castToHTMLDivElement . fromMaybe (error "unable to create div")) $
+              createElement doc $ pure ("div" :: String)
+            setClassName closeContainer ("MenuClose" :: String)
+            closeButton <- mkButton doc closeContainer (pure "X", pure True) ()
+
+            let eIntern = eVisible `merge` (fmap (const False) $ _buttonE closeButton)
+            _ <- sync $ listen eIntern $ \v -> do
+              print $ v
+
+            _ <- appendChild w (pure closeContainer)
+            return closeButton
 
 mkButton :: (IsDocument d, IsNode p) => d -> p -> (Behavior Text, Behavior Bool) -> e
             -> IO (Button e)
@@ -127,10 +132,10 @@ mkButton doc parent (bLabel, bEnabled) eValue = do
         (False, True)  -> do
           _ <- appendChild b $ pure empty_div ; return ()
         (True, False) -> do
-          removeChild b c0
+          _ <- removeChild b c0
           _ <- appendChild b $ pure sp ; return ()
         (True, True)  -> do
-          removeChild b c0
+          _ <- removeChild b c0
           _ <- appendChild b $ pure empty_div ; return ()
 
 
