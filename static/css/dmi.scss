@@ -1,0 +1,95 @@
+$fontStack: Chicago, Helvetica, Swiss, Verdana, sans-serif;
+$fontSize: 12px;
+
+$ColorWhite: rgb(255,255,255);
+$ColorBlack: rgb(0,0,0);
+$ColorGrey: rgb(195, 195, 195);
+$ColorMediumGrey: rgb(150, 150, 150);
+$ColorDarkGrey: rgb(85, 85, 85);
+$ColorDarkBlue: rgb(3, 17, 34);
+$ColorShadow: rgb(8, 24, 57);
+$ColorYellow: rgb(223, 223, 0);
+$ColorOrange: rgb(234, 145, 0);
+$ColorRed: rgb(191, 0, 2);
+$ColorPASPDark: rgb(33, 49, 74);
+$ColorPASPLight: rgb(41, 74, 107);
+
+body {
+  background-color: $ColorDarkBlue;
+  color: $ColorWhite;
+}
+
+button {
+  font-size: $fontSize;
+  background-color: $ColorDarkBlue;
+  color: $ColorWhite;
+  border-style: solid;
+  border-color: $ColorWhite;
+  border-width: 1px;
+  padding: 0px;
+  margin: 0px;
+}
+
+button[disabled] {
+  color: $ColorDarkGrey;
+}
+
+
+
+
+.MenuWindow {
+
+  font-family: $fontStack;
+  background-color: $ColorDarkBlue;
+
+  
+  .MenuTitle {
+    background-color: $ColorBlack;
+    color: $ColorGrey;
+    width: 306px;
+    height: 24px;
+    max-width: 306px;
+    max-height: 24px;    
+  }
+
+  .MenuButtons {
+    width: 306px;
+    max-width: 306px;
+    position: absolute;
+    top: 50px;
+    
+    button {
+      width: 153px;
+      height: 50px;
+      max-width: 153px;
+      max-height: 50px;
+    }
+
+    .EmptyButton {
+      width: 120px;
+      height: 30px;
+      max-width: 120px;
+      max-height: 30px;
+    }
+
+
+  }
+
+  .MenuClose {
+    width: 82px;
+    height: 50px;
+    max-width: 82px;
+    max-height: 50px;
+
+    position: absolute;
+    top: 400px;
+
+    button { width: 100%; height: 100%; font-size: 24px }
+      
+  }
+
+}
+
+  
+
+  
