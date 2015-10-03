@@ -11,11 +11,12 @@ import qualified Data.Text                     as T
 import           ETCS.DMI
 import           FRP.Sodium
 import           GHCJS.DOM
-import           GHCJS.DOM.Document            hiding (click, error)
+import           GHCJS.DOM.Document            hiding (click, error, setTitle)
 import           GHCJS.DOM.Element             hiding (click, error)
 import           GHCJS.DOM.EventTarget
 import           GHCJS.DOM.EventTargetClosures
 import           GHCJS.DOM.HTMLButtonElement   as Button
+import           GHCJS.DOM.HTMLElement
 import           GHCJS.DOM.Node
 import           GHCJS.DOM.Types               hiding (Event, Text)
 
@@ -100,7 +101,7 @@ mkMenuWindow doc parent bTitle eVisible bs = do
 
             let eIntern = eVisible `merge` (fmap (const False) $ _buttonE closeButton)
             _ <- sync $ listen eIntern $ \v -> do
-              print $ v
+              setHidden w (not v)
 
             _ <- appendChild w (pure closeContainer)
             return closeButton
@@ -122,6 +123,7 @@ mkButton doc parent (bLabel, bEnabled) eValue = do
 
   (e, fe, cleanup) <- sync $ do
     cLabel <- listen (value bLabel) $ \t -> do
+      setTitle b t
       cs <- hasChildNodes b
       setTextContent sp . pure $ t
       c0 <- getFirstChild b
