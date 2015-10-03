@@ -1,6 +1,8 @@
 $fontStack: Chicago, Helvetica, Swiss, Verdana, sans-serif;
 $fontSize: 12px;
 
+$borderWidth: 1px;
+
 $ColorWhite: rgb(255,255,255);
 $ColorBlack: rgb(0,0,0);
 $ColorGrey: rgb(195, 195, 195);
@@ -14,18 +16,14 @@ $ColorRed: rgb(191, 0, 2);
 $ColorPASPDark: rgb(33, 49, 74);
 $ColorPASPLight: rgb(41, 74, 107);
 
-body {
-  background-color: $ColorDarkBlue;
-  color: $ColorWhite;
-}
+
+
 
 button {
   font-size: $fontSize;
   background-color: $ColorDarkBlue;
   color: $ColorWhite;
-  border-style: solid;
-  border-color: $ColorWhite;
-  border-width: 1px;
+  border: $borderWidth solid $ColorWhite;
   padding: 0px;
   margin: 0px;
 }
@@ -35,21 +33,25 @@ button[disabled] {
 }
 
 
-
+@mixin absoluteWidthHeight($w, $h) {
+    width: $w;
+    height: $h;
+    max-width: $w;
+    max-height: $h;    
+}
 
 .MenuWindow {
 
   font-family: $fontStack;
   background-color: $ColorDarkBlue;
-
+  border: $borderWidth solid $ColorWhite;
+  width: 306px;
+  height: 450px;
   
   .MenuTitle {
     background-color: $ColorBlack;
     color: $ColorGrey;
-    width: 306px;
-    height: 24px;
-    max-width: 306px;
-    max-height: 24px;    
+    @include absoluteWidthHeight(306px, 24px);
   }
 
   .MenuButtons {
@@ -59,17 +61,11 @@ button[disabled] {
     top: 50px;
     
     button {
-      width: 153px;
-      height: 50px;
-      max-width: 153px;
-      max-height: 50px;
+      @include absoluteWidthHeight(153px, 50px);
     }
 
     .EmptyButton {
-      width: 120px;
-      height: 30px;
-      max-width: 120px;
-      max-height: 30px;
+      @include absoluteWidthHeight(153px, 50px);
     }
 
 
