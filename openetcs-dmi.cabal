@@ -20,7 +20,8 @@ library
                        ETCS.DMI.Types,
                        ETCS.DMI.MenuWindow
                        
-  -- other-modules:       
+  other-modules:       ETCS.DMI.Helpers
+  
   -- other-extensions:    
   build-depends:       base >=4.8 && <4.9,
                        sodium,

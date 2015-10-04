@@ -2,12 +2,12 @@ module ETCS.DMI.Button (
     Button, mkButton, buttonE, buttonCleanup
 ) where
 
-import           Data.Maybe
+
 import           Data.Text                     (Text)
 import qualified Data.Text                     as T
+import           ETCS.DMI.Helpers
 import           ETCS.DMI.Types
 import           FRP.Sodium
-import           GHCJS.DOM.Document            (createElement)
 import           GHCJS.DOM.Element             (setClassName)
 import           GHCJS.DOM.EventTarget         (addEventListener)
 import           GHCJS.DOM.EventTargetClosures (eventListenerNew)
@@ -16,9 +16,7 @@ import           GHCJS.DOM.HTMLElement         (setTitle)
 import           GHCJS.DOM.Node                (appendChild, getFirstChild,
                                                 hasChildNodes, removeChild,
                                                 setTextContent)
-import           GHCJS.DOM.Types               (IsDocument, IsNode, MouseEvent,
-                                                castToHTMLDivElement,
-                                                castToHTMLSpanElement)
+import           GHCJS.DOM.Types               (IsDocument, IsNode, MouseEvent)
 
 import           Control.Lens
 
@@ -26,45 +24,41 @@ mkButton :: (IsDocument d, IsNode p) => d -> p ->
             (Behavior Text, Behavior Bool) -> e -> IO (Button e)
 mkButton doc parent (bLabel, bEnabled) eValue = do
 
-  b <- fmap (castToHTMLButtonElement . fromMaybe (error "unable to create button")) $
-       createElement doc $ pure "button"
-  _ <- appendChild parent (pure b)
+  button <- _createButtonElement doc
+  () <$ (appendChild parent $ pure button)
 
-  sp <- fmap (castToHTMLSpanElement . fromMaybe (error "unable to span button")) $
-       createElement doc $ pure ("span" :: String)
-  empty_div <-
-    fmap (castToHTMLDivElement . fromMaybe (error "unable to empty button div")) $
-    createElement doc $ pure "div"
+  inner_span <- _createSpanElement doc
+  empty_div <- _createDivElement doc
   setClassName empty_div "EmptyButton"
 
-  (e, fe, cleanup) <- sync $ do
+  (eButtonClick, fireButtonClick, cleanup) <- sync $ do
     cLabel <- listen (value bLabel) $ \t -> do
-      setTitle b t
-      cs <- hasChildNodes b
-      setTextContent sp . pure $ t
-      c0 <- getFirstChild b
+      setTitle button t
+      cs <- hasChildNodes button
+      setTextContent inner_span . pure $ t
+      c0 <- getFirstChild button
 
       case (cs, T.null t) of
         (False, False) -> do
-          _ <- appendChild b $ pure sp ; return ()
+          _ <- appendChild button $ pure inner_span ; return ()
         (False, True)  -> do
-          _ <- appendChild b $ pure empty_div ; return ()
+          _ <- appendChild button $ pure empty_div ; return ()
         (True, False) -> do
-          _ <- removeChild b c0
-          _ <- appendChild b $ pure sp ; return ()
+          _ <- removeChild button c0
+          _ <- appendChild button $ pure inner_span ; return ()
         (True, True)  -> do
-          _ <- removeChild b c0
-          _ <- appendChild b $ pure empty_div ; return ()
+          _ <- removeChild button c0
+          _ <- appendChild button $ pure empty_div ; return ()
 
 
 
-    cVisible <- listen (value bEnabled) $ Button.setDisabled b . not
-    (e, fe) <- newEvent
-    return (e, fe, cLabel >> cVisible)
+    cVisible <- listen (value bEnabled) $ Button.setDisabled button . not
+    (eButtonClick, fireButtonClick) <- newEvent
+    return (eButtonClick, fireButtonClick, cLabel >> cVisible)
 
   let listener :: MouseEvent -> IO ()
-      listener _ = sync $ fe eValue
+      listener = const . sync $ fireButtonClick eValue
   eventListener <- eventListenerNew listener
-  addEventListener b "click" (pure eventListener) False
+  addEventListener button "click" (pure eventListener) False
 
-  return $ _Button # (e, cleanup)
+  return $ _Button # (eButtonClick, cleanup)

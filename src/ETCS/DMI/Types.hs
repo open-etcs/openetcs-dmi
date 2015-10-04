@@ -1,6 +1,10 @@
 {-# LANGUAGE TemplateHaskell #-}
 
-module ETCS.DMI.Types where
+module ETCS.DMI.Types (
+  Button, _Button, buttonE, buttonCleanup,
+  WindowMenuButtonId (..),
+  MenuWindow, _MenuWindow, menuWinE, menuWinCleanup
+  ) where
 
 import           Control.Lens
 import           FRP.Sodium

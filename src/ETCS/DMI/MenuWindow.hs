@@ -5,69 +5,66 @@ module ETCS.DMI.MenuWindow (
 ) where
 
 import           Control.Lens
-import           Data.Maybe            (fromMaybe)
 import           Data.Text             (Text)
 import           ETCS.DMI.Button
+import           ETCS.DMI.Helpers
 import           ETCS.DMI.Types
 import           FRP.Sodium
-import           GHCJS.DOM.Document    (createElement)
 import           GHCJS.DOM.Element     (setClassName)
 import           GHCJS.DOM.HTMLElement (setHidden)
 import           GHCJS.DOM.Node        (appendChild, setTextContent)
-import           GHCJS.DOM.Types       (IsDocument, IsNode,
-                                        castToHTMLDivElement)
+import           GHCJS.DOM.Types       (IsDocument, IsNode)
 
 mkMenuWindow :: (IsDocument d, IsNode p) => d -> p
                 -> Behavior Text -> Event Bool ->[(Behavior Text, Behavior Bool )]
                 -> IO MenuWindow
 mkMenuWindow doc parent bTitle eVisible bs = do
-  w <- _mkWindow
-  cTitle <- _mkWindowTitle w
-  bs' <- _mkButtons w
-  closeButton <- _mkCloseButton w
-  _ <- appendChild parent (pure w)
+  win <- _mkWindow
 
-  let winE = foldl merge mempty . fmap _buttonE $ bs'
-      cleanup = do
-        _ <- sequence . fmap _buttonCleanup $ bs'
-        cTitle
-        _buttonCleanup closeButton
-        return ()
+  cTitle <- _mkWindowTitle win
+  buttons <- _mkButtons win
+  closeButton <- _mkCloseButton win
 
-  return $ _MenuWindow # (winE, cleanup)
+  () <$ appendChild parent (pure win)
+
+  let eButtons = mconcat . fmap (view buttonE) $ buttons
+      cleanup =
+        (sequence $ cTitle : closeButton ^. buttonCleanup
+         : (fmap (view buttonCleanup) $ buttons)) >> return ()
+
+  return $ _MenuWindow # (eButtons, cleanup)
 
   where _mkWindow = do
-          w <- fmap (castToHTMLDivElement . fromMaybe (error "unable to create div")) $
-               createElement doc $ pure ("div" :: String)
-          setClassName w ("MenuWindow" :: String)
-          return w
-        _mkWindowTitle w = do
-          t <- fmap (castToHTMLDivElement . fromMaybe (error "unable to create div")) $
-               createElement doc $ pure ("div" :: String)
+          win <- _createDivElement doc
+          setClassName win ("MenuWindow" :: String)
+          return win
+
+        _mkWindowTitle win = do
+          t <- _createDivElement doc
           cTitle <- sync $ listen (value bTitle) $ setTextContent t . pure
           setClassName t ("MenuTitle" :: String)
-          _ <- appendChild w (pure t)
+          () <$ appendChild win (pure t)
           return cTitle
-        _mkButtons w = do
-            bsContainer <-
-              fmap (castToHTMLDivElement . fromMaybe (error "unable to create div")) $
-              createElement doc $ pure ("div" :: String)
+
+        _mkButtons win = do
+            bsContainer <- _createDivElement doc
             setClassName bsContainer ("MenuButtons" :: String)
 
             bs' <- sequence $ zipWith (\i f -> f i) [minBound .. maxBound]
                    [ mkButton doc bsContainer b | b <- bs]
-            _ <- appendChild w (pure bsContainer)
+            () <$ appendChild win (pure bsContainer)
             return bs'
-        _mkCloseButton w = do
-            closeContainer <-
-              fmap (castToHTMLDivElement . fromMaybe (error "unable to create div")) $
-              createElement doc $ pure ("div" :: String)
+
+        _mkCloseButton win = do
+            closeContainer <- _createDivElement doc
             setClassName closeContainer ("MenuClose" :: String)
             closeButton <- mkButton doc closeContainer (pure "X", pure True) ()
 
-            let eIntern = eVisible `merge` (fmap (const False) $ _buttonE closeButton)
-            _ <- sync $ listen eIntern $ \v -> do
-              setHidden w (not v)
+            let eIntern =
+                  mappend eVisible . fmap (const False) $ closeButton ^. buttonE
 
-            _ <- appendChild w (pure closeContainer)
+
+            () <$ do (sync . listen eIntern $ (setHidden win . not))
+            () <$ appendChild win (pure closeContainer)
             return closeButton
+
