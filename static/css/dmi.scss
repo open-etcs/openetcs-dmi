@@ -96,6 +96,15 @@ div[data-role="button"] {
   color: $ColorWhite;
   padding: 0px;
   display: table;
+
+
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  cursor: pointer;
   
   div {
     display: table-cell;
@@ -134,7 +143,7 @@ div[data-role="button"][data-state="ButtonPressed"] {
 div[data-role="button"][data-state="ButtonDisabled"] {
 
   color: $ColorDarkGrey;
-  
+  cursor: not-allowed;
   @include borderTL($borderWidth, solid, $ColorBlack);
   @include borderBR($borderWidth, solid, $ColorShadow);
   

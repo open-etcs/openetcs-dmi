@@ -1,7 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 module ETCS.DMI.Types (
-  Button, _Button, buttonE, buttonCleanup,
+  Button, _Button, buttonE, buttonCleanup, ButtonType(..),
   WindowMenuButtonId (..),
   MenuWindow, _MenuWindow, menuWinE, menuWinCleanup
   ) where
@@ -17,6 +17,12 @@ data Button t =
 
 makeLenses ''Button
 makePrisms ''Button
+
+
+data ButtonType = UpButton | DownButton | DelayButton
+  deriving (Eq, Ord, Show, Enum, Bounded)
+
+
 
 data WindowMenuButtonId =
   B1 | B2 | B3 | B4 | B5 | B6 | B7 | B8 | B9 | B10

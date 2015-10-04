@@ -1,5 +1,5 @@
 module ETCS.DMI.Button (
-    Button, mkButton, buttonE, buttonCleanup
+    Button, ButtonType (..), mkButton, buttonE, buttonCleanup
 ) where
 
 
@@ -10,9 +10,9 @@ import           ETCS.DMI.Helpers
 import           ETCS.DMI.Types
 import           FRP.Sodium
 import           GHCJS.DOM.Element             (setAttribute, setClassName)
-import           GHCJS.DOM.EventTarget         (addEventListener)
+import           GHCJS.DOM.EventTarget         (addEventListener,
+                                                removeEventListener)
 import           GHCJS.DOM.EventTargetClosures (eventListenerNew)
-import           GHCJS.DOM.HTMLButtonElement   as Button
 import           GHCJS.DOM.HTMLElement         (setTitle)
 import           GHCJS.DOM.Node                (appendChild, setTextContent)
 import           GHCJS.DOM.Types               (IsDocument, IsNode, MouseEvent,
@@ -29,11 +29,9 @@ buttonState True  False = ButtonEnabled
 buttonState True  True  = ButtonPressed
 
 
-
-
 mkButton :: (IsDocument d, IsNode p, Show e) => d -> p ->
-            (Behavior Text, Behavior Bool) -> e -> IO (Button e)
-mkButton doc parent (bLabel, bEnabled) buttonEventValue = do
+            (ButtonType, Behavior Text, Behavior Bool) -> e -> IO (Button e)
+mkButton doc parent (buttonType, bLabel, bEnabled) buttonEventValue = do
   button <- _createDivElement doc
   setAttribute button "data-role" "button"
   inner_div <- _createDivElement doc
@@ -43,13 +41,33 @@ mkButton doc parent (bLabel, bEnabled) buttonEventValue = do
 
   (bButtonPressed, fireButtonPressed) <- sync $ newBehavior False
 
-  let listener :: Bool -> MouseEvent -> IO ()
-      listener a _ = do
-        print a
-        sync $ fireButtonPressed a
+  let mouseOutHandler :: MouseEvent -> IO ()
+      mouseOutHandler _ = do
+        print "out"
+        sync $ fireButtonPressed False
+  eventListenerMouseOut <- eventListenerNew mouseOutHandler
 
-  eventListenerDown <- eventListenerNew $ listener True
-  eventListenerUp   <- eventListenerNew $ listener False
+  (eButtonClick, fireButtonClick) <- sync newEvent
+
+  let listenerDown, listenerUp :: MouseEvent -> IO ()
+      listenerDown _ = do
+        print "down"
+        addEventListener button "mouseout" (pure eventListenerMouseOut) True
+        sync $ fireButtonPressed True
+
+      listenerUp _ = do
+        print "up"
+        removeEventListener button "mouseout" (pure eventListenerMouseOut) True
+        sync $ fireButtonPressed False
+        if (buttonType == UpButton)
+          then sync $ fireButtonClick buttonEventValue
+          else return ()
+
+
+
+
+  eventListenerDown <- eventListenerNew listenerDown
+  eventListenerUp   <- eventListenerNew listenerUp
 
   addEventListener button "mousedown" (pure eventListenerDown) True
   addEventListener button "mouseup" (pure eventListenerUp) True
@@ -58,20 +76,18 @@ mkButton doc parent (bLabel, bEnabled) buttonEventValue = do
   cButtonState <- sync $ listen (value bButtonState) $
                   setAttribute button "data-state" . show
 
-  (eButtonClick, fireButtonClick) <- sync newEvent
 
 
   empty_div <- _createDivElement doc
   setClassName empty_div "EmptyButton"
 
-  cLabel <- sync $ do
-    listen (value bLabel) $ \t -> do
+  cLabel <- sync $ listen (value bLabel) $ \t -> do
       setTitle button t
       setTextContent inner_span . pure $ t
       _removeFromParentIfExists parent button
       _removeFromParentIfExists parent empty_div
       _ <- appendChild parent . pure $
-           if (T.null t)
+           if T.null t
            then castToHTMLElement empty_div
            else castToHTMLElement button
       return ()

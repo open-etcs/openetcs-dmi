@@ -16,7 +16,7 @@ import           GHCJS.DOM.Node        (appendChild, setTextContent)
 import           GHCJS.DOM.Types       (IsDocument, IsNode)
 
 mkMenuWindow :: (IsDocument d, IsNode p) => d -> p
-                -> Behavior Text -> Event Bool ->[(Behavior Text, Behavior Bool )]
+                -> Behavior Text -> Event Bool ->[(ButtonType, Behavior Text, Behavior Bool )]
                 -> IO MenuWindow
 mkMenuWindow doc parent bTitle eVisible bs = do
   win <- _mkWindow
@@ -58,7 +58,8 @@ mkMenuWindow doc parent bTitle eVisible bs = do
         _mkCloseButton win = do
             closeContainer <- _createDivElement doc
             setClassName closeContainer ("MenuClose" :: String)
-            closeButton <- mkButton doc closeContainer (pure "X", pure True) ()
+            closeButton <-
+              mkButton doc closeContainer (UpButton, pure "X", pure True) ()
 
             let eIntern =
                   mappend eVisible . fmap (const False) $ closeButton ^. buttonE
