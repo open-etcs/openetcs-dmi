@@ -19,9 +19,10 @@ library
   exposed-modules:     ETCS.DMI,
                        ETCS.DMI.Types,
                        ETCS.DMI.Button,
-                       ETCS.DMI.MenuWindow
+                       ETCS.DMI.MenuWindows
                        
-  other-modules:       ETCS.DMI.Helpers
+  other-modules:       ETCS.DMI.Helpers,
+                       ETCS.DMI.MenuWindow
   
   -- other-extensions:    
   build-depends:       base >=4.8 && <4.9,

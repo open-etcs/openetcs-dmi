@@ -41,6 +41,7 @@ mkButton doc parent (buttonType, bLabel, bEnabled) buttonEventValue = do
 
   (bButtonPressed, fireButtonPressed) <- sync $ newBehavior False
   (eButtonClick, fireButtonClick) <- sync newEvent
+  let fireButtonEventValue = sync $ fireButtonClick buttonEventValue
 
   cLabel <- sync $ listen (value bLabel) $ \t -> do
       setTitle button t
@@ -55,7 +56,6 @@ mkButton doc parent (buttonType, bLabel, bEnabled) buttonEventValue = do
 
 
 
-  let fireButtonEventValue = sync $ fireButtonClick buttonEventValue
 
   mv_thread <- newEmptyMVar
 

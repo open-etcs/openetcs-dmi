@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 
 module Main ( main ) where
 
@@ -17,10 +18,17 @@ main = runWebGUI $ \ webView -> do
     Just doc <- webViewGetDomDocument webView
     Just body <- getBody doc
 
-    mw <- mkMainWindow doc body mempty
+--    maw <- mkMainWindow doc body mempty
+--    ovw <- mkOverrideWindow doc body mempty
+--    spw <- mkSpecialWindow doc body mempty
+--    sew <- mkSettingsWindow doc body mempty
+    rcw <- mkRBCContactWindow doc body mempty
+    _ <- sync $ listen (rcw ^. menuWinE) print
 
-    _ <- sync $ listen (mw ^. menuWinE) print
-
+{-
+    b <- mkButton doc body (pure "Test Button", pure True) (23 :: Int)
+    _ <- sync $ listen (b ^. buttonE) print
+-}
     return ()
 
 
