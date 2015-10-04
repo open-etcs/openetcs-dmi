@@ -18,7 +18,10 @@ $ColorPASPLight: rgb(41, 74, 107);
 
 
 
-
+body {
+  background-color: red;
+  }
+    
 button {
   font-size: $fontSize;
   background-color: $ColorDarkBlue;
@@ -41,7 +44,9 @@ button[disabled] {
 }
 
 .MenuWindow {
-
+  position: abolute;
+  top: 123px;
+  
   font-family: $fontStack;
   background-color: $ColorDarkBlue;
   border: $borderWidth solid $ColorWhite;
@@ -51,7 +56,9 @@ button[disabled] {
   .MenuTitle {
     background-color: $ColorBlack;
     color: $ColorGrey;
-    @include absoluteWidthHeight(306px, 24px);
+    border: $borderWidth solid $ColorWhite;
+    
+    @include absoluteWidthHeight(304px, 24px);
   }
 
   .MenuButtons {
