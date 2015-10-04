@@ -16,12 +16,18 @@ build-type:          Simple
 cabal-version:       >=1.10
 
 library
-  exposed-modules:     ETCS.DMI
+  exposed-modules:     ETCS.DMI,
+                       ETCS.DMI.Types,
+                       ETCS.DMI.MenuWindow
+                       
   -- other-modules:       
   -- other-extensions:    
   build-depends:       base >=4.8 && <4.9,
                        sodium,
-                       text
+                       text,
+                       lens,
+                       ghcjs-dom >= 0.2
+                       
   hs-source-dirs:      src
   default-language:    Haskell2010
   ghc-options: -Wall
@@ -34,6 +40,7 @@ executable openetcs-dmi
                    ghcjs-dom >=0.2,
                    sodium,
                    text,
+                   lens,
                    openetcs-dmi
     main-is: main.hs
     buildable: True

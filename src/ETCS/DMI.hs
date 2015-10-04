@@ -1,28 +1,23 @@
 {-# LANGUAGE OverloadedStrings #-}
-module ETCS.DMI where
 
-import           Data.Text  (Text)
+module ETCS.DMI
+       ( mkMainWindow, menuWinE, menuWinCleanup
+       ) where
+
+import           ETCS.DMI.MenuWindow
 import           FRP.Sodium
+import           GHCJS.DOM.Types     (IsDocument, IsNode)
 
-data Button t =
-  Button {
-    _buttonE       :: Event t,
-    _buttonCleanup :: IO ()
-    }
-
-
-data WindowMenuButtonId =
-  B1 | B2 | B3 | B4 | B5 | B6 | B7 | B8 | B9
-  deriving (Show, Read, Eq, Ord, Enum, Bounded)
-
-
-
-data MenuWindow =
-  MenuWindow {
-    _menuWinE       :: Event WindowMenuButtonId,
-    _menuWinCleanup :: IO ()
-    }
-
-
-
-
+mkMainWindow :: (IsDocument d, IsNode p) => d -> p -> Event Bool -> IO MenuWindow
+mkMainWindow doc parent visible =
+  mkMenuWindow doc parent (pure "Main") visible
+  [ (pure "Start", pure True)
+  , (pure "Driver ID", pure True)
+  , (pure "Train Data", pure True)
+  , (pure ".", pure False)
+  , (pure "Level", pure True)
+  , (pure "Train running Number", pure False)
+  , (pure "Shunting", pure True)
+  , (pure "Non-Leading", pure True)
+  , (pure "Maintain Shunting", pure True)
+  ]
