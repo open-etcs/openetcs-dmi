@@ -4,6 +4,7 @@ module ETCS.DMI.MenuWindow (
     MenuWindow, mkMenuWindow, menuWinE, menuWinCleanup
 ) where
 
+import           Control.Lens
 import           Data.Maybe            (fromMaybe)
 import           Data.Text             (Text)
 import           ETCS.DMI.Button
@@ -16,7 +17,6 @@ import           GHCJS.DOM.Node        (appendChild, setTextContent)
 import           GHCJS.DOM.Types       (IsDocument, IsNode,
                                         castToHTMLDivElement)
 
-
 mkMenuWindow :: (IsDocument d, IsNode p) => d -> p
                 -> Behavior Text -> Event Bool ->[(Behavior Text, Behavior Bool )]
                 -> IO MenuWindow
@@ -27,13 +27,15 @@ mkMenuWindow doc parent bTitle eVisible bs = do
   closeButton <- _mkCloseButton w
   _ <- appendChild parent (pure w)
 
-  return MenuWindow {
-    _menuWinE = foldl merge mempty . fmap _buttonE $ bs',
-    _menuWinCleanup = do _ <- sequence . fmap _buttonCleanup $ bs'
-                         cTitle
-                         _buttonCleanup closeButton
-                         return ()
-    }
+  let winE = foldl merge mempty . fmap _buttonE $ bs'
+      cleanup = do
+        _ <- sequence . fmap _buttonCleanup $ bs'
+        cTitle
+        _buttonCleanup closeButton
+        return ()
+
+  return $ _MenuWindow # (winE, cleanup)
+
   where _mkWindow = do
           w <- fmap (castToHTMLDivElement . fromMaybe (error "unable to create div")) $
                createElement doc $ pure ("div" :: String)
