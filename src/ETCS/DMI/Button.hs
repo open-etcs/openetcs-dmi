@@ -60,11 +60,22 @@ mkButton doc parent (buttonType, bLabel, bEnabled) buttonEventValue = do
       animateDelay' i v = do
         em <- isEmptyMVar mv_thread
         if (em) then return ()
-          else do
-          sync $ fireButtonPressed v
-          threadDelay 250000
-          animateDelay' (i - 1) (not v)
+          else do sync $ fireButtonPressed v
+                  threadDelay 250000
+                  animateDelay' (i - 1) (not v)
       animateDelay = animateDelay' (8 :: Int) True
+
+      repeatAction' = do
+        em <- isEmptyMVar mv_thread
+        if (em) then return ()
+          else do fireButtonEventValue
+                  threadDelay 300000
+                  repeatAction'
+      repeatAction = do
+        threadDelay 1500000
+        em <- isEmptyMVar mv_thread
+        if (em) then return ()
+          else do repeatAction'
 
 
   let listenerDown, listenerUp :: MouseEvent -> IO ()
@@ -72,7 +83,10 @@ mkButton doc parent (buttonType, bLabel, bEnabled) buttonEventValue = do
         addEventListener button "mouseout" (pure eventListenerMouseOut) True
         case buttonType of
           UpButton -> sync $ fireButtonPressed True
-          DownButton -> return ()
+          DownButton -> do
+            fireButtonEventValue
+            tid <- forkIO repeatAction
+            putMVar mv_thread tid
           DelayButton -> do
             tid <- forkIO animateDelay
             putMVar mv_thread tid
@@ -82,7 +96,9 @@ mkButton doc parent (buttonType, bLabel, bEnabled) buttonEventValue = do
         sync $ fireButtonPressed False
         case buttonType of
           UpButton -> fireButtonEventValue
-          DownButton -> return ()
+          DownButton -> do
+            _ <- maybe (return ()) killThread <$> tryTakeMVar mv_thread
+            return ()
           DelayButton -> do
             em <- tryTakeMVar mv_thread
             case (em) of
