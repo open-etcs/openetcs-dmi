@@ -24,7 +24,6 @@ mkMenuWindow doc parent bTitle eVisible bs = do
   cTitle <- _mkWindowTitle win
   buttons <- _mkButtons win
   closeButton <- _mkCloseButton win
-
   () <$ appendChild parent (pure win)
 
   let eButtons = mconcat . fmap (view buttonE) $ buttons
@@ -59,7 +58,7 @@ mkMenuWindow doc parent bTitle eVisible bs = do
             closeContainer <- _createDivElement doc
             setClassName closeContainer ("MenuClose" :: String)
             closeButton <-
-              mkButton doc closeContainer (UpButton, pure "X", pure True) ()
+              mkButton doc closeContainer (UpButton, pure "x", pure True) ()
 
             let eIntern =
                   mappend eVisible . fmap (const False) $ closeButton ^. buttonE
