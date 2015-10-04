@@ -67,20 +67,85 @@ $F_height: $D_height + $G_height;
 body {
   background-color: red;
   }
-    
-button {
+
+
+
+
+@mixin borderTL($width, $style, $color) {
+  border-top-width:  $width ;
+  border-left-width: $width ;
+  border-top-style:  $style ;
+  border-left-style: $style ;
+  border-top-color:  $color ;
+  border-left-color: $color ;
+}
+
+@mixin borderBR($width, $style, $color) {
+  border-bottom-width:  $width ;
+  border-right-width: $width ;
+  border-bottom-style:  $style ;
+  border-right-style: $style ;
+  border-bottom-color:  $color ;
+  border-right-color: $color ;
+}
+
+div[data-role="button"] {
+  
   font-size: $fontSize;
   background-color: $ColorDarkBlue;
   color: $ColorWhite;
-  border: $borderWidth solid $ColorWhite;
   padding: 0px;
-  margin: 0px;
+  display: table;
+  
+  div {
+    display: table-cell;
+    text-align: center;
+    vertical-align: middle;
+  }
+
+}
+  
+div[data-role="button"][data-state="ButtonEnabled"] {
+    
+  @include borderTL($borderWidth, solid, $ColorBlack);
+  @include borderBR($borderWidth, solid, $ColorShadow);
+  
+  div {
+   @include borderBR($borderWidth, solid, $ColorBlack);
+   @include borderTL($borderWidth, solid, $ColorShadow);
+
+  }
+    
 }
 
-button[disabled] {
+div[data-role="button"][data-state="ButtonPressed"] {
+
+  border: $borderWidth solid $ColorDarkBlue;
+
+  div {
+   @include borderTL($borderWidth, solid, $ColorBlack);
+   @include borderBR($borderWidth, solid, $ColorShadow);
+
+  }
+    
+}
+
+
+div[data-role="button"][data-state="ButtonDisabled"] {
+
   color: $ColorDarkGrey;
+  
+  @include borderTL($borderWidth, solid, $ColorBlack);
+  @include borderBR($borderWidth, solid, $ColorShadow);
+  
+  div {
+   @include borderBR($borderWidth, solid, $ColorBlack);
+   @include borderTL($borderWidth, solid, $ColorShadow);
+   height: 100%
+  }
+    
 }
-
+  
 .clean { clean: all; }
 
 .leftSide {
@@ -109,33 +174,36 @@ button[disabled] {
 
   .MenuButtons {
     $buttonsWidth: $D_width + $F_width;
-    $buttonWidth: 153px;
     
-    width: $buttonsWidth;
-    max-width: $buttonsWidth;
+    width: $buttonsWidth - $doubleBorder;
+    max-width: $buttonsWidth - $doubleBorder;
+
+    $buttonWidth: 152px;
     
     position: absolute;
-    top: $buttonHeight;
+    top: $buttonHeight + $doubleBorder;
     
-    button {
-      @include absoluteWidthHeight( $buttonWidth - $borderWidth
-                                  , $buttonHeight - $borderWidth);
-      float: left;                                    
+    div[data-role=button] {
+      @include absoluteWidthHeight( $buttonWidth - $doubleBorder 
+                                  , $buttonHeight - $doubleBorder);
+      float: left;
+
     }
 
-    .EmptyButton {
-      @include generalPanel( $buttonWidth - $borderWidth
-                           , $buttonHeight - $borderWidth);
+    .EmptyButton {      
+      @include generalPanel( $buttonWidth - $doubleBorder
+                           , $buttonHeight + $doubleBorder);
+      border: 0px none $ColorDarkBlue;
       float: left;
     }
   }
 
   .MenuClose {
-    @include absoluteWidthHeight (82px, $buttonHeight);
+    @include absoluteWidthHeight (82px - $doubleBorder, $buttonHeight - $doubleBorder);
     position: absolute;
     top: 400px;
     
-    button { width: 100%; height: 100%; font-size: 24px }      
+    div[data-role="button"] { width: 100%; height: 100%; font-size: 24px }      
   }
 
 }
