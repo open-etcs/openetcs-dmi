@@ -2,7 +2,7 @@ module ETCS.DMI.Button (
     Button, ButtonType (..), mkButton, buttonE, buttonCleanup
 ) where
 
-
+import           Control.Concurrent
 import           Control.Lens
 import           Data.Text                     (Text)
 import qualified Data.Text                     as T
@@ -17,7 +17,6 @@ import           GHCJS.DOM.HTMLElement         (setTitle)
 import           GHCJS.DOM.Node                (appendChild, setTextContent)
 import           GHCJS.DOM.Types               (IsDocument, IsNode, MouseEvent,
                                                 castToHTMLElement)
-
 
 
 data ButtonState = ButtonDisabled | ButtonEnabled | ButtonPressed
@@ -41,29 +40,54 @@ mkButton doc parent (buttonType, bLabel, bEnabled) buttonEventValue = do
 
   (bButtonPressed, fireButtonPressed) <- sync $ newBehavior False
 
+  mv_thread <- newEmptyMVar
+
   let mouseOutHandler :: MouseEvent -> IO ()
       mouseOutHandler _ = do
-        print "out"
+        _ <- maybe (return ()) killThread <$> tryTakeMVar mv_thread
         sync $ fireButtonPressed False
+
   eventListenerMouseOut <- eventListenerNew mouseOutHandler
 
   (eButtonClick, fireButtonClick) <- sync newEvent
+  let fireButtonEventValue = sync $ fireButtonClick buttonEventValue
+
+  let animateDelay' 0 v = do
+        sync $ fireButtonPressed v
+        _<- tryTakeMVar mv_thread
+        return ()
+
+      animateDelay' i v = do
+        em <- isEmptyMVar mv_thread
+        if (em) then return ()
+          else do
+          sync $ fireButtonPressed v
+          threadDelay 250000
+          animateDelay' (i - 1) (not v)
+      animateDelay = animateDelay' (8 :: Int) True
+
 
   let listenerDown, listenerUp :: MouseEvent -> IO ()
       listenerDown _ = do
-        print "down"
         addEventListener button "mouseout" (pure eventListenerMouseOut) True
-        sync $ fireButtonPressed True
+        case buttonType of
+          UpButton -> sync $ fireButtonPressed True
+          DownButton -> return ()
+          DelayButton -> do
+            tid <- forkIO animateDelay
+            putMVar mv_thread tid
 
       listenerUp _ = do
-        print "up"
         removeEventListener button "mouseout" (pure eventListenerMouseOut) True
         sync $ fireButtonPressed False
-        if (buttonType == UpButton)
-          then sync $ fireButtonClick buttonEventValue
-          else return ()
-
-
+        case buttonType of
+          UpButton -> fireButtonEventValue
+          DownButton -> return ()
+          DelayButton -> do
+            em <- tryTakeMVar mv_thread
+            case (em) of
+                 Nothing -> fireButtonEventValue
+                 Just pid -> killThread pid
 
 
   eventListenerDown <- eventListenerNew listenerDown
