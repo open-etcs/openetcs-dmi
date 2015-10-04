@@ -20,10 +20,10 @@ import           GHCJS.DOM.Types               (IsDocument, IsNode, MouseEvent,
                                                 castToHTMLDivElement,
                                                 castToHTMLSpanElement)
 
+import           Control.Lens
 
-
-mkButton :: (IsDocument d, IsNode p) => d -> p -> (Behavior Text, Behavior Bool) -> e
-            -> IO (Button e)
+mkButton :: (IsDocument d, IsNode p) => d -> p ->
+            (Behavior Text, Behavior Bool) -> e -> IO (Button e)
 mkButton doc parent (bLabel, bEnabled) eValue = do
 
   b <- fmap (castToHTMLButtonElement . fromMaybe (error "unable to create button")) $
@@ -67,7 +67,4 @@ mkButton doc parent (bLabel, bEnabled) eValue = do
   eventListener <- eventListenerNew listener
   addEventListener b "click" (pure eventListener) False
 
-  return $ Button {
-    _buttonE = e,
-    _buttonCleanup = cleanup
-    }
+  return $ _Button # (e, cleanup)
