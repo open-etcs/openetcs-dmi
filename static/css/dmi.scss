@@ -72,7 +72,9 @@ button[disabled] {
     }
 
     .EmptyButton {
-      @include absoluteWidthHeight(153px, 50px);
+      @include absoluteWidthHeight(151px, 48px);
+      border: $borderWidth solid $ColorWhite;
+      float: right;
     }
 
 

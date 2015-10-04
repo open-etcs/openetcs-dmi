@@ -14,7 +14,7 @@ mkMainWindow doc parent visible =
   [ (pure "Start", pure True)
   , (pure "Driver ID", pure True)
   , (pure "Train Data", pure True)
-  , (pure ".", pure False)
+  , (pure "", pure False)
   , (pure "Level", pure True)
   , (pure "Train running Number", pure False)
   , (pure "Shunting", pure True)

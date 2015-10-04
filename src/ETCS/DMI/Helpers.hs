@@ -1,14 +1,25 @@
 module ETCS.DMI.Helpers
        (_createDivElement, _createButtonElement, _createSpanElement
+       ,_removeFromParentIfExists
        ) where
 
 import           Data.Maybe         (fromMaybe)
 import           GHCJS.DOM.Document (createElement)
+import           GHCJS.DOM.Node     (getParentNode, isEqualNode, removeChild)
 import           GHCJS.DOM.Types    (Element, HTMLButtonElement, HTMLDivElement,
-                                     HTMLSpanElement, IsDocument,
+                                     HTMLSpanElement, IsDocument, IsNode,
                                      castToHTMLButtonElement,
                                      castToHTMLDivElement,
                                      castToHTMLSpanElement)
+
+
+_removeFromParentIfExists :: (IsNode parent, IsNode a) => parent -> a -> IO ()
+_removeFromParentIfExists parent a = do
+  aParent <- getParentNode a
+  isAParent <- isEqualNode parent aParent
+  if (isAParent)
+    then do _ <- removeChild parent aParent ; return ()
+    else do return ()
 
 _createDivElement :: (IsDocument self) => self -> IO HTMLDivElement
 _createDivElement doc = _createElement doc "div" castToHTMLDivElement

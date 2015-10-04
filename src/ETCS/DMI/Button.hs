@@ -13,52 +13,45 @@ import           GHCJS.DOM.EventTarget         (addEventListener)
 import           GHCJS.DOM.EventTargetClosures (eventListenerNew)
 import           GHCJS.DOM.HTMLButtonElement   as Button
 import           GHCJS.DOM.HTMLElement         (setTitle)
-import           GHCJS.DOM.Node                (appendChild, getFirstChild,
-                                                hasChildNodes, removeChild,
-                                                setTextContent)
-import           GHCJS.DOM.Types               (IsDocument, IsNode, MouseEvent)
+import           GHCJS.DOM.Node                (appendChild, setTextContent)
+import           GHCJS.DOM.Types               (IsDocument, IsNode, MouseEvent,
+                                                castToHTMLElement)
 
 import           Control.Lens
 
-mkButton :: (IsDocument d, IsNode p) => d -> p ->
+mkButton :: (IsDocument d, IsNode p, Show e) => d -> p ->
             (Behavior Text, Behavior Bool) -> e -> IO (Button e)
-mkButton doc parent (bLabel, bEnabled) eValue = do
-
+mkButton doc parent (bLabel, bEnabled) buttonEventValue = do
   button <- _createButtonElement doc
-  () <$ (appendChild parent $ pure button)
-
   inner_span <- _createSpanElement doc
-  empty_div <- _createDivElement doc
-  setClassName empty_div "EmptyButton"
+  _ <- appendChild button $ pure inner_span
+  cVisible <- sync $ listen (value bEnabled) $ Button.setDisabled button . not
 
-  (eButtonClick, fireButtonClick, cleanup) <- sync $ do
-    cLabel <- listen (value bLabel) $ \t -> do
-      setTitle button t
-      cs <- hasChildNodes button
-      setTextContent inner_span . pure $ t
-      c0 <- getFirstChild button
-
-      case (cs, T.null t) of
-        (False, False) -> do
-          _ <- appendChild button $ pure inner_span ; return ()
-        (False, True)  -> do
-          _ <- appendChild button $ pure empty_div ; return ()
-        (True, False) -> do
-          _ <- removeChild button c0
-          _ <- appendChild button $ pure inner_span ; return ()
-        (True, True)  -> do
-          _ <- removeChild button c0
-          _ <- appendChild button $ pure empty_div ; return ()
-
-
-
-    cVisible <- listen (value bEnabled) $ Button.setDisabled button . not
-    (eButtonClick, fireButtonClick) <- newEvent
-    return (eButtonClick, fireButtonClick, cLabel >> cVisible)
-
+  (eButtonClick, fireButtonClick) <- sync newEvent
   let listener :: MouseEvent -> IO ()
-      listener = const . sync $ fireButtonClick eValue
+      listener = const . sync $ fireButtonClick buttonEventValue
   eventListener <- eventListenerNew listener
   addEventListener button "click" (pure eventListener) False
 
-  return $ _Button # (eButtonClick, cleanup)
+
+  --() <$ (appendChild parent $ pure button)
+
+  empty_div <- _createDivElement doc
+  setClassName empty_div "EmptyButton"
+
+  cLabel <- sync $ do
+    listen (value bLabel) $ \t -> do
+      setTitle button t
+      setTextContent inner_span . pure $ t
+      _removeFromParentIfExists parent button
+      _removeFromParentIfExists parent empty_div
+      _ <- appendChild parent . pure $
+           if (T.null t)
+           then castToHTMLElement empty_div
+           else castToHTMLElement button
+      return ()
+
+  return $ _Button # (eButtonClick, cLabel >> cVisible)
+
+
+
