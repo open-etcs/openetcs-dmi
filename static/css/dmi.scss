@@ -217,6 +217,74 @@ div[data-role="button"][data-state="ButtonDisabled"] {
 
 }
 
-  
+
+
+
 
   
+  
+.InputField {
+  background-color: $ColorDarkGrey;
+  
+  td {
+    text-align: right;
+  }
+    
+  label {
+    color: $ColorGrey;
+    padding-right: 10px;
+  }
+    
+  input  {    
+    color: $ColorGrey;
+    background-color: $ColorDarkGrey;
+    padding-left: 10px;
+    }
+
+  input:focus {
+    color: $ColorBlack;    
+    background-color: $ColorMediumGrey;
+  }    
+}
+
+  
+.InputField[data-state="DataAccepted"] {
+  input {
+    color: $ColorWhite;
+    background-color: $ColorDarkGrey;
+  }
+}
+
+  
+.InputFields {
+  margin: 0px;
+  padding: 0px;
+
+  $totalWidth: $D_width + $F_width - $doubleBorder;
+  width: $totalWidth;
+  background-color: $ColorDarkBlue;
+  
+  .InputField {
+
+    td {
+      border: $borderWidth solid $ColorMediumGrey;      
+      border-right: none;
+
+      label {
+        width: 102px - $doubleBorder;
+        height: 50px - $doubleBorder;
+        }
+
+      input {
+        width: 202px - $doubleBorder;
+        height: 50px - $doubleBorder;
+        border: $borderWidth solid $ColorDarkGrey;      
+      }
+
+      input:focus {
+        @include borderTL($borderWidth, solid, $ColorGrey);
+        @include borderBR($borderWidth, solid, $ColorDarkGrey);      
+      }
+    }
+  }
+}
