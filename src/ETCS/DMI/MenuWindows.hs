@@ -17,6 +17,9 @@ import           GHCJS.DOM.Types     (IsDocument, IsNode)
 trainInMode :: ETCSMode -> TrainBehavior -> Behavior Bool
 trainInMode m i = fmap (m ==) $ i ^. trainMode
 
+trainInModes :: [ETCSMode] -> TrainBehavior -> Behavior Bool
+trainInModes ms i = fmap (`elem` ms) $ i ^. trainMode
+
 bStartButtonEnabled :: TrainBehavior -> Behavior Bool
 bStartButtonEnabled i =
   let bStartEnabled1 = bsAnd
@@ -45,9 +48,22 @@ bDriverIDButtonEnabled i =
       bDriverIdEnabled2 = bOr (i ^. trainModDriverIDAllowed) $
         bsAnd [ fmap not $ i ^. trainModDriverIDAllowed
               , i ^. trainIsAtStandstill
-              , fmap (`elem` [SH, FS, LS, SR, OS, NL, UN, SN]) $ i ^. trainMode
+              , trainInModes [ SH, FS, LS, SR, OS, NL, UN, SN ] i
               ]
   in bDriverIdEnabled1 `bOr` bDriverIdEnabled2
+
+
+bTrainDataButtonEnabled :: TrainBehavior -> Behavior Bool
+bTrainDataButtonEnabled i = bsAnd
+        [ i ^. trainIsAtStandstill, i ^. trainLevelIsValid
+        , i ^. trainDriverIDIsValid, trainInModes [SB, FS, LS, SR, OS, UN, SN] i
+        ]
+
+bLevelButtonEnabled :: TrainBehavior -> Behavior Bool
+bLevelButtonEnabled i = bsAnd
+        [ i ^. trainIsAtStandstill
+        , i ^. trainDriverIDIsValid, trainInModes [SB, FS, LS, SR, OS, NL, UN, SN] i
+        ]
 
 
 mkMainWindow :: (IsDocument d, IsNode p) =>
@@ -56,9 +72,9 @@ mkMainWindow i doc parent visible =
   mkMenuWindow doc parent (pure "Main") visible
      [ (UpButton, pure "Start", bStartButtonEnabled i)
      , (UpButton, pure "Driver ID", bDriverIDButtonEnabled i)
-     , (UpButton, pure "Train Data", pure True)
+     , (UpButton, pure "Train Data", bTrainDataButtonEnabled i)
      , (UpButton, pure "", pure False)
-     , (UpButton, pure "Level", pure True)
+     , (UpButton, pure "Level", bLevelButtonEnabled i)
      , (UpButton, pure "Train running Number", pure True)
      , (DelayButton, pure "Shunting", pure True)
      , (DelayButton, pure "Non-Leading", pure True)
