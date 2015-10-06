@@ -44,9 +44,9 @@ registerMouseEvent e t = do
   addEventListener t e (pure eventListener) True
   return addHandler
 
-mkButton :: (IsDocument d, IsNode p, Show e, Frameworks t) => d -> p ->
-            (ButtonType, Behavior t Text, Behavior t Bool) -> e ->
-            IO (Moment t (Event t e))
+mkButton :: (IsDocument d, IsNode p, Show e) => d -> p ->
+            (ButtonType, Behavior Text, Behavior Bool) -> e ->
+            IO (MomentIO (Event e))
 mkButton doc parent (buttonType, bLabel, bEnabled) buttonEventValue = do
   button <- _createDivElement doc
   setAttribute button "data-role" "button"
@@ -71,15 +71,15 @@ mkButton doc parent (buttonType, bLabel, bEnabled) buttonEventValue = do
                then castToHTMLElement empty_div
                else castToHTMLElement button
           return ()
-    initial bLabel >>= liftIOLater . setLabel
+    valueBLater bLabel >>= liftIOLater . setLabel
     changes bLabel >>= reactimate' . fmap (fmap setLabel)
 
     -- construct and react on button pressed behavior
     (eButtonPressed, fireButtonPressed) <- newEvent
-    let bButtonPressed = stepper False eButtonPressed
+    bButtonPressed <- stepper False eButtonPressed
     let bButtonState = buttonState <$> bEnabled <*> bButtonPressed
     let stateHandler = setAttribute button "data-state" . show
-    initial bButtonState >>= liftIOLater . stateHandler
+    valueBLater bButtonState >>= liftIOLater . stateHandler
     changes bButtonState >>= reactimate' . fmap (fmap stateHandler)
 
     -- handle clicks

@@ -12,7 +12,7 @@ import           Reactive.Banana
 import           Reactive.Banana.Frameworks
 
 
-trainb :: TrainBehavior t
+trainb :: TrainBehavior
 trainb =
   TrainBehavior {
     _trainIsAtStandstill = pure True,
@@ -41,16 +41,13 @@ main = runWebGUI $ \ webView -> do
 --    sew <- mkSettingsWindow doc body mempty
 --          rcw <- mkRBCContactWindow doc body mempty
 
-
+    windowMain <- mkMainWindow trainb doc body never
     network <- compile $ do
-      windowMain <- liftIO $ mkMainWindow trainb doc body never
       eWindowMain <- windowMain
-
       reactimate $ fmap print eWindowMain
 
-
     actuate network
-    print "done"
+    print ("startup done" :: String)
 
 
 

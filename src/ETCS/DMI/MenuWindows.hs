@@ -14,16 +14,16 @@ import           GHCJS.DOM.Types            (IsDocument, IsNode)
 import           Reactive.Banana
 import           Reactive.Banana.Frameworks
 
-trainInMode :: ETCSMode -> TrainBehavior t -> Behavior t Bool
+trainInMode :: ETCSMode -> TrainBehavior -> Behavior Bool
 trainInMode m i = fmap (m ==) $ i ^. trainMode
 
-trainInModes :: [ETCSMode] -> TrainBehavior t -> Behavior t Bool
+trainInModes :: [ETCSMode] -> TrainBehavior -> Behavior Bool
 trainInModes ms i = fmap (`elem` ms) $ i ^. trainMode
 
 
 
-mkMainWindow :: (IsDocument d, IsNode p, Frameworks t) =>
-                TrainBehavior t -> d -> p -> Event t Bool -> IO (Moment t (Event t Int))
+mkMainWindow :: (IsDocument d, IsNode p) =>
+                TrainBehavior -> d -> p -> Event Bool -> IO (MomentIO (Event Int))
 mkMainWindow i doc parent visible =
   mkMenuWindow doc parent (pure "Main") visible
      [ (UpButton, pure "Start", bStartButtonEnabled i)
@@ -40,7 +40,7 @@ mkMainWindow i doc parent visible =
 
 
 
-bStartButtonEnabled :: TrainBehavior t -> Behavior t Bool
+bStartButtonEnabled :: TrainBehavior -> Behavior Bool
 bStartButtonEnabled i =
   let bStartEnabled1 = bsAnd
         [ i ^. trainIsAtStandstill, trainInMode SB i
@@ -59,7 +59,7 @@ bStartButtonEnabled i =
 
 
 
-bDriverIDButtonEnabled :: TrainBehavior t -> Behavior t Bool
+bDriverIDButtonEnabled :: TrainBehavior -> Behavior Bool
 bDriverIDButtonEnabled i =
   let bDriverIdEnabled1 = bsAnd
         [ i ^. trainIsAtStandstill, trainInMode SB i
@@ -73,13 +73,13 @@ bDriverIDButtonEnabled i =
   in bDriverIdEnabled1 `bOr` bDriverIdEnabled2
 
 
-bTrainDataButtonEnabled :: TrainBehavior t -> Behavior t Bool
+bTrainDataButtonEnabled :: TrainBehavior -> Behavior Bool
 bTrainDataButtonEnabled i = bsAnd
         [ i ^. trainIsAtStandstill, i ^. trainLevelIsValid
         , i ^. trainDriverIDIsValid, trainInModes [SB, FS, LS, SR, OS, UN, SN] i
         ]
 
-bLevelButtonEnabled :: TrainBehavior t -> Behavior t Bool
+bLevelButtonEnabled :: TrainBehavior -> Behavior Bool
 bLevelButtonEnabled i = bsAnd
         [ i ^. trainIsAtStandstill
         , i ^. trainDriverIDIsValid, trainInModes [SB, FS, LS, SR, OS, NL, UN, SN] i
@@ -89,14 +89,14 @@ bLevelButtonEnabled i = bsAnd
 
 
 
-mkOverrideWindow :: (IsDocument d, IsNode p, Frameworks t) => d -> p -> Event t Bool -> IO (Moment t (Event t Int))
+mkOverrideWindow :: (IsDocument d, IsNode p) => d -> p -> Event Bool -> IO (MomentIO (Event Int))
 mkOverrideWindow doc parent visible =
   mkMenuWindow doc parent (pure "Override") visible
   [ (UpButton, pure "EOA", pure True)
   ]
 
 
-mkSpecialWindow :: (IsDocument d, IsNode p, Frameworks t) => d -> p -> Event t Bool -> IO (Moment t (Event t Int))
+mkSpecialWindow :: (IsDocument d, IsNode p) => d -> p -> Event Bool -> IO (MomentIO (Event Int))
 mkSpecialWindow doc parent visible =
   mkMenuWindow doc parent (pure "Special") visible
   [ (UpButton, pure "Ahension", pure True)
@@ -104,7 +104,7 @@ mkSpecialWindow doc parent visible =
   , (DelayButton, pure "Train integrety", pure True)
   ]
 
-mkSettingsWindow :: (IsDocument d, IsNode p, Frameworks t) => d -> p -> Event t Bool -> IO (Moment t (Event t Int))
+mkSettingsWindow :: (IsDocument d, IsNode p) => d -> p -> Event Bool -> IO (MomentIO (Event Int))
 mkSettingsWindow doc parent visible =
   mkMenuWindow doc parent (pure "Settings") visible
   [ (UpButton, pure "Language", pure True) -- TODO: Image SE03
@@ -115,7 +115,7 @@ mkSettingsWindow doc parent visible =
   , (UpButton, pure "Remove VBC", pure True)
   ]
 
-mkRBCContactWindow :: (IsDocument d, IsNode p, Frameworks t) => d -> p -> Event t Bool -> IO (Moment t (Event t Int))
+mkRBCContactWindow :: (IsDocument d, IsNode p) => d -> p -> Event Bool -> IO (MomentIO (Event Int))
 mkRBCContactWindow doc parent visible =
   mkMenuWindow doc parent (pure "RBC Contact") visible
   [ (UpButton, pure "Contact last RBC", pure True)

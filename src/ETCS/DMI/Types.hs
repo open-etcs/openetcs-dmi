@@ -23,20 +23,20 @@ data ETCSLevel = Level0 | NTC | Level1 | Level2 | Level3
 makePrisms ''ETCSLevel
 
 
-data TrainBehavior t =
+data TrainBehavior =
   TrainBehavior {
-    _trainIsAtStandstill          :: Behavior t Bool,
-    _trainMode                    :: Behavior t ETCSMode,
-    _trainLevel                   :: Behavior t ETCSLevel,
-    _trainDriverIDIsValid         :: Behavior t Bool,
-    _trainDataIsValid             :: Behavior t Bool,
-    _trainLevelIsValid            :: Behavior t Bool,
-    _trainRunningNumberIsValid    :: Behavior t Bool,
-    _trainHasPendingEmergencyStop :: Behavior t Bool,
-    _trainHasCommunicationSession :: Behavior t Bool,
-    _trainIsNonLeading            :: Behavior t Bool,
-    _trainIsPassiveShunting       :: Behavior t Bool,
-    _trainModDriverIDAllowed      :: Behavior t Bool
+    _trainIsAtStandstill          :: Behavior Bool,
+    _trainMode                    :: Behavior ETCSMode,
+    _trainLevel                   :: Behavior ETCSLevel,
+    _trainDriverIDIsValid         :: Behavior Bool,
+    _trainDataIsValid             :: Behavior Bool,
+    _trainLevelIsValid            :: Behavior Bool,
+    _trainRunningNumberIsValid    :: Behavior Bool,
+    _trainHasPendingEmergencyStop :: Behavior Bool,
+    _trainHasCommunicationSession :: Behavior Bool,
+    _trainIsNonLeading            :: Behavior Bool,
+    _trainIsPassiveShunting       :: Behavior Bool,
+    _trainModDriverIDAllowed      :: Behavior Bool
     }
 
 makeLenses '' TrainBehavior

@@ -15,10 +15,10 @@ import           Reactive.Banana.Frameworks
 
 
 
-mkMenuWindow :: (IsDocument d, IsNode p, Frameworks t) => d -> p
-                -> Behavior t Text -> Event t Bool ->
-                [(ButtonType, Behavior t Text, Behavior t Bool )]
-                -> IO (Moment t (Event t Int))
+mkMenuWindow :: (IsDocument d, IsNode p) => d -> p
+                -> Behavior Text -> Event Bool ->
+                [(ButtonType, Behavior Text, Behavior Bool )]
+                -> IO (MomentIO (Event Int))
 mkMenuWindow doc parent bTitle eVisible bs = do
   win <- _mkWindow
 
@@ -38,16 +38,17 @@ mkMenuWindow doc parent bTitle eVisible bs = do
   return $ do
     -- the title
     let titleHandler = setTextContent titleElem . pure
-    initial bTitle >>= liftIOLater . titleHandler
+    valueBLater bTitle >>= liftIOLater . titleHandler
     changes bTitle >>= reactimate' . fmap (fmap titleHandler)
 
     -- the close button
     closeButton <- closeButtonR
-    let eCloseIntern = union eVisible . fmap (const False) $ closeButton
+    let eCloseIntern = unionWith const eVisible . fmap (const False) $ closeButton
     reactimate $ fmap (setHidden win . not) eCloseIntern
 
     -- union of all button events
-    unions <$> sequence buttonsR
+    foldl (unionWith const) never <$> sequence buttonsR
+
 
   where _mkWindow = do
           win <- _createDivElement doc
