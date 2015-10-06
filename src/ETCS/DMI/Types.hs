@@ -6,14 +6,13 @@ module ETCS.DMI.Types (
   TrainBehavior, trainIsAtStandstill, trainMode, trainLevel, trainDriverIDIsValid,
   trainDataIsValid, trainLevelIsValid, trainRunningNumberIsValid,
   trainHasPendingEmergencyStop, trainNationalValues, trainHasCommunicationSession,
-  trainIsNonLeading, trainIsPassiveShunting,
+  trainIsNonLeading, trainIsPassiveShunting, trainModDriverIDAllowed,
   Button, _Button, buttonE, buttonCleanup, ButtonType(..),
   WindowMenuButtonId (..),
   MenuWindow, _MenuWindow, menuWinE, menuWinCleanup
   ) where
 
 import           Control.Lens
-import           Data.Text    (Text)
 import           FRP.Sodium
 
 data ETCSMode = SB | PT | SR | SH | FS | LS | OS | NL| UN | SN
@@ -31,7 +30,7 @@ data TrainData = TrainData
 makeLenses ''TrainData
 
 data NationalValues = NationalValues {
-  _natModDriverIDAllowed :: Behavior Bool
+
 }
 makeLenses ''NationalValues
 
@@ -48,7 +47,8 @@ data TrainBehavior =
     _trainNationalValues          :: Behavior NationalValues,
     _trainHasCommunicationSession :: Behavior Bool,
     _trainIsNonLeading            :: Behavior Bool,
-    _trainIsPassiveShunting       :: Behavior Bool
+    _trainIsPassiveShunting       :: Behavior Bool,
+    _trainModDriverIDAllowed      :: Behavior Bool
     }
 
 makeLenses '' TrainBehavior

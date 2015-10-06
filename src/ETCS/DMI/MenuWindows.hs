@@ -35,12 +35,27 @@ bStartButtonEnabled i =
   in (bStartEnabled1 `bOr` bStartEnabled2) `bOr` bStartEnabled3
 
 
+
+bDriverIDButtonEnabled :: TrainBehavior -> Behavior Bool
+bDriverIDButtonEnabled i =
+  let bDriverIdEnabled1 = bsAnd
+        [ i ^. trainIsAtStandstill, trainInMode SB i
+        , i ^. trainDriverIDIsValid, i ^. trainLevelIsValid
+        ]
+      bDriverIdEnabled2 = bOr (i ^. trainModDriverIDAllowed) $
+        bsAnd [ fmap not $ i ^. trainModDriverIDAllowed
+              , i ^. trainIsAtStandstill
+              , fmap (`elem` [SH, FS, LS, SR, OS, NL, UN, SN]) $ i ^. trainMode
+              ]
+  in bDriverIdEnabled1 `bOr` bDriverIdEnabled2
+
+
 mkMainWindow :: (IsDocument d, IsNode p) =>
                 TrainBehavior -> d -> p -> Event Bool -> IO MenuWindow
 mkMainWindow i doc parent visible =
   mkMenuWindow doc parent (pure "Main") visible
      [ (UpButton, pure "Start", bStartButtonEnabled i)
-     , (UpButton, pure "Driver ID", pure True)
+     , (UpButton, pure "Driver ID", bDriverIDButtonEnabled i)
      , (UpButton, pure "Train Data", pure True)
      , (UpButton, pure "", pure False)
      , (UpButton, pure "Level", pure True)
