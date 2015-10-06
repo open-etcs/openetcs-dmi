@@ -1,5 +1,5 @@
 module ETCS.DMI.Button (
-    Button, ButtonType (..), mkButton, buttonE, buttonCleanup
+    ButtonType (..), mkButton
 ) where
 
 import           Control.Concurrent
@@ -54,19 +54,18 @@ mkButton doc parent (buttonType, bLabel, bEnabled) buttonEventValue = do
   inner_span <- _createSpanElement doc
   empty_div <- _createDivElement doc
   setClassName empty_div "EmptyButton"
-  _ <- appendChild inner_div $ pure inner_span
-  _ <- appendChild button $ pure inner_div
+  () <$ appendChild inner_div (pure inner_span)
+  () <$ appendChild button (pure inner_div)
 
   mv_thread <- newEmptyMVar
 
   return $ do
-
     -- react on label changes
     let setLabel t = do
           setTitle button t
           setTextContent inner_span . pure $ t
-          _removeFromParentIfExists parent button
-          _removeFromParentIfExists parent empty_div
+--          _removeFromParentIfExists parent button
+--          _removeFromParentIfExists parent empty_div
           _ <- appendChild parent . pure $
                if T.null t
                then castToHTMLElement empty_div
@@ -90,7 +89,7 @@ mkButton doc parent (buttonType, bLabel, bEnabled) buttonEventValue = do
     -- mouse out
     eMouseOut  <- liftIO (registerMouseOut button) >>= fromAddHandler
     let mouseOutHandler () = do
-          _ <- maybe (return ()) killThread <$> tryTakeMVar mv_thread
+          () <$ maybe (return ()) killThread <$> tryTakeMVar mv_thread
           fireButtonPressed False
     reactimate $ fmap mouseOutHandler eMouseOut
 
@@ -114,9 +113,8 @@ mkButton doc parent (buttonType, bLabel, bEnabled) buttonEventValue = do
           fireButtonPressed False
           case buttonType of
             UpButton -> fireButtonEventValue
-            DownButton -> do
-              _ <- maybe (return ()) killThread <$> tryTakeMVar mv_thread
-              return ()
+            DownButton ->
+              () <$ maybe (return ()) killThread <$> tryTakeMVar mv_thread
             DelayButton ->
               tryTakeMVar mv_thread >>= maybe fireButtonEventValue killThread
     reactimate $ fmap mouseUpHandler eMouseUp

@@ -4,7 +4,7 @@ module ETCS.DMI.Helpers
        , bAnd, bOr, bsAnd, bsOr
        ) where
 
-import           Control.Lens
+import           Control.Monad
 import           Data.Maybe         (fromMaybe)
 import           GHCJS.DOM.Document (createElement)
 import           GHCJS.DOM.Node     (getParentNode, isEqualNode, removeChild)
@@ -27,9 +27,7 @@ _removeFromParentIfExists :: (IsNode parent, IsNode a) => parent -> a -> IO ()
 _removeFromParentIfExists parent a = do
   aParent <- getParentNode a
   isAParent <- isEqualNode parent aParent
-  if (isAParent)
-    then do _ <- removeChild parent aParent ; return ()
-    else do return ()
+  unless isAParent $ () <$ removeChild parent aParent ; return ()
 
 _createDivElement :: (IsDocument self) => self -> IO HTMLDivElement
 _createDivElement doc = _createElement doc "div" castToHTMLDivElement

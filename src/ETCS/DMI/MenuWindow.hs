@@ -1,70 +1,65 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module ETCS.DMI.MenuWindow (
-    MenuWindow, mkMenuWindow, menuWinE, menuWinCleanup
-) where
+module ETCS.DMI.MenuWindow ( mkMenuWindow ) where
 
-import           Control.Lens
-import           Data.Text             (Text)
+import           Control.Monad
+import           Data.Text                  (Text)
 import           ETCS.DMI.Button
 import           ETCS.DMI.Helpers
-import           ETCS.DMI.Types
-import           FRP.Sodium
-import           GHCJS.DOM.Element     (setClassName)
-import           GHCJS.DOM.HTMLElement (setHidden)
-import           GHCJS.DOM.Node        (appendChild, setTextContent)
-import           GHCJS.DOM.Types       (IsDocument, IsNode)
+import           GHCJS.DOM.Element          (setClassName)
+import           GHCJS.DOM.HTMLElement      (setHidden)
+import           GHCJS.DOM.Node             (appendChild, setTextContent)
+import           GHCJS.DOM.Types            (IsDocument, IsNode)
+import           Reactive.Banana
+import           Reactive.Banana.Frameworks
 
-mkMenuWindow :: (IsDocument d, IsNode p) => d -> p
-                -> Behavior Text -> Event Bool ->[(ButtonType, Behavior Text, Behavior Bool )]
-                -> IO MenuWindow
+
+
+mkMenuWindow :: (IsDocument d, IsNode p, Frameworks t) => d -> p
+                -> Behavior t Text -> Event t Bool ->
+                [(ButtonType, Behavior t Text, Behavior t Bool )]
+                -> IO (Moment t (Event t Int))
 mkMenuWindow doc parent bTitle eVisible bs = do
   win <- _mkWindow
 
-  cTitle <- _mkWindowTitle win
-  buttons <- _mkButtons win
-  closeButton <- _mkCloseButton win
+  titleElem <- _createDivElement doc
+  setClassName titleElem ("MenuTitle" :: String)
+  () <$ appendChild win (pure titleElem)
+
+  closeContainer <- _createDivElement doc
+  setClassName closeContainer ("MenuClose" :: String)
+  closeButtonR <-
+    mkButton doc closeContainer (UpButton, pure "x", pure True) ()
+  () <$ appendChild win (pure closeContainer)
+
+  buttonsR <- _mkButtons win
   () <$ appendChild parent (pure win)
 
-  let eButtons = mconcat . fmap (view buttonE) $ buttons
-      cleanup =
-        (sequence $ cTitle : closeButton ^. buttonCleanup
-         : (fmap (view buttonCleanup) $ buttons)) >> return ()
+  return $ do
+    -- the title
+    let titleHandler = setTextContent titleElem . pure
+    initial bTitle >>= liftIOLater . titleHandler
+    changes bTitle >>= reactimate' . fmap (fmap titleHandler)
 
-  return $ _MenuWindow # (eButtons, cleanup)
+    -- the close button
+    closeButton <- closeButtonR
+    let eCloseIntern = union eVisible . fmap (const False) $ closeButton
+    reactimate $ fmap (setHidden win . not) eCloseIntern
+
+    -- union of all button events
+    unions <$> sequence buttonsR
 
   where _mkWindow = do
           win <- _createDivElement doc
           setClassName win ("MenuWindow" :: String)
           return win
 
-        _mkWindowTitle win = do
-          t <- _createDivElement doc
-          cTitle <- sync $ listen (value bTitle) $ setTextContent t . pure
-          setClassName t ("MenuTitle" :: String)
-          () <$ appendChild win (pure t)
-          return cTitle
-
         _mkButtons win = do
             bsContainer <- _createDivElement doc
             setClassName bsContainer ("MenuButtons" :: String)
 
-            bs' <- sequence $ zipWith (\i f -> f i) [minBound .. maxBound]
+            bs' <- zipWithM (\i f -> f i) [(0 :: Int) .. 9]
                    [ mkButton doc bsContainer b | b <- bs]
             () <$ appendChild win (pure bsContainer)
             return bs'
-
-        _mkCloseButton win = do
-            closeContainer <- _createDivElement doc
-            setClassName closeContainer ("MenuClose" :: String)
-            closeButton <-
-              mkButton doc closeContainer (UpButton, pure "x", pure True) ()
-
-            let eIntern =
-                  mappend eVisible . fmap (const False) $ closeButton ^. buttonE
-
-
-            () <$ do (sync . listen eIntern $ (setHidden win . not))
-            () <$ appendChild win (pure closeContainer)
-            return closeButton
 

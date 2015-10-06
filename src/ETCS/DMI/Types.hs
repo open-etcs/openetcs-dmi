@@ -1,19 +1,16 @@
 {-# LANGUAGE TemplateHaskell #-}
 
 module ETCS.DMI.Types (
-  ETCSMode (..), ETCSLevel (..), TrainData,
-  NationalValues,
-  TrainBehavior, trainIsAtStandstill, trainMode, trainLevel, trainDriverIDIsValid,
+  ETCSMode (..), ETCSLevel (..),
+  TrainBehavior(..), trainIsAtStandstill, trainMode, trainLevel, trainDriverIDIsValid,
   trainDataIsValid, trainLevelIsValid, trainRunningNumberIsValid,
-  trainHasPendingEmergencyStop, trainNationalValues, trainHasCommunicationSession,
+  trainHasPendingEmergencyStop, trainHasCommunicationSession,
   trainIsNonLeading, trainIsPassiveShunting, trainModDriverIDAllowed,
-  Button, _Button, buttonE, buttonCleanup, ButtonType(..),
-  WindowMenuButtonId (..),
-  MenuWindow, _MenuWindow, menuWinE, menuWinCleanup
+  ButtonType(..)
   ) where
 
 import           Control.Lens
-import           FRP.Sodium
+import           Reactive.Banana
 
 data ETCSMode = SB | PT | SR | SH | FS | LS | OS | NL| UN | SN
               deriving (Eq, Show, Ord, Enum, Bounded)
@@ -25,60 +22,28 @@ data ETCSLevel = Level0 | NTC | Level1 | Level2 | Level3
 
 makePrisms ''ETCSLevel
 
-data TrainData = TrainData
 
-makeLenses ''TrainData
-
-data NationalValues = NationalValues {
-
-}
-makeLenses ''NationalValues
-
-data TrainBehavior =
+data TrainBehavior t =
   TrainBehavior {
-    _trainIsAtStandstill          :: Behavior Bool,
-    _trainMode                    :: Behavior ETCSMode,
-    _trainLevel                   :: Behavior ETCSLevel,
-    _trainDriverIDIsValid         :: Behavior Bool,
-    _trainDataIsValid             :: Behavior Bool,
-    _trainLevelIsValid            :: Behavior Bool,
-    _trainRunningNumberIsValid    :: Behavior Bool,
-    _trainHasPendingEmergencyStop :: Behavior Bool,
-    _trainNationalValues          :: Behavior NationalValues,
-    _trainHasCommunicationSession :: Behavior Bool,
-    _trainIsNonLeading            :: Behavior Bool,
-    _trainIsPassiveShunting       :: Behavior Bool,
-    _trainModDriverIDAllowed      :: Behavior Bool
+    _trainIsAtStandstill          :: Behavior t Bool,
+    _trainMode                    :: Behavior t ETCSMode,
+    _trainLevel                   :: Behavior t ETCSLevel,
+    _trainDriverIDIsValid         :: Behavior t Bool,
+    _trainDataIsValid             :: Behavior t Bool,
+    _trainLevelIsValid            :: Behavior t Bool,
+    _trainRunningNumberIsValid    :: Behavior t Bool,
+    _trainHasPendingEmergencyStop :: Behavior t Bool,
+    _trainHasCommunicationSession :: Behavior t Bool,
+    _trainIsNonLeading            :: Behavior t Bool,
+    _trainIsPassiveShunting       :: Behavior t Bool,
+    _trainModDriverIDAllowed      :: Behavior t Bool
     }
 
 makeLenses '' TrainBehavior
 
 
 
-data Button t =
-  Button {
-    _buttonE       :: Event t,
-    _buttonCleanup :: IO ()
-    }
-
-makeLenses ''Button
-makePrisms ''Button
-
-
 data ButtonType = UpButton | DownButton | DelayButton
   deriving (Eq, Ord, Show, Enum, Bounded)
 
 
-
-data WindowMenuButtonId =
-  B1 | B2 | B3 | B4 | B5 | B6 | B7 | B8 | B9 | B10
-  deriving (Show, Read, Eq, Ord, Enum, Bounded)
-
-data MenuWindow =
-  MenuWindow {
-    _menuWinE       :: Event WindowMenuButtonId,
-    _menuWinCleanup :: IO ()
-    }
-
-makeLenses ''MenuWindow
-makePrisms ''MenuWindow
