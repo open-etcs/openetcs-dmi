@@ -3,20 +3,21 @@ module ETCS.DMI.Button (
 ) where
 
 import           Control.Concurrent
-import           Control.Lens
+import           Control.Monad
 import           Data.Text                     (Text)
 import qualified Data.Text                     as T
 import           ETCS.DMI.Helpers
 import           ETCS.DMI.Types
-import           FRP.Sodium
 import           GHCJS.DOM.Element             (setAttribute, setClassName)
-import           GHCJS.DOM.EventTarget         (addEventListener,
-                                                removeEventListener)
+import           GHCJS.DOM.EventTarget         (addEventListener)
 import           GHCJS.DOM.EventTargetClosures (eventListenerNew)
 import           GHCJS.DOM.HTMLElement         (setTitle)
 import           GHCJS.DOM.Node                (appendChild, setTextContent)
 import           GHCJS.DOM.Types               (IsDocument, IsNode, MouseEvent,
                                                 castToHTMLElement)
+import           Reactive.Banana
+import           Reactive.Banana.Frameworks
+
 
 
 data ButtonState = ButtonDisabled | ButtonEnabled | ButtonPressed
@@ -27,8 +28,25 @@ buttonState False     _ = ButtonDisabled
 buttonState True  False = ButtonEnabled
 buttonState True  True  = ButtonPressed
 
-mkButton :: (IsDocument d, IsNode p, Show e) => d -> p ->
-            (ButtonType, Behavior Text, Behavior Bool) -> e -> IO (Button e)
+registerMouseDown, registerMouseUp, registerMouseOut ::
+  (IsNode n ) => n -> IO (AddHandler ())
+registerMouseDown = registerMouseEvent "mousedown"
+registerMouseUp   = registerMouseEvent "mouseup"
+registerMouseOut  = registerMouseEvent "mouseup"
+
+
+registerMouseEvent :: (IsNode n) => String -> n -> IO (AddHandler ())
+registerMouseEvent e t = do
+  (addHandler, fire) <- newAddHandler
+  let handler :: MouseEvent -> IO ()
+      handler = const $ fire ()
+  eventListener <- eventListenerNew handler
+  addEventListener t e (pure eventListener) True
+  return addHandler
+
+mkButton :: (IsDocument d, IsNode p, Show e, Frameworks t) => d -> p ->
+            (ButtonType, Behavior t Text, Behavior t Bool) -> e ->
+            IO (Moment t (Event t e))
 mkButton doc parent (buttonType, bLabel, bEnabled) buttonEventValue = do
   button <- _createDivElement doc
   setAttribute button "data-role" "button"
@@ -39,98 +57,93 @@ mkButton doc parent (buttonType, bLabel, bEnabled) buttonEventValue = do
   _ <- appendChild inner_div $ pure inner_span
   _ <- appendChild button $ pure inner_div
 
-  (bButtonPressed, fireButtonPressed) <- sync $ newBehavior False
-  (eButtonClick, fireButtonClick) <- sync newEvent
-  let fireButtonEventValue = sync $ fireButtonClick buttonEventValue
-
-  cLabel <- sync $ listen (value bLabel) $ \t -> do
-      setTitle button t
-      setTextContent inner_span . pure $ t
-      _removeFromParentIfExists parent button
-      _removeFromParentIfExists parent empty_div
-      _ <- appendChild parent . pure $
-           if T.null t
-           then castToHTMLElement empty_div
-           else castToHTMLElement button
-      return ()
-
-
-
-
   mv_thread <- newEmptyMVar
 
+  return $ do
 
-  let mouseOutHandler :: MouseEvent -> IO ()
-      mouseOutHandler _ = do
-        _ <- maybe (return ()) killThread <$> tryTakeMVar mv_thread
-        sync $ fireButtonPressed False
-  eventListenerMouseOut <- eventListenerNew mouseOutHandler
+    -- react on label changes
+    let setLabel t = do
+          setTitle button t
+          setTextContent inner_span . pure $ t
+          _removeFromParentIfExists parent button
+          _removeFromParentIfExists parent empty_div
+          _ <- appendChild parent . pure $
+               if T.null t
+               then castToHTMLElement empty_div
+               else castToHTMLElement button
+          return ()
+    initial bLabel >>= liftIOLater . setLabel
+    changes bLabel >>= reactimate' . fmap (fmap setLabel)
 
-  let listenerDown :: MouseEvent -> IO ()
-      listenerDown _ = do
-        addEventListener button "mouseout" (pure eventListenerMouseOut) True
-        case buttonType of
-          UpButton -> sync $ fireButtonPressed True
-          DownButton -> do
-            fireButtonEventValue
-            tid <- forkIO $ repeatAction mv_thread fireButtonEventValue
-            putMVar mv_thread tid
-          DelayButton -> do
-            tid <- forkIO $ animateDelay mv_thread fireButtonPressed
-            putMVar mv_thread tid
-  eventListenerDown <- eventListenerNew listenerDown
-  addEventListener button "mousedown" (pure eventListenerDown) True
+    -- construct and react on button pressed behavior
+    (eButtonPressed, fireButtonPressed) <- newEvent
+    let bButtonPressed = stepper False eButtonPressed
+    let bButtonState = buttonState <$> bEnabled <*> bButtonPressed
+    let stateHandler = setAttribute button "data-state" . show
+    initial bButtonState >>= liftIOLater . stateHandler
+    changes bButtonState >>= reactimate' . fmap (fmap stateHandler)
 
-  let listenerUp :: MouseEvent -> IO ()
-      listenerUp _ = do
-        removeEventListener button "mouseout" (pure eventListenerMouseOut) True
-        sync $ fireButtonPressed False
-        case buttonType of
-          UpButton -> fireButtonEventValue
-          DownButton -> do
-            _ <- maybe (return ()) killThread <$> tryTakeMVar mv_thread
-            return ()
-          DelayButton ->
-            tryTakeMVar mv_thread >>= maybe fireButtonEventValue killThread
+    -- handle clicks
+    (eButtonClick, fireButton') <- newEvent
+    let fireButtonEventValue = fireButton' buttonEventValue
 
-  eventListenerUp   <- eventListenerNew listenerUp
-  addEventListener button "mouseup" (pure eventListenerUp) True
+    -- mouse out
+    eMouseOut  <- liftIO (registerMouseOut button) >>= fromAddHandler
+    let mouseOutHandler () = do
+          _ <- maybe (return ()) killThread <$> tryTakeMVar mv_thread
+          fireButtonPressed False
+    reactimate $ fmap mouseOutHandler eMouseOut
 
+    -- mouse down
+    eMouseDown <- liftIO (registerMouseDown button) >>= fromAddHandler
+    let mouseDownHandler () =
+          case buttonType of
+            UpButton -> fireButtonPressed True
+            DownButton -> do
+              fireButtonEventValue
+              tid <- forkIO $ repeatAction mv_thread fireButtonEventValue
+              putMVar mv_thread tid
+            DelayButton -> do
+              tid <- forkIO $ animateDelay mv_thread fireButtonPressed
+              putMVar mv_thread tid
+    reactimate $ fmap mouseDownHandler eMouseDown
 
-  let bButtonState = buttonState <$> bEnabled <*> bButtonPressed
-  cButtonState <- sync $ listen (value bButtonState) $
-                  setAttribute button "data-state" . show
+    -- mouse up
+    eMouseUp   <- liftIO (registerMouseUp button) >>= fromAddHandler
+    let mouseUpHandler () = do
+          fireButtonPressed False
+          case buttonType of
+            UpButton -> fireButtonEventValue
+            DownButton -> do
+              _ <- maybe (return ()) killThread <$> tryTakeMVar mv_thread
+              return ()
+            DelayButton ->
+              tryTakeMVar mv_thread >>= maybe fireButtonEventValue killThread
+    reactimate $ fmap mouseUpHandler eMouseUp
 
-
-  return $ _Button # (eButtonClick, cLabel >> cButtonState)
-
-
+    return eButtonClick
 
 
 repeatAction :: MVar a -> IO () -> IO ()
 repeatAction mv_thread fireButtonEventValue = do
   threadDelay 1500000
   em <- isEmptyMVar mv_thread
-  if (em) then return ()
-    else do repeatAction'
+  unless em repeatAction'
   where repeatAction' = do
           em <- isEmptyMVar mv_thread
-          if (em) then return ()
-            else do fireButtonEventValue
-                    threadDelay 300000
-                    repeatAction'
+          unless em $ do fireButtonEventValue
+                         threadDelay 300000
+                         repeatAction'
 
-animateDelay :: MVar a -> (Bool -> Reactive ()) -> IO ()
+animateDelay :: MVar a -> (Bool -> IO ()) -> IO ()
 animateDelay mv_thread fireButtonPressed = animateDelay' (8 :: Int) True
   where animateDelay' 0 v = do
-          sync $ fireButtonPressed v
+          fireButtonPressed v
           _<- tryTakeMVar mv_thread
           return ()
         animateDelay' i v = do
           em <- isEmptyMVar mv_thread
-          if (em) then return ()
-            else do sync $ fireButtonPressed v
-                    threadDelay 250000
-                    animateDelay' (i - 1) (not v)
-
+          unless em $ do fireButtonPressed v
+                         threadDelay 250000
+                         animateDelay' (i - 1) (not v)
 
