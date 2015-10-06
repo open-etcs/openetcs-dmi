@@ -1,8 +1,10 @@
 module ETCS.DMI.Helpers
        (_createDivElement, _createButtonElement, _createSpanElement
        ,_removeFromParentIfExists
+       , bAnd, bOr, bsAnd, bsOr
        ) where
 
+import           Control.Lens
 import           Data.Maybe         (fromMaybe)
 import           GHCJS.DOM.Document (createElement)
 import           GHCJS.DOM.Node     (getParentNode, isEqualNode, removeChild)
@@ -11,6 +13,14 @@ import           GHCJS.DOM.Types    (Element, HTMLButtonElement, HTMLDivElement,
                                      castToHTMLButtonElement,
                                      castToHTMLDivElement,
                                      castToHTMLSpanElement)
+
+bsAnd, bsOr :: (Applicative f, Traversable t) => t (f Bool) -> f Bool
+bsAnd = fmap Prelude.and . sequenceA
+bsOr  = fmap Prelude.or . sequenceA
+
+bAnd, bOr :: Applicative f => f Bool -> f Bool -> f Bool
+bAnd a b = (&&) <$> a <*> b
+bOr  a b = (||) <$> a <*> b
 
 
 _removeFromParentIfExists :: (IsNode parent, IsNode a) => parent -> a -> IO ()

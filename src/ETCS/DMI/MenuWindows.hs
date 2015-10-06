@@ -8,34 +8,28 @@ module ETCS.DMI.MenuWindows
 
 import           Control.Lens
 import           ETCS.DMI.Button
+import           ETCS.DMI.Helpers
 import           ETCS.DMI.MenuWindow
 import           ETCS.DMI.Types
 import           FRP.Sodium
 import           GHCJS.DOM.Types     (IsDocument, IsNode)
 
-bsAnd, bsOr :: (Applicative f, Traversable t) => t (f Bool) -> f Bool
-bsAnd = fmap Prelude.and . sequenceA
-bsOr  = fmap Prelude.or . sequenceA
+trainInMode :: ETCSMode -> TrainBehavior -> Behavior Bool
+trainInMode m i = fmap (m ==) $ i ^. trainMode
 
-bAnd, bOr :: Applicative f => f Bool -> f Bool -> f Bool
-bAnd a b = (&&) <$> a <*> b
-bOr  a b = (||) <$> a <*> b
-
-
+bStartButtonEnabled :: TrainBehavior -> Behavior Bool
 bStartButtonEnabled i =
   let bStartEnabled1 = bsAnd
-        [ i ^. trainIsAtStandstill, fmap (SB ==) $ i ^. trainMode
+        [ i ^. trainIsAtStandstill, trainInMode SB i
         , i ^. trainDriverIDIsValid, i ^. trainDataIsValid
         , i ^. trainLevelIsValid, i ^. trainRunningNumberIsValid
         ]
       bStartEnabled2 = bsAnd
-        [ i ^. trainIsAtStandstill, fmap (PT ==) $ i ^. trainMode
+        [ i ^. trainIsAtStandstill, trainInMode PT i
         , i ^. trainDataIsValid
-        , bsOr [ bLevel1
-               , bAnd bLevel23 (fmap not $ i ^. trainHasPendingEmergencyStop)
-               ]
+        , bOr bLevel1 $ bAnd bLevel23 (fmap not $ i ^. trainHasPendingEmergencyStop)
         ]
-      bStartEnabled3 = bAnd bLevel23 $ fmap (SR ==) $ i ^. trainMode
+      bStartEnabled3 = bAnd bLevel23 $ trainInMode SR i
       bLevel1  = fmap (Level1 ==) $ i ^. trainLevel
       bLevel23 = fmap (`elem` [Level2, Level3]) $ i ^. trainLevel
   in (bStartEnabled1 `bOr` bStartEnabled2) `bOr` bStartEnabled3
