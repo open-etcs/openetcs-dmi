@@ -10,7 +10,7 @@ import           ETCS.DMI.Button
 import           ETCS.DMI.Helpers
 import           ETCS.DMI.MenuWindow
 import           ETCS.DMI.Types
-import           GHCJS.DOM.Types            (IsDocument, IsNode)
+import           GHCJS.DOM.Types            (IsNode)
 import           Reactive.Banana
 import           Reactive.Banana.Frameworks
 
@@ -22,10 +22,10 @@ trainInModes ms i = fmap (`elem` ms) $ i ^. trainMode
 
 
 
-mkMainWindow :: (IsDocument d, IsNode p) =>
-                TrainBehavior -> d -> p -> Event Bool -> IO (MomentIO (Event Int))
-mkMainWindow i doc parent visible =
-  mkMenuWindow doc parent (pure "Main") visible
+mkMainWindow :: (MonadIO m, IsNode p) =>
+                TrainBehavior -> p -> Event Bool -> m (MomentIO (Event Int))
+mkMainWindow i parent visible =
+  mkMenuWindow parent (pure "Main") visible
      [ (UpButton, pure "Start", bStartButtonEnabled i)
      , (UpButton, pure "Driver ID", bDriverIDButtonEnabled i)
      , (UpButton, pure "Train Data", bTrainDataButtonEnabled i)
@@ -86,27 +86,24 @@ bLevelButtonEnabled i = bsAnd
         ]
 
 
-
-
-
-mkOverrideWindow :: (IsDocument d, IsNode p) => d -> p -> Event Bool -> IO (MomentIO (Event Int))
-mkOverrideWindow doc parent visible =
-  mkMenuWindow doc parent (pure "Override") visible
+mkOverrideWindow :: (MonadIO m, IsNode p) => p -> Event Bool -> m (MomentIO (Event Int))
+mkOverrideWindow parent visible =
+  mkMenuWindow parent (pure "Override") visible
   [ (UpButton, pure "EOA", pure True)
   ]
 
 
-mkSpecialWindow :: (IsDocument d, IsNode p) => d -> p -> Event Bool -> IO (MomentIO (Event Int))
-mkSpecialWindow doc parent visible =
-  mkMenuWindow doc parent (pure "Special") visible
+mkSpecialWindow :: (MonadIO m, IsNode p) => p -> Event Bool -> m (MomentIO (Event Int))
+mkSpecialWindow parent visible =
+  mkMenuWindow parent (pure "Special") visible
   [ (UpButton, pure "Ahension", pure True)
   , (UpButton, pure "SR speed / distance", pure True)
   , (DelayButton, pure "Train integrety", pure True)
   ]
 
-mkSettingsWindow :: (IsDocument d, IsNode p) => d -> p -> Event Bool -> IO (MomentIO (Event Int))
-mkSettingsWindow doc parent visible =
-  mkMenuWindow doc parent (pure "Settings") visible
+mkSettingsWindow :: (MonadIO m, IsNode p) => p -> Event Bool -> m (MomentIO (Event Int))
+mkSettingsWindow parent visible =
+  mkMenuWindow parent (pure "Settings") visible
   [ (UpButton, pure "Language", pure True) -- TODO: Image SE03
   , (UpButton, pure "Volume", pure True) -- TODO: Image SE02
   , (UpButton, pure "Brightness", pure True) -- TODO: Image SE01
@@ -115,9 +112,9 @@ mkSettingsWindow doc parent visible =
   , (UpButton, pure "Remove VBC", pure True)
   ]
 
-mkRBCContactWindow :: (IsDocument d, IsNode p) => d -> p -> Event Bool -> IO (MomentIO (Event Int))
-mkRBCContactWindow doc parent visible =
-  mkMenuWindow doc parent (pure "RBC Contact") visible
+mkRBCContactWindow :: (MonadIO m, IsNode p) => p -> Event Bool -> m (MomentIO (Event Int))
+mkRBCContactWindow parent visible =
+  mkMenuWindow parent (pure "RBC Contact") visible
   [ (UpButton, pure "Contact last RBC", pure True)
   , (UpButton, pure "Use short number", pure True)
   , (UpButton, pure "Enter RBC data", pure True) -- TODO: Image SE01

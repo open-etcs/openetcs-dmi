@@ -9,18 +9,19 @@ import           ETCS.DMI.Helpers
 import           GHCJS.DOM.Element          (setClassName)
 import           GHCJS.DOM.HTMLElement      (setHidden)
 import           GHCJS.DOM.Node             (appendChild, setTextContent)
-import           GHCJS.DOM.Types            (IsDocument, IsNode)
+import           GHCJS.DOM.Types            (IsNode)
 import           Reactive.Banana
 import           Reactive.Banana.Frameworks
 
 
 
-mkMenuWindow :: (IsDocument d, IsNode p) => d -> p
+mkMenuWindow :: (MonadIO m, IsNode p) => p
                 -> Behavior Text -> Event Bool ->
                 [(ButtonType, Behavior Text, Behavior Bool )]
-                -> IO (MomentIO (Event Int))
-mkMenuWindow doc parent bTitle eVisible bs = do
-  win <- _mkWindow
+                -> m (MomentIO (Event Int))
+mkMenuWindow parent bTitle eVisible bs = do
+  doc <- _getOwnerDocument parent
+  win <- _mkWindow doc
 
   titleElem <- _createDivElement doc
   setClassName titleElem ("MenuTitle" :: String)
@@ -29,10 +30,10 @@ mkMenuWindow doc parent bTitle eVisible bs = do
   closeContainer <- _createDivElement doc
   setClassName closeContainer ("MenuClose" :: String)
   closeButtonR <-
-    mkButton doc closeContainer (UpButton, pure "x", pure True) ()
+    mkButton closeContainer (UpButton, pure "x", pure True) ()
   () <$ appendChild win (pure closeContainer)
 
-  buttonsR <- _mkButtons win
+  buttonsR <- _mkButtons doc win
   () <$ appendChild parent (pure win)
 
   return $ do
@@ -50,17 +51,17 @@ mkMenuWindow doc parent bTitle eVisible bs = do
     foldl (unionWith const) never <$> sequence buttonsR
 
 
-  where _mkWindow = do
+  where _mkWindow doc = do
           win <- _createDivElement doc
           setClassName win ("MenuWindow" :: String)
           return win
 
-        _mkButtons win = do
+        _mkButtons doc win = do
             bsContainer <- _createDivElement doc
             setClassName bsContainer ("MenuButtons" :: String)
 
             bs' <- zipWithM (\i f -> f i) [(0 :: Int) .. 9]
-                   [ mkButton doc bsContainer b | b <- bs]
+                   [ mkButton bsContainer b | b <- bs]
             () <$ appendChild win (pure bsContainer)
             return bs'
 

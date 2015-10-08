@@ -12,7 +12,7 @@ import           GHCJS.DOM.Element          (setAttribute, setClassName)
 
 import           GHCJS.DOM.HTMLElement      (setTitle)
 import           GHCJS.DOM.Node             (appendChild, setTextContent)
-import           GHCJS.DOM.Types            (IsDocument, castToHTMLElement)
+import           GHCJS.DOM.Types            (castToHTMLElement)
 import           Reactive.Banana
 import           Reactive.Banana.DOM
 import           Reactive.Banana.Frameworks
@@ -30,10 +30,11 @@ buttonState True  False = ButtonEnabled
 buttonState True  True  = ButtonPressed
 
 
-mkButton :: (IsDocument d, IsNode p, Show e) => d -> p ->
+mkButton :: (MonadIO m, IsNode p, Show e) => p ->
             (ButtonType, Behavior Text, Behavior Bool) -> e ->
-            IO (MomentIO (Event e))
-mkButton doc parent (buttonType, bLabel, bEnabled) buttonEventValue = do
+            m (MomentIO (Event e))
+mkButton parent (buttonType, bLabel, bEnabled) buttonEventValue = do
+  doc <- _getOwnerDocument parent
   button <- _createDivElement doc
   setAttribute button "data-role" "button"
   inner_div <- _createDivElement doc
@@ -42,7 +43,7 @@ mkButton doc parent (buttonType, bLabel, bEnabled) buttonEventValue = do
   setClassName empty_div "EmptyButton"
   () <$ appendChild inner_div (pure inner_span)
   () <$ appendChild button (pure inner_div)
-  mv_thread <- newEmptyMVar
+  mv_thread <- liftIO newEmptyMVar
 
   return $ do
     -- react on label changes

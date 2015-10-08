@@ -30,6 +30,7 @@ library
                        text,
                        lens,
                        ghcjs-dom >= 0.2,
+                       transformers,
                        reactive-banana
                        
   hs-source-dirs:      src

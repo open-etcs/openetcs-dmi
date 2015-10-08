@@ -41,7 +41,7 @@ main = runWebGUI $ \ webView -> do
 --    sew <- mkSettingsWindow doc body mempty
 --          rcw <- mkRBCContactWindow doc body mempty
 
-    windowMain <- mkMainWindow trainb doc body never
+    windowMain <- mkMainWindow trainb body never
     network <- compile $ do
       eWindowMain <- windowMain
       reactimate $ fmap print eWindowMain
