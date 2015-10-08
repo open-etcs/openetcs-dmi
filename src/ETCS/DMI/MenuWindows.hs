@@ -26,15 +26,15 @@ mkMainWindow :: (MonadIO m, IsNode p) =>
                 TrainBehavior -> p -> Event Bool -> m (MomentIO (Event Int))
 mkMainWindow i parent visible =
   mkMenuWindow parent (pure "Main") visible
-     [ (UpButton, pure "Start", bStartButtonEnabled i)
-     , (UpButton, pure "Driver ID", bDriverIDButtonEnabled i)
-     , (UpButton, pure "Train Data", bTrainDataButtonEnabled i)
-     , (UpButton, pure "", pure False)
-     , (UpButton, pure "Level", bLevelButtonEnabled i)
-     , (UpButton, pure "Train running Number", pure True)
-     , (DelayButton, pure "Shunting", pure True)
-     , (DelayButton, pure "Non-Leading", pure True)
-     , (DelayButton, pure "Maintain Shunting", pure False)
+     [ mkButton UpButton (pure "Start") (bStartButtonEnabled i)
+     , mkButton UpButton (pure "Driver ID") (bDriverIDButtonEnabled i)
+     , mkButton UpButton (pure "Train Data") (bTrainDataButtonEnabled i)
+     , mkButton UpButton (pure "") (pure False)
+     , mkButton UpButton (pure "Level") (bLevelButtonEnabled i)
+     , mkButton UpButton (pure "Train running Number") (pure True)
+     , mkButton DelayButton (pure "Shunting") (pure True)
+     , mkButton DelayButton (pure "Non-Leading") (pure True)
+     , mkButton DelayButton (pure "Maintain Shunting") (pure False)
      ]
 
 
@@ -85,38 +85,37 @@ bLevelButtonEnabled i = bsAnd
         , i ^. trainDriverIDIsValid, trainInModes [SB, FS, LS, SR, OS, NL, UN, SN] i
         ]
 
-
 mkOverrideWindow :: (MonadIO m, IsNode p) => p -> Event Bool -> m (MomentIO (Event Int))
 mkOverrideWindow parent visible =
   mkMenuWindow parent (pure "Override") visible
-  [ (UpButton, pure "EOA", pure True)
+  [ mkButton UpButton (pure "EOA") (pure True)
   ]
 
 
 mkSpecialWindow :: (MonadIO m, IsNode p) => p -> Event Bool -> m (MomentIO (Event Int))
 mkSpecialWindow parent visible =
   mkMenuWindow parent (pure "Special") visible
-  [ (UpButton, pure "Ahension", pure True)
-  , (UpButton, pure "SR speed / distance", pure True)
-  , (DelayButton, pure "Train integrety", pure True)
+  [ mkButton UpButton (pure "Ahension") (pure True)
+  , mkButton UpButton (pure "SR speed / distance") (pure True)
+  , mkButton DelayButton (pure "Train integrety") (pure True)
   ]
 
 mkSettingsWindow :: (MonadIO m, IsNode p) => p -> Event Bool -> m (MomentIO (Event Int))
 mkSettingsWindow parent visible =
   mkMenuWindow parent (pure "Settings") visible
-  [ (UpButton, pure "Language", pure True) -- TODO: Image SE03
-  , (UpButton, pure "Volume", pure True) -- TODO: Image SE02
-  , (UpButton, pure "Brightness", pure True) -- TODO: Image SE01
-  , (UpButton, pure "System version", pure True)
-  , (UpButton, pure "Set VBC", pure True)
-  , (UpButton, pure "Remove VBC", pure True)
+  [ mkButton UpButton (pure "Language") (pure True) -- TODO: Image SE03
+  , mkButton UpButton (pure "Volume") (pure True) -- TODO: Image SE02
+  , mkButton UpButton (pure "Brightness") (pure True) -- TODO: Image SE01
+  , mkButton UpButton (pure "System version") (pure True)
+  , mkButton UpButton (pure "Set VBC") (pure True)
+  , mkButton UpButton (pure "Remove VBC") (pure True)
   ]
 
 mkRBCContactWindow :: (MonadIO m, IsNode p) => p -> Event Bool -> m (MomentIO (Event Int))
 mkRBCContactWindow parent visible =
   mkMenuWindow parent (pure "RBC Contact") visible
-  [ (UpButton, pure "Contact last RBC", pure True)
-  , (UpButton, pure "Use short number", pure True)
-  , (UpButton, pure "Enter RBC data", pure True) -- TODO: Image SE01
-  , (DelayButton, pure "Radio Network ID", pure True)
+  [ mkButton UpButton (pure "Contact last RBC") (pure True)
+  , mkButton UpButton (pure "Use short number") (pure True)
+  , mkButton UpButton (pure "Enter RBC data") (pure True) -- TODO: Image SE01
+  , mkButton DelayButton (pure "Radio Network ID") (pure True)
   ]

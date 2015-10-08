@@ -9,15 +9,15 @@ import           ETCS.DMI.Helpers
 import           GHCJS.DOM.Element          (setClassName)
 import           GHCJS.DOM.HTMLElement      (setHidden)
 import           GHCJS.DOM.Node             (appendChild, setTextContent)
-import           GHCJS.DOM.Types            (IsNode)
 import           Reactive.Banana
+import           Reactive.Banana.DOM
 import           Reactive.Banana.Frameworks
 
 
 
 mkMenuWindow :: (MonadIO m, IsNode p) => p
                 -> Behavior Text -> Event Bool ->
-                [(ButtonType, Behavior Text, Behavior Bool )]
+                [( Int -> WidgetInput (Button Int))]
                 -> m (MomentIO (Event Int))
 mkMenuWindow parent bTitle eVisible bs = do
   doc <- _getOwnerDocument parent
@@ -30,7 +30,7 @@ mkMenuWindow parent bTitle eVisible bs = do
   closeContainer <- _createDivElement doc
   setClassName closeContainer ("MenuClose" :: String)
   closeButtonR <-
-    mkButton closeContainer (UpButton, pure "x", pure True) ()
+    mkWidgetIO closeContainer $ mkButton UpButton (pure "x") (pure True) ()
   () <$ appendChild win (pure closeContainer)
 
   buttonsR <- _mkButtons doc win
@@ -44,11 +44,11 @@ mkMenuWindow parent bTitle eVisible bs = do
 
     -- the close button
     closeButton <- closeButtonR
-    let eCloseIntern = unionWith const eVisible . fmap (const False) $ closeButton
+    let eCloseIntern = unionWith const eVisible . fmap (const False) $ buttonEvent closeButton
     reactimate $ fmap (setHidden win . not) eCloseIntern
 
     -- union of all button events
-    foldl (unionWith const) never <$> sequence buttonsR
+    foldl (unionWith const) never <$> sequence (fmap (fmap buttonEvent) buttonsR)
 
 
   where _mkWindow doc = do
@@ -61,7 +61,7 @@ mkMenuWindow parent bTitle eVisible bs = do
             setClassName bsContainer ("MenuButtons" :: String)
 
             bs' <- zipWithM (\i f -> f i) [(0 :: Int) .. 9]
-                   [ mkButton bsContainer b | b <- bs]
+                   [ mkWidgetIO bsContainer . b | b <- bs]
             () <$ appendChild win (pure bsContainer)
             return bs'
 

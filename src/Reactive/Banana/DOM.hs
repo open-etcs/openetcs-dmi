@@ -1,7 +1,10 @@
+{-# LANGUAGE TypeFamilies #-}
+
 module Reactive.Banana.DOM
-       ( -- * Mouse Events
-         registerMouseDown, registerMouseUp, registerMouseOut
-       , -- * re-exports
+       ( IsWidget(..),
+         -- * Mouse Events
+         registerMouseDown, registerMouseUp, registerMouseOut,
+         -- * re-exports
          IsNode
        ) where
 
@@ -28,5 +31,14 @@ registerMouseEvent e t = do
   eventListener <- eventListenerNew handler
   addEventListener t e (pure eventListener) True
   return addHandler
+
+
+
+
+class IsWidget w where
+  data WidgetInput w :: *
+
+  mkWidgetIO :: (MonadIO m, IsNode parent) =>
+               parent -> WidgetInput w -> m (MomentIO w)
 
 
