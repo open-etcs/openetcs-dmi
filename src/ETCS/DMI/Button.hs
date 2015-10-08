@@ -4,45 +4,31 @@ module ETCS.DMI.Button (
 
 import           Control.Concurrent
 import           Control.Monad
-import           Data.Text                     (Text)
-import qualified Data.Text                     as T
+import           Data.Text                  (Text)
+import qualified Data.Text                  as T
 import           ETCS.DMI.Helpers
 import           ETCS.DMI.Types
-import           GHCJS.DOM.Element             (setAttribute, setClassName)
-import           GHCJS.DOM.EventTarget         (addEventListener)
-import           GHCJS.DOM.EventTargetClosures (eventListenerNew)
-import           GHCJS.DOM.HTMLElement         (setTitle)
-import           GHCJS.DOM.Node                (appendChild, setTextContent)
-import           GHCJS.DOM.Types               (IsDocument, IsNode, MouseEvent,
-                                                castToHTMLElement)
-import           Reactive.Banana
-import           Reactive.Banana.Frameworks
+import           GHCJS.DOM.Element          (setAttribute, setClassName)
 
+import           GHCJS.DOM.HTMLElement      (setTitle)
+import           GHCJS.DOM.Node             (appendChild, setTextContent)
+import           GHCJS.DOM.Types            (IsDocument, castToHTMLElement)
+import           Reactive.Banana
+import           Reactive.Banana.DOM
+import           Reactive.Banana.Frameworks
 
 
 data ButtonState = ButtonDisabled | ButtonEnabled | ButtonPressed
   deriving (Eq, Ord, Show, Enum, Bounded)
+
+
+
 
 buttonState :: Bool -> Bool -> ButtonState
 buttonState False     _ = ButtonDisabled
 buttonState True  False = ButtonEnabled
 buttonState True  True  = ButtonPressed
 
-registerMouseDown, registerMouseUp, registerMouseOut ::
-  (IsNode n ) => n -> IO (AddHandler ())
-registerMouseDown = registerMouseEvent "mousedown"
-registerMouseUp   = registerMouseEvent "mouseup"
-registerMouseOut  = registerMouseEvent "mouseup"
-
-
-registerMouseEvent :: (IsNode n) => String -> n -> IO (AddHandler ())
-registerMouseEvent e t = do
-  (addHandler, fire) <- newAddHandler
-  let handler :: MouseEvent -> IO ()
-      handler = const $ fire ()
-  eventListener <- eventListenerNew handler
-  addEventListener t e (pure eventListener) True
-  return addHandler
 
 mkButton :: (IsDocument d, IsNode p, Show e) => d -> p ->
             (ButtonType, Behavior Text, Behavior Bool) -> e ->
@@ -56,7 +42,6 @@ mkButton doc parent (buttonType, bLabel, bEnabled) buttonEventValue = do
   setClassName empty_div "EmptyButton"
   () <$ appendChild inner_div (pure inner_span)
   () <$ appendChild button (pure inner_div)
-
   mv_thread <- newEmptyMVar
 
   return $ do
@@ -64,8 +49,6 @@ mkButton doc parent (buttonType, bLabel, bEnabled) buttonEventValue = do
     let setLabel t = do
           setTitle button t
           setTextContent inner_span . pure $ t
---          _removeFromParentIfExists parent button
---          _removeFromParentIfExists parent empty_div
           _ <- appendChild parent . pure $
                if T.null t
                then castToHTMLElement empty_div
@@ -87,28 +70,29 @@ mkButton doc parent (buttonType, bLabel, bEnabled) buttonEventValue = do
     let fireButtonEventValue = fireButton' buttonEventValue
 
     -- mouse out
-    eMouseOut  <- liftIO (registerMouseOut button) >>= fromAddHandler
+    let bButtonNotDisabled = (/= ButtonDisabled) <$> bButtonState
+    eMouseOut  <- whenE bButtonPressed <$> registerMouseOut button
     let mouseOutHandler () = do
           () <$ maybe (return ()) killThread <$> tryTakeMVar mv_thread
           fireButtonPressed False
     reactimate $ fmap mouseOutHandler eMouseOut
 
     -- mouse down
-    eMouseDown <- liftIO (registerMouseDown button) >>= fromAddHandler
+    eMouseDown <- whenE bButtonNotDisabled <$> registerMouseDown button
     let mouseDownHandler () =
           case buttonType of
             UpButton -> fireButtonPressed True
             DownButton -> do
               fireButtonEventValue
-              tid <- forkIO $ repeatAction mv_thread fireButtonEventValue
-              putMVar mv_thread tid
-            DelayButton -> do
-              tid <- forkIO $ animateDelay mv_thread fireButtonPressed
-              putMVar mv_thread tid
+              forkIO (repeatAction mv_thread fireButtonEventValue)
+                >>= putMVar mv_thread
+            DelayButton ->
+              forkIO (animateDelay mv_thread fireButtonPressed)
+                >>= putMVar mv_thread
     reactimate $ fmap mouseDownHandler eMouseDown
 
     -- mouse up
-    eMouseUp   <- liftIO (registerMouseUp button) >>= fromAddHandler
+    eMouseUp   <- registerMouseUp button
     let mouseUpHandler () = do
           fireButtonPressed False
           case buttonType of

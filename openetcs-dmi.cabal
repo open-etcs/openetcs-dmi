@@ -19,7 +19,8 @@ library
   exposed-modules:     ETCS.DMI,
                        ETCS.DMI.Types,
                        ETCS.DMI.Button,
-                       ETCS.DMI.MenuWindows
+                       ETCS.DMI.MenuWindows,
+                       Reactive.Banana.DOM
                        
   other-modules:       ETCS.DMI.Helpers,
                        ETCS.DMI.MenuWindow
