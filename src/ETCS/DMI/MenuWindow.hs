@@ -10,6 +10,7 @@ import           ETCS.DMI.Helpers
 import           GHCJS.DOM.Element          (setClassName)
 import           GHCJS.DOM.HTMLElement      (setHidden)
 import           GHCJS.DOM.Node             (appendChild, setTextContent)
+import           GHCJS.DOM.Types            (castToElement)
 import           Reactive.Banana
 import           Reactive.Banana.DOM
 import           Reactive.Banana.Frameworks
@@ -24,17 +25,15 @@ instance IsWidget WindowTitle where
 
     -- the window title
     titleElem <- _createDivElement doc
-    setClassName titleElem ("MenuTitle" :: String)
     () <$ appendChild parent (pure titleElem)
 
-    return $ do
-      let setTitle = setTextContent titleElem . pure
-      valueBLater t >>= liftIOLater . setTitle
-      changes t >>= reactimate' . fmap (fmap setTitle)
-      return WindowTitle
+    let titleWidget = do
+          let setTitle = setTextContent titleElem . pure
+          valueBLater t >>= liftIOLater . setTitle
+          changes t >>= reactimate' . fmap (fmap setTitle)
+          return WindowTitle
 
-data WindowCloseButton = WindwoCloseButton
-
+    return (titleWidget, castToElement titleElem)
 
 newtype MenuWindow =
   MenuWindow { menuWindowEvent :: Event (WidgetEventType MenuWindow) }
@@ -66,27 +65,27 @@ instance IsWidget MenuWindow where
     -- the close button
     closeContainer <- _createDivElement doc
     setClassName closeContainer ("MenuClose" :: String)
-    closeButtonR <-
-      mkWidgetIO closeContainer $ mkButton UpButton (pure "x") (pure True) ()
+
     () <$ appendChild win (pure closeContainer)
 
     -- append window
     () <$ appendChild parent (pure win)
 
-    return $ do
-      () <$ mkWidget win . MkWindowTitle . _menuWindowTitle $ i
+    let windowWidget = do
+          () <$ (mkWidget win . MkWindowTitle . _menuWindowTitle $ i)
 
-      -- the button group
-      bg <- mkWidget win . mkButtonGroup . _menuWindowButtons $ i
+          -- the button group
+          bg <- mkWidget win . mkButtonGroup . _menuWindowButtons $ i
 
-      -- the close button
-      closeButton <- closeButtonR
-      let eCloseIntern =
-            unionWith const (_menuWindowVisible i) . fmap (const False) $
-              widgetEvent closeButton
-      reactimate $ fmap (setHidden win . not) eCloseIntern
+          -- the close button
+          closeButton <- mkWidget closeContainer $
+                         mkButton UpButton (pure "x") (pure True) ()
+          let eCloseIntern =
+                unionWith const (_menuWindowVisible i) . fmap (const False) $
+                widgetEvent closeButton
 
 
-      return . MenuWindow . widgetEvent $ bg
-
+          reactimate $ fmap (setHidden win . not) eCloseIntern
+          return . MenuWindow . widgetEvent $ bg
+    return (windowWidget, castToElement win)
 

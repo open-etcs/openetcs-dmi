@@ -89,7 +89,7 @@ body {
   border-right-color: $color ;
 }
 
-div[data-role="button"] {
+div[data-widget="Button"] {
   
   font-size: $fontSize;
   background-color: $ColorDarkBlue;
@@ -114,7 +114,7 @@ div[data-role="button"] {
 
 }
   
-div[data-role="button"][data-state="ButtonEnabled"] {
+div[data-widget="Button"][data-state="ButtonEnabled"] {
     
   @include borderTL($borderWidth, solid, $ColorBlack);
   @include borderBR($borderWidth, solid, $ColorShadow);
@@ -127,7 +127,7 @@ div[data-role="button"][data-state="ButtonEnabled"] {
     
 }
 
-div[data-role="button"][data-state="ButtonPressed"] {
+div[data-widget="Button"][data-state="ButtonPressed"] {
 
   border: $borderWidth solid $ColorDarkBlue;
 
@@ -140,7 +140,7 @@ div[data-role="button"][data-state="ButtonPressed"] {
 }
 
 
-div[data-role="button"][data-state="ButtonDisabled"] {
+div[data-widget="Button"][data-state="ButtonDisabled"] {
 
   color: $ColorDarkGrey;
   cursor: not-allowed;
@@ -171,7 +171,7 @@ div[data-role="button"][data-state="ButtonDisabled"] {
   font-family: $fontStack;
   @include generalPanel($D_width + $F_width, $F_height);
   
-  .MenuTitle {
+  div[data-widget="WindowTitle"] {
     $titleHeight: 24px;
     background-color: $ColorBlack;
     color: $ColorGrey;
@@ -181,7 +181,7 @@ div[data-role="button"][data-state="ButtonDisabled"] {
                                 ,$titleHeight - $doubleBorder -$borderWidth);
   }
 
-  .MenuButtons {
+  div[data-widget="ButtonGroup"] {
     $buttonsWidth: $D_width + $F_width;
     
     width: $buttonsWidth - $doubleBorder;
@@ -192,7 +192,7 @@ div[data-role="button"][data-state="ButtonDisabled"] {
     position: absolute;
     top: $buttonHeight + $doubleBorder;
     
-    div[data-role=button] {
+    div[data-widget=Button] {
       @include absoluteWidthHeight( $buttonWidth - $doubleBorder 
                                   , $buttonHeight - $doubleBorder);
       float: left;
@@ -212,7 +212,7 @@ div[data-role="button"][data-state="ButtonDisabled"] {
     position: absolute;
     top: 400px;
     
-    div[data-role="button"] { width: 100%; height: 100%; font-size: 24px }      
+    div[data-widget="Button"] { width: 100%; height: 100%; font-size: 24px }      
   }
 
 }

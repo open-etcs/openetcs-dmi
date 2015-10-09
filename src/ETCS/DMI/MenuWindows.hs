@@ -25,7 +25,7 @@ trainInModes ms i = fmap (`elem` ms) $ i ^. trainMode
 
 mkMainWindow :: (MonadIO m, IsNode p) =>
                 TrainBehavior -> p -> Event Bool -> m (MomentIO MenuWindow)
-mkMainWindow i parent visible =
+mkMainWindow i parent visible = fmap fst $
   mkWidgetIO parent $ mkMenuWindow (pure "Main") visible
      [ mkButton UpButton (pure "Start") (bStartButtonEnabled i)
      , mkButton UpButton (pure "Driver ID") (bDriverIDButtonEnabled i)
@@ -87,14 +87,14 @@ bLevelButtonEnabled i = bsAnd
         ]
 
 mkOverrideWindow :: (MonadIO m, IsNode p) => p -> Event Bool -> m (MomentIO (MenuWindow))
-mkOverrideWindow parent visible =
+mkOverrideWindow parent visible = fmap fst $
   mkWidgetIO parent $ mkMenuWindow (pure "Override") visible
   [ mkButton UpButton (pure "EOA") (pure True)
   ]
 
 
 mkSpecialWindow :: (MonadIO m, IsNode p) => p -> Event Bool -> m (MomentIO (MenuWindow))
-mkSpecialWindow parent visible =
+mkSpecialWindow parent visible = fmap fst $
   mkWidgetIO parent $ mkMenuWindow (pure "Special") visible
   [ mkButton UpButton (pure "Ahension") (pure True)
   , mkButton UpButton (pure "SR speed / distance") (pure True)
@@ -102,7 +102,7 @@ mkSpecialWindow parent visible =
   ]
 
 mkSettingsWindow :: (MonadIO m, IsNode p) => p -> Event Bool -> m (MomentIO (MenuWindow))
-mkSettingsWindow parent visible =
+mkSettingsWindow parent visible = fmap fst $
   mkWidgetIO parent $ mkMenuWindow (pure "Settings") visible
   [ mkButton UpButton (pure "Language") (pure True) -- TODO: Image SE03
   , mkButton UpButton (pure "Volume") (pure True) -- TODO: Image SE02
@@ -113,7 +113,7 @@ mkSettingsWindow parent visible =
   ]
 
 mkRBCContactWindow :: (MonadIO m, IsNode p) => p -> Event Bool -> m (MomentIO (MenuWindow))
-mkRBCContactWindow parent visible =
+mkRBCContactWindow parent visible = fmap fst $
   mkWidgetIO parent $ mkMenuWindow (pure "RBC Contact") visible
   [ mkButton UpButton (pure "Contact last RBC") (pure True)
   , mkButton UpButton (pure "Use short number") (pure True)
