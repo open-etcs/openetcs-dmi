@@ -75,7 +75,7 @@ instance (Typeable a, IsEventWidget a) => IsWidget (Window a) where
 
           -- the close button
           closeButton <- mkWidget closeContainer $
-                         mkButton UpButton (pure "x") (pure True) ()
+                         mkButton UpButton (Just $ pure "x") (pure True) ()
 
           let setShown = setHidden win . not
           valueBLater (_windowVisible i) >>= liftIOLater . setShown

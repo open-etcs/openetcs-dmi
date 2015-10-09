@@ -7,7 +7,6 @@ module ETCS.DMI.Button (
 import           Control.Concurrent
 import           Control.Monad
 import           Data.Text                  (Text)
-import qualified Data.Text                  as T
 import           ETCS.DMI.Helpers
 import           ETCS.DMI.Types
 import           GHCJS.DOM.Element          (setAttribute, setClassName)
@@ -22,7 +21,7 @@ import           Reactive.Banana.Frameworks
 data ButtonState = ButtonDisabled | ButtonEnabled | ButtonPressed
   deriving (Eq, Ord, Show, Enum, Bounded)
 
-mkButton :: ButtonType -> Behavior Text -> Behavior Bool -> e -> WidgetInput (Button e)
+mkButton :: ButtonType -> Maybe (Behavior Text) -> Behavior Bool -> e -> WidgetInput (Button e)
 mkButton = MkButton
 
 data Button e =
@@ -35,7 +34,7 @@ instance IsEventWidget (Button e) where
 instance IsWidget (Button e) where
   data WidgetInput (Button e) = MkButton {
     _buttonType :: ButtonType,
-    _buttonText :: Behavior Text,
+    _buttonText :: Maybe (Behavior Text),
     _buttonEnabled :: Behavior Bool,
     _buttonValue :: e
     }
@@ -53,17 +52,17 @@ instance IsWidget (Button e) where
               () <$ appendChild inner_div (pure inner_span)
               () <$ appendChild button (pure inner_div)
 
-            -- react on label changes
-            let setLabel t = do
-                  setTitle button t
-                  setTextContent inner_span . pure $ t
-                  _ <- appendChild parent . pure $
-                       if T.null t
-                       then castToHTMLElement empty_div
-                       else castToHTMLElement button
-                  return ()
-            valueBLater (_buttonText i) >>= liftIOLater . setLabel
-            changes (_buttonText i) >>= reactimate' . fmap (fmap setLabel)
+            case _buttonText i of
+              Nothing -> do
+                _ <- appendChild parent . pure $ castToHTMLElement empty_div
+                return ()
+              Just t -> do
+                _ <- appendChild parent . pure $ castToHTMLElement button
+                let setLabel l = do
+                      setTitle button l
+                      setTextContent inner_span . pure $ l
+                valueBLater t >>= liftIOLater . setLabel
+                changes t >>= reactimate' . fmap (fmap setLabel)
 
             -- construct and react on button pressed behavior
             (eButtonPressed, fireButtonPressed) <- newEvent
@@ -92,6 +91,7 @@ instance IsWidget (Button e) where
                   UpButton -> fireButtonPressed True
                   DownButton -> do
                     fireButtonEventValue
+                    fireButtonPressed True
                     forkIO (repeatAction mv_thread fireButtonEventValue) >>=
                       putMVar mv_thread
                   DelayButton ->

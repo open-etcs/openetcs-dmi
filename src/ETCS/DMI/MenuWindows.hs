@@ -29,15 +29,15 @@ mkMainWindow :: (IsNode p) =>
                 TrainBehavior -> p -> Behavior Bool -> MomentIO MenuWindow
 mkMainWindow i parent visible =
   mkWidget parent $ mkWindow (pure "Main") visible . mkButtonGroup $
-  [ mkButton UpButton (pure "Start") (bStartButtonEnabled i)
-  , mkButton UpButton (pure "Driver ID") (bDriverIDButtonEnabled i)
-  , mkButton UpButton (pure "Train Data") (bTrainDataButtonEnabled i)
-  , mkButton UpButton (pure "") (pure False)
-  , mkButton UpButton (pure "Level") (bLevelButtonEnabled i)
-  , mkButton UpButton (pure "Train running Number") (pure True)
-  , mkButton DelayButton (pure "Shunting") (pure True)
-  , mkButton DelayButton (pure "Non-Leading") (pure True)
-  , mkButton DelayButton (pure "Maintain Shunting") (pure False)
+  [ mkButton UpButton (pure $ pure "Start") (bStartButtonEnabled i)
+  , mkButton UpButton (pure $ pure "Driver ID") (bDriverIDButtonEnabled i)
+  , mkButton UpButton (pure $ pure "Train Data") (bTrainDataButtonEnabled i)
+  , mkButton UpButton Nothing (pure False)
+  , mkButton UpButton (pure $ pure "Level") (bLevelButtonEnabled i)
+  , mkButton UpButton (pure $ pure "Train running Number") (pure True)
+  , mkButton DelayButton (pure $ pure "Shunting") (pure True)
+  , mkButton DelayButton (pure $ pure "Non-Leading") (pure True)
+  , mkButton DelayButton (pure $ pure "Maintain Shunting") (pure False)
   ]
 
 
@@ -98,34 +98,34 @@ bLevelButtonEnabled i = bsAnd
 mkOverrideWindow :: (IsNode p) => p -> Behavior Bool -> MomentIO MenuWindow
 mkOverrideWindow parent visible =
   mkWidget parent $ mkWindow (pure "Override") visible . mkButtonGroup $
-  [ mkButton UpButton (pure "EOA") (pure True)
+  [ mkButton UpButton (pure $ pure "EOA") (pure True)
   ]
 
 
 mkSpecialWindow :: (IsNode p) => p -> Behavior Bool -> MomentIO MenuWindow
 mkSpecialWindow parent visible =
   mkWidget parent $ mkWindow (pure "Special") visible . mkButtonGroup $
-  [ mkButton UpButton (pure "Ahension") (pure True)
-  , mkButton UpButton (pure "SR speed / distance") (pure True)
-  , mkButton DelayButton (pure "Train integrety") (pure True)
+  [ mkButton UpButton (pure $ pure "Ahension") (pure True)
+  , mkButton UpButton (pure $ pure "SR speed / distance") (pure True)
+  , mkButton DelayButton (pure $ pure "Train integrety") (pure True)
   ]
 
 mkSettingsWindow :: (IsNode p) => p -> Behavior Bool -> MomentIO MenuWindow
 mkSettingsWindow parent visible =
   mkWidget parent $ mkWindow (pure "Settings") visible . mkButtonGroup $
-  [ mkButton UpButton (pure "Language") (pure True) -- TODO: Image SE03
-  , mkButton UpButton (pure "Volume") (pure True) -- TODO: Image SE02
-  , mkButton UpButton (pure "Brightness") (pure True) -- TODO: Image SE01
-  , mkButton UpButton (pure "System version") (pure True)
-  , mkButton UpButton (pure "Set VBC") (pure True)
-  , mkButton UpButton (pure "Remove VBC") (pure True)
+  [ mkButton UpButton (pure $ pure "Language") (pure True) -- TODO: Image SE03
+  , mkButton UpButton (pure $ pure "Volume") (pure True) -- TODO: Image SE02
+  , mkButton UpButton (pure $ pure "Brightness") (pure True) -- TODO: Image SE01
+  , mkButton UpButton (pure $ pure "System version") (pure True)
+  , mkButton UpButton (pure $ pure "Set VBC") (pure True)
+  , mkButton UpButton (pure $ pure "Remove VBC") (pure True)
   ]
 
 mkRBCContactWindow :: (IsNode p) => p -> Behavior Bool -> MomentIO MenuWindow
 mkRBCContactWindow parent visible =
   mkWidget parent $ mkWindow (pure "RBC Contact") visible . mkButtonGroup $
-  [ mkButton UpButton (pure "Contact last RBC") (pure True)
-  , mkButton UpButton (pure "Use short number") (pure True)
-  , mkButton UpButton (pure "Enter RBC data") (pure True) -- TODO: Image SE01
-  , mkButton DelayButton (pure "Radio Network ID") (pure True)
+  [ mkButton UpButton (pure $ pure "Contact last RBC") (pure True)
+  , mkButton UpButton (pure $ pure "Use short number") (pure True)
+  , mkButton UpButton (pure $ pure "Enter RBC data") (pure True) -- TODO: Image SE01
+  , mkButton DelayButton (pure $ pure "Radio Network ID") (pure True)
   ]

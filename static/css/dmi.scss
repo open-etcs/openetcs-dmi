@@ -176,6 +176,15 @@ div[data-widget="WindowTitle"] {
 }
 
 
+div[data-widget="Keyboard"] {
+  @include absoluteWidthHeight(306,200);
+  
+  div[data-widget="Button"] {    
+    font-size: 16px;
+    float: left;
+    @include absoluteWidthHeight(102px - $doubleBorder, 50px - $doubleBorder);
+  }
+}
 
 div[data-widget="Window"] {
   float: left;
@@ -189,7 +198,7 @@ div[data-widget="Window"] {
     width: $titleWidth;
     max-width: $titleWidth;
   }
-
+    
   div[data-widget="ButtonGroup"] {
     $buttonsWidth: $D_width + $F_width;
     
@@ -209,8 +218,8 @@ div[data-widget="Window"] {
     }
 
     .EmptyButton {      
-      @include generalPanel( $buttonWidth - $doubleBorder
-                           , $buttonHeight + $doubleBorder);
+      @include generalPanel( $buttonWidth
+                           , $buttonHeight);
       border: 0px none $ColorDarkBlue;
       float: left;
     }
@@ -241,4 +250,5 @@ div[data-widget="Window"] {
 
 #dmiTop, #dmiBottom {
   @include absoluteWidthHeight($Z_width - $paddingWidth, $Z_height);
+  background-color: $ColorDarkBlue;
 }
