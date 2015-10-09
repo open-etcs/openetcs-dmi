@@ -2,7 +2,6 @@
 
 module Main ( main ) where
 
-import           Control.Monad
 import           ETCS.DMI
 import           ETCS.DMI.Types
 import           GHCJS.DOM                  (enableInspector, runWebGUI,
@@ -42,7 +41,7 @@ main = runWebGUI $ \ webView -> do
 --          rcw <- mkRBCContactWindow doc body mempty
 
     network <- compile $ do
-      windowMain <- join . liftIO $ mkMainWindow trainb body never
+      windowMain <- mkMainWindow trainb body never
       reactimate $ fmap print (widgetEvent windowMain)
 
     actuate network

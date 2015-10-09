@@ -1,6 +1,6 @@
 module ETCS.DMI
        ( module ETCS.DMI.MenuWindows
-       , module Reactive.Banana.DOM
+       , mkWidget, widgetEvent
        ) where
 
 import           ETCS.DMI.MenuWindows

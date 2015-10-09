@@ -7,6 +7,7 @@ module ETCS.DMI.MenuWindows
        ) where
 
 import           Control.Lens
+import           Control.Monad
 import           ETCS.DMI.Button
 import           ETCS.DMI.Helpers
 import           ETCS.DMI.MenuWindow
@@ -23,9 +24,9 @@ trainInModes ms i = fmap (`elem` ms) $ i ^. trainMode
 
 
 
-mkMainWindow :: (MonadIO m, IsNode p) =>
-                TrainBehavior -> p -> Event Bool -> m (MomentIO MenuWindow)
-mkMainWindow i parent visible = fmap fst $
+mkMainWindow :: (IsNode p) =>
+                TrainBehavior -> p -> Event Bool -> MomentIO MenuWindow
+mkMainWindow i parent visible = join . liftIO . fmap fst $
   mkWidgetIO parent $ mkMenuWindow (pure "Main") visible
      [ mkButton UpButton (pure "Start") (bStartButtonEnabled i)
      , mkButton UpButton (pure "Driver ID") (bDriverIDButtonEnabled i)
@@ -86,23 +87,23 @@ bLevelButtonEnabled i = bsAnd
         , i ^. trainDriverIDIsValid, trainInModes [SB, FS, LS, SR, OS, NL, UN, SN] i
         ]
 
-mkOverrideWindow :: (MonadIO m, IsNode p) => p -> Event Bool -> m (MomentIO (MenuWindow))
-mkOverrideWindow parent visible = fmap fst $
+mkOverrideWindow :: (IsNode p) => p -> Event Bool -> MomentIO MenuWindow
+mkOverrideWindow parent visible = join . liftIO . fmap fst $
   mkWidgetIO parent $ mkMenuWindow (pure "Override") visible
   [ mkButton UpButton (pure "EOA") (pure True)
   ]
 
 
-mkSpecialWindow :: (MonadIO m, IsNode p) => p -> Event Bool -> m (MomentIO (MenuWindow))
-mkSpecialWindow parent visible = fmap fst $
+mkSpecialWindow :: (IsNode p) => p -> Event Bool -> MomentIO MenuWindow
+mkSpecialWindow parent visible = join . liftIO . fmap fst $
   mkWidgetIO parent $ mkMenuWindow (pure "Special") visible
   [ mkButton UpButton (pure "Ahension") (pure True)
   , mkButton UpButton (pure "SR speed / distance") (pure True)
   , mkButton DelayButton (pure "Train integrety") (pure True)
   ]
 
-mkSettingsWindow :: (MonadIO m, IsNode p) => p -> Event Bool -> m (MomentIO (MenuWindow))
-mkSettingsWindow parent visible = fmap fst $
+mkSettingsWindow :: (IsNode p) => p -> Event Bool -> MomentIO MenuWindow
+mkSettingsWindow parent visible = join . liftIO . fmap fst $
   mkWidgetIO parent $ mkMenuWindow (pure "Settings") visible
   [ mkButton UpButton (pure "Language") (pure True) -- TODO: Image SE03
   , mkButton UpButton (pure "Volume") (pure True) -- TODO: Image SE02
@@ -112,8 +113,8 @@ mkSettingsWindow parent visible = fmap fst $
   , mkButton UpButton (pure "Remove VBC") (pure True)
   ]
 
-mkRBCContactWindow :: (MonadIO m, IsNode p) => p -> Event Bool -> m (MomentIO (MenuWindow))
-mkRBCContactWindow parent visible = fmap fst $
+mkRBCContactWindow :: (IsNode p) => p -> Event Bool -> MomentIO MenuWindow
+mkRBCContactWindow parent visible = join . liftIO . fmap fst $
   mkWidgetIO parent $ mkMenuWindow (pure "RBC Contact") visible
   [ mkButton UpButton (pure "Contact last RBC") (pure True)
   , mkButton UpButton (pure "Use short number") (pure True)
