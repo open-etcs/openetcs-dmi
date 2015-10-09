@@ -50,7 +50,18 @@ $F_height: $D_height + $G_height;
 
 
 
+.notSelectable {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
 
+.clean { clean: all; }
+
+  
 @mixin absoluteWidthHeight($w, $h) {
     width: $w;
     height: $h;
@@ -60,13 +71,18 @@ $F_height: $D_height + $G_height;
 
 @mixin generalPanel($w, $h) {
   background-color: $ColorDarkBlue;
-  border: $borderWidth solid $ColorWhite;
-  @include absoluteWidthHeight($w - $doubleBorder, $h - $doubleBorder);
+  @include absoluteWidthHeight($w,$h);
 }
+
+
 
 body {
   background-color: red;
-  }
+  font-size: $fontSize;  
+  font-family: $fontStack;
+  line-height: 200%;
+  color: $ColorGrey;
+}
 
 
 
@@ -90,20 +106,11 @@ body {
 }
 
 div[data-widget="Button"] {
-  
-  font-size: $fontSize;
+  @extend .notSelectable;
+    
   background-color: $ColorDarkBlue;
-  color: $ColorWhite;
   padding: 0px;
   display: table;
-
-
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  -khtml-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
   cursor: pointer;
   
   div {
@@ -113,7 +120,8 @@ div[data-widget="Button"] {
   }
 
 }
-  
+
+
 div[data-widget="Button"][data-state="ButtonEnabled"] {
     
   @include borderTL($borderWidth, solid, $ColorBlack);
@@ -134,7 +142,6 @@ div[data-widget="Button"][data-state="ButtonPressed"] {
   div {
    @include borderTL($borderWidth, solid, $ColorBlack);
    @include borderBR($borderWidth, solid, $ColorShadow);
-
   }
     
 }
@@ -154,31 +161,30 @@ div[data-widget="Button"][data-state="ButtonDisabled"] {
   }
     
 }
-  
-.clean { clean: all; }
 
-.leftSide {
-  float: left;
-  @include generalPanel($C_width, $A_height + $C_height + $E_height);
+
+div[data-widget="WindowTitle"] {
+  @extend .notSelectable;
+  height: 24px;
+  max-height: 24px;
+  background-color: $ColorBlack;
+  border: none;
+  cursor: default;
 }
 
-.topPart {
-  @include generalPanel($Z_width, $Z_height);
-}
+
 
 .MenuWindow {
   float: left;
-  font-family: $fontStack;
-  @include generalPanel($D_width + $F_width, $F_height);
+
+  background-color: $ColorDarkBlue;
+  border: none;
+  @include absoluteWidthHeight($D_width + $F_width, $F_height);
   
   div[data-widget="WindowTitle"] {
-    $titleHeight: 24px;
-    background-color: $ColorBlack;
-    color: $ColorGrey;
-    border: $borderWidth solid $ColorWhite;
-    
-    @include absoluteWidthHeight($D_width + $F_width - $doubleBorder - $borderWidth
-                                ,$titleHeight - $doubleBorder -$borderWidth);
+    $titleWidth: $D_width + $F_width;
+    width: $titleWidth;
+    max-width: $titleWidth;
   }
 
   div[data-widget="ButtonGroup"] {
@@ -222,69 +228,11 @@ div[data-widget="Button"][data-state="ButtonDisabled"] {
 
 
   
-  
-.InputField {
-  background-color: $ColorDarkGrey;
-  
-  td {
-    text-align: right;
-  }
-    
-  label {
-    color: $ColorGrey;
-    padding-right: 10px;
-  }
-    
-  input  {    
-    color: $ColorGrey;
-    background-color: $ColorDarkGrey;
-    padding-left: 10px;
-    }
-
-  input:focus {
-    color: $ColorBlack;    
-    background-color: $ColorMediumGrey;
-  }    
+.leftSide {
+  float: left;
+  @include generalPanel($C_width, $A_height + $C_height + $E_height);
 }
 
-  
-.InputField[data-state="DataAccepted"] {
-  input {
-    color: $ColorWhite;
-    background-color: $ColorDarkGrey;
-  }
-}
-
-  
-.InputFields {
-  margin: 0px;
-  padding: 0px;
-
-  $totalWidth: $D_width + $F_width - $doubleBorder;
-  width: $totalWidth;
-  background-color: $ColorDarkBlue;
-  
-  .InputField {
-
-    td {
-      border: $borderWidth solid $ColorMediumGrey;      
-      border-right: none;
-
-      label {
-        width: 102px - $doubleBorder;
-        height: 50px - $doubleBorder;
-        }
-
-      input {
-        width: 202px - $doubleBorder;
-        height: 50px - $doubleBorder;
-        border: $borderWidth solid $ColorDarkGrey;      
-      }
-
-      input:focus {
-        @include borderTL($borderWidth, solid, $ColorGrey);
-        @include borderBR($borderWidth, solid, $ColorDarkGrey);      
-      }
-    }
-  }
+.topPart {
+  @include generalPanel($Z_width, $Z_height);
 }
