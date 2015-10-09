@@ -45,15 +45,14 @@ instance IsWidget (Button e) where
     inner_div  <- _createDivElement doc
     inner_span <- _createSpanElement doc
     empty_div  <- _createDivElement doc
-
-    setClassName empty_div "EmptyButton"
-
-    () <$ appendChild inner_div (pure inner_span)
-    () <$ appendChild button (pure inner_div)
-
     mv_thread <- liftIO newEmptyMVar
 
     let   buttonWidget = do
+            liftIOLater $ do
+              setClassName empty_div "EmptyButton"
+              () <$ appendChild inner_div (pure inner_span)
+              () <$ appendChild button (pure inner_div)
+
             -- react on label changes
             let setLabel t = do
                   setTitle button t

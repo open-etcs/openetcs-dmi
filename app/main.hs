@@ -41,7 +41,7 @@ main = runWebGUI $ \ webView -> do
 --          rcw <- mkRBCContactWindow doc body mempty
 
     network <- compile $ do
-      windowMain <- mkMainWindow trainb body never
+      windowMain <- mkMainWindow trainb body (pure True)
       reactimate $ fmap print (widgetEvent windowMain)
 
     actuate network

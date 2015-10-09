@@ -25,7 +25,7 @@ trainInModes ms i = fmap (`elem` ms) $ i ^. trainMode
 
 
 mkMainWindow :: (IsNode p) =>
-                TrainBehavior -> p -> Event Bool -> MomentIO MenuWindow
+                TrainBehavior -> p -> Behavior Bool -> MomentIO MenuWindow
 mkMainWindow i parent visible = join . liftIO . fmap fst $
   mkWidgetIO parent $ mkMenuWindow (pure "Main") visible
      [ mkButton UpButton (pure "Start") (bStartButtonEnabled i)
@@ -87,14 +87,14 @@ bLevelButtonEnabled i = bsAnd
         , i ^. trainDriverIDIsValid, trainInModes [SB, FS, LS, SR, OS, NL, UN, SN] i
         ]
 
-mkOverrideWindow :: (IsNode p) => p -> Event Bool -> MomentIO MenuWindow
+mkOverrideWindow :: (IsNode p) => p -> Behavior Bool -> MomentIO MenuWindow
 mkOverrideWindow parent visible = join . liftIO . fmap fst $
   mkWidgetIO parent $ mkMenuWindow (pure "Override") visible
   [ mkButton UpButton (pure "EOA") (pure True)
   ]
 
 
-mkSpecialWindow :: (IsNode p) => p -> Event Bool -> MomentIO MenuWindow
+mkSpecialWindow :: (IsNode p) => p -> Behavior Bool -> MomentIO MenuWindow
 mkSpecialWindow parent visible = join . liftIO . fmap fst $
   mkWidgetIO parent $ mkMenuWindow (pure "Special") visible
   [ mkButton UpButton (pure "Ahension") (pure True)
@@ -102,7 +102,7 @@ mkSpecialWindow parent visible = join . liftIO . fmap fst $
   , mkButton DelayButton (pure "Train integrety") (pure True)
   ]
 
-mkSettingsWindow :: (IsNode p) => p -> Event Bool -> MomentIO MenuWindow
+mkSettingsWindow :: (IsNode p) => p -> Behavior Bool -> MomentIO MenuWindow
 mkSettingsWindow parent visible = join . liftIO . fmap fst $
   mkWidgetIO parent $ mkMenuWindow (pure "Settings") visible
   [ mkButton UpButton (pure "Language") (pure True) -- TODO: Image SE03
@@ -113,7 +113,7 @@ mkSettingsWindow parent visible = join . liftIO . fmap fst $
   , mkButton UpButton (pure "Remove VBC") (pure True)
   ]
 
-mkRBCContactWindow :: (IsNode p) => p -> Event Bool -> MomentIO MenuWindow
+mkRBCContactWindow :: (IsNode p) => p -> Behavior Bool -> MomentIO MenuWindow
 mkRBCContactWindow parent visible = join . liftIO . fmap fst $
   mkWidgetIO parent $ mkMenuWindow (pure "RBC Contact") visible
   [ mkButton UpButton (pure "Contact last RBC") (pure True)

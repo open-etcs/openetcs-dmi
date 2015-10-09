@@ -38,40 +38,33 @@ instance IsWidget WindowTitle where
 newtype MenuWindow =
   MenuWindow { menuWindowEvent :: Event (WidgetEventType MenuWindow) }
 
-mkMenuWindow :: Behavior Text -> Event Bool ->
-                [WidgetEventType MenuWindow ->
-                 WidgetInput (Button (WidgetEventType MenuWindow))]
-                -> WidgetInput MenuWindow
+mkMenuWindow :: Behavior Text -> Behavior Bool ->
+                [Int -> WidgetInput (Button Int)] -> WidgetInput MenuWindow
 mkMenuWindow = MkMenuWindow
 
 instance IsEventWidget MenuWindow where
-  type WidgetEventType MenuWindow = Int
+  type WidgetEventType MenuWindow = Either () Int
   widgetEvent = menuWindowEvent
 
 instance IsWidget MenuWindow where
   data WidgetInput MenuWindow = MkMenuWindow {
     _menuWindowTitle   :: Behavior Text,
-    _menuWindowVisible :: Event Bool,
+    _menuWindowVisible :: Behavior Bool,
     _menuWindowButtons :: [ Int -> WidgetInput (Button Int) ]
   }
 
   mkWidgetIO parent i = do
     doc <- _getOwnerDocument parent
-
-    -- the window
     win <- _createDivElement doc
-    setClassName win ("MenuWindow" :: String)
-
-    -- the close button
     closeContainer <- _createDivElement doc
-    setClassName closeContainer ("MenuClose" :: String)
-
-    () <$ appendChild win (pure closeContainer)
-
-    -- append window
-    () <$ appendChild parent (pure win)
 
     let windowWidget = do
+          liftIOLater $ do
+            setClassName closeContainer ("MenuClose" :: String)
+            setClassName win ("MenuWindow" :: String)
+            () <$ appendChild parent (pure win)
+            () <$ appendChild win (pure closeContainer)
+
           () <$ (mkWidget win . MkWindowTitle . _menuWindowTitle $ i)
 
           -- the button group
@@ -80,12 +73,14 @@ instance IsWidget MenuWindow where
           -- the close button
           closeButton <- mkWidget closeContainer $
                          mkButton UpButton (pure "x") (pure True) ()
-          let eCloseIntern =
-                unionWith const (_menuWindowVisible i) . fmap (const False) $
-                widgetEvent closeButton
 
+          let setShown = setHidden win . not
+          valueBLater (_menuWindowVisible i) >>= liftIOLater . setShown
+          changes (_menuWindowVisible i) >>= reactimate' . fmap (fmap setShown)
 
-          reactimate $ fmap (setHidden win . not) eCloseIntern
-          return . MenuWindow . widgetEvent $ bg
+          let outputC = Left <$> widgetEvent closeButton
+              outputB = Right <$> widgetEvent bg
+              output  = unionWith const outputB outputC
+          return . MenuWindow $ output
     return (windowWidget, castToElement win)
 
