@@ -18,26 +18,29 @@ import           Reactive.Banana.Frameworks
 
 mkMenuWindow :: (MonadIO m, IsNode p) => p
                 -> Behavior Text -> Event Bool ->
-                [( Int -> WidgetInput (Button Int))]
+                [ Int -> WidgetInput (Button Int) ]
                 -> m (MomentIO (Event Int))
 mkMenuWindow parent bTitle eVisible bs = do
   doc <- _getOwnerDocument parent
 
+  -- the window
   win <- _createDivElement doc
   setClassName win ("MenuWindow" :: String)
 
+  -- the window title
   titleElem <- _createDivElement doc
   setClassName titleElem ("MenuTitle" :: String)
   () <$ appendChild win (pure titleElem)
 
+  -- the close button
   closeContainer <- _createDivElement doc
   setClassName closeContainer ("MenuClose" :: String)
   closeButtonR <-
     mkWidgetIO closeContainer $ mkButton UpButton (pure "x") (pure True) ()
   () <$ appendChild win (pure closeContainer)
 
+  -- apend window
   () <$ appendChild parent (pure win)
-
 
   return $ do
     -- the title
@@ -54,6 +57,3 @@ mkMenuWindow parent bTitle eVisible bs = do
     -- the button group
     bg <- join . liftIO . mkWidgetIO win . mkButtonGroup $ bs
     return $ buttonGroupEvent bg
-
-  where _mkWindow doc = do
-          
