@@ -1,9 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies      #-}
 
-module ETCS.DMI.MenuWindow ( MenuWindow, mkMenuWindow ) where
+module ETCS.DMI.MenuWindow ( Window, mkWindow, MenuWindow ) where
 
 import           Data.Text                  (Text)
+import           Data.Typeable
 import           ETCS.DMI.Button
 import           ETCS.DMI.ButtonGroup
 import           ETCS.DMI.Helpers
@@ -35,22 +36,25 @@ instance IsWidget WindowTitle where
 
     return (titleWidget, castToElement titleElem)
 
-newtype MenuWindow =
-  MenuWindow { menuWindowEvent :: Event (WidgetEventType MenuWindow) }
 
-mkMenuWindow :: Behavior Text -> Behavior Bool ->
-                [Int -> WidgetInput (Button Int)] -> WidgetInput MenuWindow
-mkMenuWindow = MkMenuWindow
 
-instance IsEventWidget MenuWindow where
-  type WidgetEventType MenuWindow = Either () Int
-  widgetEvent = menuWindowEvent
+type MenuWindow = Window ButtonGroup
 
-instance IsWidget MenuWindow where
-  data WidgetInput MenuWindow = MkMenuWindow {
-    _menuWindowTitle   :: Behavior Text,
-    _menuWindowVisible :: Behavior Bool,
-    _menuWindowButtons :: [ Int -> WidgetInput (Button Int) ]
+newtype Window a =
+  Window { windowEvent :: Event (Either () (WidgetEventType a)) }
+
+mkWindow :: Behavior Text -> Behavior Bool -> WidgetInput a -> WidgetInput (Window a)
+mkWindow = MkWindow
+
+instance (Typeable a, IsEventWidget a) => IsEventWidget (Window a) where
+  type WidgetEventType (Window a) = Either () (WidgetEventType a)
+  widgetEvent = windowEvent
+
+instance (Typeable a, IsEventWidget a) => IsWidget (Window a) where
+  data WidgetInput (Window a) = MkWindow {
+    _windowTitle   :: Behavior Text,
+    _windowVisible :: Behavior Bool,
+    _windowWidget  :: WidgetInput a
   }
 
   mkWidgetIO parent i = do
@@ -65,22 +69,21 @@ instance IsWidget MenuWindow where
             () <$ appendChild parent (pure win)
             () <$ appendChild win (pure closeContainer)
 
-          () <$ (mkWidget win . MkWindowTitle . _menuWindowTitle $ i)
+          () <$ (mkWidget win . MkWindowTitle . _windowTitle $ i)
 
-          -- the button group
-          bg <- mkWidget win . mkButtonGroup . _menuWindowButtons $ i
+          inner_widget <- mkWidget win $ _windowWidget i
 
           -- the close button
           closeButton <- mkWidget closeContainer $
                          mkButton UpButton (pure "x") (pure True) ()
 
           let setShown = setHidden win . not
-          valueBLater (_menuWindowVisible i) >>= liftIOLater . setShown
-          changes (_menuWindowVisible i) >>= reactimate' . fmap (fmap setShown)
+          valueBLater (_windowVisible i) >>= liftIOLater . setShown
+          changes (_windowVisible i) >>= reactimate' . fmap (fmap setShown)
 
           let outputC = Left <$> widgetEvent closeButton
-              outputB = Right <$> widgetEvent bg
-              output  = unionWith const outputB outputC
-          return . MenuWindow $ output
+              outputB = Right <$> widgetEvent inner_widget
+              output  = whenE (_windowVisible i)$ unionWith const outputB outputC
+          return . Window $ output
     return (windowWidget, castToElement win)
 

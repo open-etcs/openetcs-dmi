@@ -174,7 +174,7 @@ div[data-widget="WindowTitle"] {
 
 
 
-.MenuWindow {
+div[data-widget="Window"] {
   float: left;
 
   background-color: $ColorDarkBlue;
@@ -214,7 +214,7 @@ div[data-widget="WindowTitle"] {
   }
 
   .MenuClose {
-    @include absoluteWidthHeight (82px - $doubleBorder, $buttonHeight - $doubleBorder);
+    @include absoluteWidthHeight(82px - $doubleBorder, $buttonHeight - $doubleBorder);
     position: absolute;
     top: 400px;
     
@@ -223,16 +223,19 @@ div[data-widget="WindowTitle"] {
 
 }
 
-
-
-
-
   
-.leftSide {
+
+#dmiMain {
+  $w: $C_width + $G_width + $F_width;
+  $h: $D_height + $G_height;
+  @include absoluteWidthHeight($w,$h);
+}
+
+#leftSide {
   float: left;
   @include generalPanel($C_width, $A_height + $C_height + $E_height);
 }
 
-.topPart {
-  @include generalPanel($Z_width, $Z_height);
+#dmiTop, #dmiBottom {
+  @include absoluteWidthHeight($Z_width, $Z_height);
 }

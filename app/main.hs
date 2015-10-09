@@ -6,7 +6,7 @@ import           ETCS.DMI
 import           ETCS.DMI.Types
 import           GHCJS.DOM                  (enableInspector, runWebGUI,
                                              webViewGetDomDocument)
-import           GHCJS.DOM.Document         (getBody)
+import           GHCJS.DOM.Document         (getElementById)
 import           Reactive.Banana
 import           Reactive.Banana.Frameworks
 
@@ -33,16 +33,18 @@ main :: IO ()
 main = runWebGUI $ \ webView -> do
     enableInspector webView
     Just doc <- webViewGetDomDocument webView
-    Just body <- getBody doc
-
---    ovw <- mkOverrideWindow doc body mempty
---    spw <- mkSpecialWindow doc body mempty
---    sew <- mkSettingsWindow doc body mempty
---          rcw <- mkRBCContactWindow doc body mempty
+    Just dmiMain <- getElementById doc ("dmiMain" :: String)
 
     network <- compile $ do
-      windowMain <- mkMainWindow trainb body (pure True)
+      windowMain <- mkMainWindow trainb dmiMain (pure True)
       reactimate $ fmap print (widgetEvent windowMain)
+
+
+      ovw <- mkOverrideWindow dmiMain (pure False)
+      spw <- mkSpecialWindow dmiMain (pure False)
+      sew <- mkSettingsWindow dmiMain (pure False)
+      rcw <- mkRBCContactWindow dmiMain (pure False)
+      return ()
 
     actuate network
     print ("startup done" :: String)

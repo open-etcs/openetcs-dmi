@@ -7,8 +7,8 @@ module ETCS.DMI.MenuWindows
        ) where
 
 import           Control.Lens
-import           Control.Monad
 import           ETCS.DMI.Button
+import           ETCS.DMI.ButtonGroup
 import           ETCS.DMI.Helpers
 import           ETCS.DMI.MenuWindow
 import           ETCS.DMI.Types
@@ -24,20 +24,21 @@ trainInModes ms i = fmap (`elem` ms) $ i ^. trainMode
 
 
 
+
 mkMainWindow :: (IsNode p) =>
                 TrainBehavior -> p -> Behavior Bool -> MomentIO MenuWindow
-mkMainWindow i parent visible = join . liftIO . fmap fst $
-  mkWidgetIO parent $ mkMenuWindow (pure "Main") visible
-     [ mkButton UpButton (pure "Start") (bStartButtonEnabled i)
-     , mkButton UpButton (pure "Driver ID") (bDriverIDButtonEnabled i)
-     , mkButton UpButton (pure "Train Data") (bTrainDataButtonEnabled i)
-     , mkButton UpButton (pure "") (pure False)
-     , mkButton UpButton (pure "Level") (bLevelButtonEnabled i)
-     , mkButton UpButton (pure "Train running Number") (pure True)
-     , mkButton DelayButton (pure "Shunting") (pure True)
-     , mkButton DelayButton (pure "Non-Leading") (pure True)
-     , mkButton DelayButton (pure "Maintain Shunting") (pure False)
-     ]
+mkMainWindow i parent visible =
+  mkWidget parent $ mkWindow (pure "Main") visible . mkButtonGroup $
+  [ mkButton UpButton (pure "Start") (bStartButtonEnabled i)
+  , mkButton UpButton (pure "Driver ID") (bDriverIDButtonEnabled i)
+  , mkButton UpButton (pure "Train Data") (bTrainDataButtonEnabled i)
+  , mkButton UpButton (pure "") (pure False)
+  , mkButton UpButton (pure "Level") (bLevelButtonEnabled i)
+  , mkButton UpButton (pure "Train running Number") (pure True)
+  , mkButton DelayButton (pure "Shunting") (pure True)
+  , mkButton DelayButton (pure "Non-Leading") (pure True)
+  , mkButton DelayButton (pure "Maintain Shunting") (pure False)
+  ]
 
 
 
@@ -87,24 +88,31 @@ bLevelButtonEnabled i = bsAnd
         , i ^. trainDriverIDIsValid, trainInModes [SB, FS, LS, SR, OS, NL, UN, SN] i
         ]
 
+
+
+
+
+
+
+
 mkOverrideWindow :: (IsNode p) => p -> Behavior Bool -> MomentIO MenuWindow
-mkOverrideWindow parent visible = join . liftIO . fmap fst $
-  mkWidgetIO parent $ mkMenuWindow (pure "Override") visible
+mkOverrideWindow parent visible =
+  mkWidget parent $ mkWindow (pure "Override") visible . mkButtonGroup $
   [ mkButton UpButton (pure "EOA") (pure True)
   ]
 
 
 mkSpecialWindow :: (IsNode p) => p -> Behavior Bool -> MomentIO MenuWindow
-mkSpecialWindow parent visible = join . liftIO . fmap fst $
-  mkWidgetIO parent $ mkMenuWindow (pure "Special") visible
+mkSpecialWindow parent visible =
+  mkWidget parent $ mkWindow (pure "Special") visible . mkButtonGroup $
   [ mkButton UpButton (pure "Ahension") (pure True)
   , mkButton UpButton (pure "SR speed / distance") (pure True)
   , mkButton DelayButton (pure "Train integrety") (pure True)
   ]
 
 mkSettingsWindow :: (IsNode p) => p -> Behavior Bool -> MomentIO MenuWindow
-mkSettingsWindow parent visible = join . liftIO . fmap fst $
-  mkWidgetIO parent $ mkMenuWindow (pure "Settings") visible
+mkSettingsWindow parent visible =
+  mkWidget parent $ mkWindow (pure "Settings") visible . mkButtonGroup $
   [ mkButton UpButton (pure "Language") (pure True) -- TODO: Image SE03
   , mkButton UpButton (pure "Volume") (pure True) -- TODO: Image SE02
   , mkButton UpButton (pure "Brightness") (pure True) -- TODO: Image SE01
@@ -114,8 +122,8 @@ mkSettingsWindow parent visible = join . liftIO . fmap fst $
   ]
 
 mkRBCContactWindow :: (IsNode p) => p -> Behavior Bool -> MomentIO MenuWindow
-mkRBCContactWindow parent visible = join . liftIO . fmap fst $
-  mkWidgetIO parent $ mkMenuWindow (pure "RBC Contact") visible
+mkRBCContactWindow parent visible =
+  mkWidget parent $ mkWindow (pure "RBC Contact") visible . mkButtonGroup $
   [ mkButton UpButton (pure "Contact last RBC") (pure True)
   , mkButton UpButton (pure "Use short number") (pure True)
   , mkButton UpButton (pure "Enter RBC data") (pure True) -- TODO: Image SE01
