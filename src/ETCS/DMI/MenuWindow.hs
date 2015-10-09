@@ -15,6 +15,27 @@ import           Reactive.Banana.DOM
 import           Reactive.Banana.Frameworks
 
 
+data WindowTitle = WindowTitle
+
+instance IsWidget WindowTitle where
+  data WidgetInput WindowTitle = MkWindowTitle (Behavior Text)
+  mkWidgetIO parent (MkWindowTitle t) = do
+    doc <- _getOwnerDocument parent
+
+    -- the window title
+    titleElem <- _createDivElement doc
+    setClassName titleElem ("MenuTitle" :: String)
+    () <$ appendChild parent (pure titleElem)
+
+    return $ do
+      let setTitle = setTextContent titleElem . pure
+      valueBLater t >>= liftIOLater . setTitle
+      changes t >>= reactimate' . fmap (fmap setTitle)
+      return WindowTitle
+
+data WindowCloseButton = WindwoCloseButton
+
+
 newtype MenuWindow =
   MenuWindow { menuWindowEvent :: Event (WidgetEventType MenuWindow) }
 
@@ -42,11 +63,6 @@ instance IsWidget MenuWindow where
     win <- _createDivElement doc
     setClassName win ("MenuWindow" :: String)
 
-    -- the window title
-    titleElem <- _createDivElement doc
-    setClassName titleElem ("MenuTitle" :: String)
-    () <$ appendChild win (pure titleElem)
-
     -- the close button
     closeContainer <- _createDivElement doc
     setClassName closeContainer ("MenuClose" :: String)
@@ -58,10 +74,10 @@ instance IsWidget MenuWindow where
     () <$ appendChild parent (pure win)
 
     return $ do
-      -- the title
-      let titleHandler = setTextContent titleElem . pure
-      valueBLater (_menuWindowTitle i) >>= liftIOLater . titleHandler
-      changes (_menuWindowTitle i) >>= reactimate' . fmap (fmap titleHandler)
+      () <$ mkWidget win . MkWindowTitle . _menuWindowTitle $ i
+
+      -- the button group
+      bg <- mkWidget win . mkButtonGroup . _menuWindowButtons $ i
 
       -- the close button
       closeButton <- closeButtonR
@@ -70,8 +86,7 @@ instance IsWidget MenuWindow where
               widgetEvent closeButton
       reactimate $ fmap (setHidden win . not) eCloseIntern
 
-      -- the button group
-      bg <- mkWidget win . mkButtonGroup . _menuWindowButtons $ i
+
       return . MenuWindow . widgetEvent $ bg
 
 
