@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies      #-}
 
-module ETCS.DMI.MenuWindow ( MenuWindow(..), mkMenuWindow ) where
+module ETCS.DMI.MenuWindow ( MenuWindow, mkMenuWindow ) where
 
 import           Data.Text                  (Text)
 import           ETCS.DMI.Button
@@ -16,11 +16,17 @@ import           Reactive.Banana.Frameworks
 
 
 newtype MenuWindow =
-  MenuWindow { menuWindowEvent :: Event Int }
+  MenuWindow { menuWindowEvent :: Event (WidgetEventType MenuWindow) }
 
-mkMenuWindow :: Behavior Text -> Event Bool -> [Int -> WidgetInput (Button Int)]
+mkMenuWindow :: Behavior Text -> Event Bool ->
+                [WidgetEventType MenuWindow ->
+                 WidgetInput (Button (WidgetEventType MenuWindow))]
                 -> WidgetInput MenuWindow
 mkMenuWindow = MkMenuWindow
+
+instance IsEventWidget MenuWindow where
+  type WidgetEventType MenuWindow = Int
+  widgetEvent = menuWindowEvent
 
 instance IsWidget MenuWindow where
   data WidgetInput MenuWindow = MkMenuWindow {
@@ -48,7 +54,7 @@ instance IsWidget MenuWindow where
       mkWidgetIO closeContainer $ mkButton UpButton (pure "x") (pure True) ()
     () <$ appendChild win (pure closeContainer)
 
-    -- apend window
+    -- append window
     () <$ appendChild parent (pure win)
 
     return $ do
@@ -61,11 +67,11 @@ instance IsWidget MenuWindow where
       closeButton <- closeButtonR
       let eCloseIntern =
             unionWith const (_menuWindowVisible i) . fmap (const False) $
-              buttonEvent closeButton
+              widgetEvent closeButton
       reactimate $ fmap (setHidden win . not) eCloseIntern
 
       -- the button group
       bg <- mkWidget win . mkButtonGroup . _menuWindowButtons $ i
-      return . MenuWindow $ buttonGroupEvent bg
+      return . MenuWindow . widgetEvent $ bg
 
 

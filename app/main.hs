@@ -43,7 +43,7 @@ main = runWebGUI $ \ webView -> do
 
     network <- compile $ do
       windowMain <- join . liftIO $ mkMainWindow trainb body never
-      reactimate $ fmap print (menuWindowEvent windowMain)
+      reactimate $ fmap print (widgetEvent windowMain)
 
     actuate network
     print ("startup done" :: String)

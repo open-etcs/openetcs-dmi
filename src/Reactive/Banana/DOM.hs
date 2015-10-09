@@ -1,7 +1,7 @@
 {-# LANGUAGE TypeFamilies #-}
 
 module Reactive.Banana.DOM
-       ( IsWidget(..),
+       ( IsWidget(..), IsEventWidget(..),
          -- * Mouse Events
          registerMouseDown, registerMouseUp, registerMouseOut,
          -- * re-exports
@@ -40,3 +40,7 @@ class IsWidget w where
 
   mkWidget :: (IsNode parent) => parent -> WidgetInput w -> MomentIO w
   mkWidget parent i = join . liftIO $ mkWidgetIO parent i
+
+class (IsWidget w) => IsEventWidget w where
+  type WidgetEventType w :: *
+  widgetEvent :: w -> Event (WidgetEventType w)

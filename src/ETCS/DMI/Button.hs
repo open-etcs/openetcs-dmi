@@ -1,7 +1,7 @@
 {-# LANGUAGE TypeFamilies #-}
 
 module ETCS.DMI.Button (
-    Button (..), ButtonType (..), mkButton
+    Button, ButtonType (..), mkButton
 ) where
 
 import           Control.Concurrent
@@ -28,6 +28,9 @@ mkButton = MkButton
 newtype Button e =
   Button { buttonEvent :: Event e }
 
+instance IsEventWidget (Button e) where
+  type WidgetEventType (Button e) = e
+  widgetEvent = buttonEvent
 
 instance IsWidget (Button e) where
   data WidgetInput (Button e) = MkButton {
