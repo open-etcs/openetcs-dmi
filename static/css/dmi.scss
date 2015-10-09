@@ -4,6 +4,8 @@ $fontSize: 12px;
 $borderWidth: 1px;
 $doubleBorder: 2 * $borderWidth;
 
+$paddingWidth: 3px;
+
 $buttonHeight: 50px;
 
 
@@ -170,6 +172,7 @@ div[data-widget="WindowTitle"] {
   background-color: $ColorBlack;
   border: none;
   cursor: default;
+  padding-left: $paddingWidth;
 }
 
 
@@ -182,7 +185,7 @@ div[data-widget="Window"] {
   @include absoluteWidthHeight($D_width + $F_width, $F_height);
   
   div[data-widget="WindowTitle"] {
-    $titleWidth: $D_width + $F_width;
+    $titleWidth: $D_width + $F_width - $paddingWidth;
     width: $titleWidth;
     max-width: $titleWidth;
   }
@@ -237,5 +240,5 @@ div[data-widget="Window"] {
 }
 
 #dmiTop, #dmiBottom {
-  @include absoluteWidthHeight($Z_width, $Z_height);
+  @include absoluteWidthHeight($Z_width - $paddingWidth, $Z_height);
 }

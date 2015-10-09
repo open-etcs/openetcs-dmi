@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies      #-}
 
-module ETCS.DMI.MenuWindow ( Window, mkWindow, MenuWindow ) where
+module ETCS.DMI.Window ( Window, mkWindow, MenuWindow ) where
 
 import           Data.Text                  (Text)
 import           Data.Typeable

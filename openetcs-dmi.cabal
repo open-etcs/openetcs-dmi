@@ -24,7 +24,7 @@ library
                        Reactive.Banana.DOM
                        
   other-modules:       ETCS.DMI.Helpers,
-                       ETCS.DMI.MenuWindow
+                       ETCS.DMI.Window
   
   -- other-extensions:    
   build-depends:       base >=4.8 && <4.9,
