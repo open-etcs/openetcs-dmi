@@ -4,4 +4,6 @@ TAGS
 .cabal-sandbox
 cabal.sandbox.config
 dist/*
-
+.sass-cache/*
+static/css/dmi*css*
+static/js/compiled*
