@@ -8,8 +8,6 @@ module Reactive.Banana.DOM
          IsNode
        ) where
 
-import           Control.Monad
-import           Data.Proxy
 import           Data.Typeable
 import           GHCJS.DOM.Element             (Element, setAttribute)
 import           GHCJS.DOM.EventTarget         (addEventListener)

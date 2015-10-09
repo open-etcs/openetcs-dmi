@@ -22,7 +22,10 @@ main_min_css = $(css_target).min.css
 cabal_conf = dist/setup-config
 
 
-all: $(main_css) $(main_min_css) $(main_js) $(main_min_js)
+release: $(main_css) $(main_min_css) $(main_js) $(main_min_js)
+
+debug: $(main_css) $(main_js)
+
 
 clean:
 	rm -rf $(main_css)* $(main_js) $(main_min_css) $(main_min_js)
