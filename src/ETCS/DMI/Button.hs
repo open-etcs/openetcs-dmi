@@ -34,7 +34,7 @@ instance IsWidget (Button e) where
   data WidgetInput (Button e) = MkButton {
     _buttonType :: ButtonType,
     _buttonText :: Behavior Text,
-    _buttonVisible :: Behavior Bool,
+    _buttonEnabled :: Behavior Bool,
     _buttonValue :: e
     }
   mkWidgetIO parent i = do
@@ -65,18 +65,19 @@ instance IsWidget (Button e) where
       -- construct and react on button pressed behavior
       (eButtonPressed, fireButtonPressed) <- newEvent
       bButtonPressed <- stepper False eButtonPressed
-      let bButtonState = buttonState <$> (_buttonVisible i) <*> bButtonPressed
+      let bButtonState = buttonState <$> _buttonEnabled i <*> bButtonPressed
       let stateHandler = setAttribute button "data-state" . show
       valueBLater bButtonState >>= liftIOLater . stateHandler
       changes bButtonState >>= reactimate' . fmap (fmap stateHandler)
+      let bButtonNotDisabled = (/= ButtonDisabled) <$> bButtonState
 
       -- handle clicks
       (eButtonClick, fireButton') <- newEvent
       let fireButtonEventValue = fireButton' (_buttonValue i)
 
       -- mouse out
-      let bButtonNotDisabled = (/= ButtonDisabled) <$> bButtonState
-      eMouseOut  <- whenE bButtonPressed <$> registerMouseOut button
+      eMouseOut  <- whenE (bOr bButtonNotDisabled bButtonPressed) <$>
+                    registerMouseOut button
       let mouseOutHandler () = do
             () <$ maybe (return ()) killThread <$> tryTakeMVar mv_thread
             fireButtonPressed False
@@ -84,20 +85,20 @@ instance IsWidget (Button e) where
 
       -- mouse down
       eMouseDown <- whenE bButtonNotDisabled <$> registerMouseDown button
-      let mouseDownHandler () =
-            case _buttonType i of
-            UpButton -> fireButtonPressed True
-            DownButton -> do
-              fireButtonEventValue
-              forkIO (repeatAction mv_thread fireButtonEventValue)
-                >>= putMVar mv_thread
-            DelayButton ->
-              forkIO (animateDelay mv_thread fireButtonPressed)
-                >>= putMVar mv_thread
+      let mouseDownHandler () = case _buttonType i of
+                UpButton -> fireButtonPressed True
+                DownButton -> do
+                  fireButtonEventValue
+                  forkIO (repeatAction mv_thread fireButtonEventValue) >>=
+                    putMVar mv_thread
+                DelayButton ->
+                  forkIO (animateDelay mv_thread fireButtonPressed) >>=
+                    putMVar mv_thread
       reactimate $ fmap mouseDownHandler eMouseDown
 
+
       -- mouse up
-      eMouseUp   <- registerMouseUp button
+      eMouseUp   <- whenE bButtonNotDisabled <$> registerMouseUp button
       let mouseUpHandler () = do
             fireButtonPressed False
             case _buttonType i of
@@ -112,6 +113,9 @@ instance IsWidget (Button e) where
       return . Button $ eButtonClick
 
 
+
+
+-- buttonEnabled -> buttonState  -> ButtonState
 buttonState :: Bool -> Bool -> ButtonState
 buttonState False     _ = ButtonDisabled
 buttonState True  False = ButtonEnabled
