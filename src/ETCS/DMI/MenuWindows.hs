@@ -3,6 +3,7 @@
 module ETCS.DMI.MenuWindows
        ( mkMainWindow, mkOverrideWindow, mkSpecialWindow, mkSettingsWindow
        , mkRBCContactWindow
+       , module ETCS.DMI.MenuWindow
        ) where
 
 import           Control.Lens
@@ -10,8 +11,8 @@ import           ETCS.DMI.Button
 import           ETCS.DMI.Helpers
 import           ETCS.DMI.MenuWindow
 import           ETCS.DMI.Types
-import           GHCJS.DOM.Types            (IsNode)
 import           Reactive.Banana
+import           Reactive.Banana.DOM
 import           Reactive.Banana.Frameworks
 
 trainInMode :: ETCSMode -> TrainBehavior -> Behavior Bool
@@ -23,9 +24,9 @@ trainInModes ms i = fmap (`elem` ms) $ i ^. trainMode
 
 
 mkMainWindow :: (MonadIO m, IsNode p) =>
-                TrainBehavior -> p -> Event Bool -> m (MomentIO (Event Int))
+                TrainBehavior -> p -> Event Bool -> m (MomentIO MenuWindow)
 mkMainWindow i parent visible =
-  mkMenuWindow parent (pure "Main") visible
+  mkWidgetIO parent $ mkMenuWindow (pure "Main") visible
      [ mkButton UpButton (pure "Start") (bStartButtonEnabled i)
      , mkButton UpButton (pure "Driver ID") (bDriverIDButtonEnabled i)
      , mkButton UpButton (pure "Train Data") (bTrainDataButtonEnabled i)
@@ -85,24 +86,24 @@ bLevelButtonEnabled i = bsAnd
         , i ^. trainDriverIDIsValid, trainInModes [SB, FS, LS, SR, OS, NL, UN, SN] i
         ]
 
-mkOverrideWindow :: (MonadIO m, IsNode p) => p -> Event Bool -> m (MomentIO (Event Int))
+mkOverrideWindow :: (MonadIO m, IsNode p) => p -> Event Bool -> m (MomentIO (MenuWindow))
 mkOverrideWindow parent visible =
-  mkMenuWindow parent (pure "Override") visible
+  mkWidgetIO parent $ mkMenuWindow (pure "Override") visible
   [ mkButton UpButton (pure "EOA") (pure True)
   ]
 
 
-mkSpecialWindow :: (MonadIO m, IsNode p) => p -> Event Bool -> m (MomentIO (Event Int))
+mkSpecialWindow :: (MonadIO m, IsNode p) => p -> Event Bool -> m (MomentIO (MenuWindow))
 mkSpecialWindow parent visible =
-  mkMenuWindow parent (pure "Special") visible
+  mkWidgetIO parent $ mkMenuWindow (pure "Special") visible
   [ mkButton UpButton (pure "Ahension") (pure True)
   , mkButton UpButton (pure "SR speed / distance") (pure True)
   , mkButton DelayButton (pure "Train integrety") (pure True)
   ]
 
-mkSettingsWindow :: (MonadIO m, IsNode p) => p -> Event Bool -> m (MomentIO (Event Int))
+mkSettingsWindow :: (MonadIO m, IsNode p) => p -> Event Bool -> m (MomentIO (MenuWindow))
 mkSettingsWindow parent visible =
-  mkMenuWindow parent (pure "Settings") visible
+  mkWidgetIO parent $ mkMenuWindow (pure "Settings") visible
   [ mkButton UpButton (pure "Language") (pure True) -- TODO: Image SE03
   , mkButton UpButton (pure "Volume") (pure True) -- TODO: Image SE02
   , mkButton UpButton (pure "Brightness") (pure True) -- TODO: Image SE01
@@ -111,9 +112,9 @@ mkSettingsWindow parent visible =
   , mkButton UpButton (pure "Remove VBC") (pure True)
   ]
 
-mkRBCContactWindow :: (MonadIO m, IsNode p) => p -> Event Bool -> m (MomentIO (Event Int))
+mkRBCContactWindow :: (MonadIO m, IsNode p) => p -> Event Bool -> m (MomentIO (MenuWindow))
 mkRBCContactWindow parent visible =
-  mkMenuWindow parent (pure "RBC Contact") visible
+  mkWidgetIO parent $ mkMenuWindow (pure "RBC Contact") visible
   [ mkButton UpButton (pure "Contact last RBC") (pure True)
   , mkButton UpButton (pure "Use short number") (pure True)
   , mkButton UpButton (pure "Enter RBC data") (pure True) -- TODO: Image SE01

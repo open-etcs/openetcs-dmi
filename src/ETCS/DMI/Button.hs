@@ -25,7 +25,7 @@ data ButtonState = ButtonDisabled | ButtonEnabled | ButtonPressed
 mkButton :: ButtonType -> Behavior Text -> Behavior Bool -> e -> WidgetInput (Button e)
 mkButton = MkButton
 
-data Button e =
+newtype Button e =
   Button { buttonEvent :: Event e }
 
 

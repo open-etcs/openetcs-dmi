@@ -8,7 +8,7 @@ module Reactive.Banana.DOM
          IsNode
        ) where
 
-
+import           Control.Monad
 import           GHCJS.DOM.EventTarget         (addEventListener)
 import           GHCJS.DOM.EventTargetClosures (eventListenerNew)
 import           GHCJS.DOM.Types               (IsNode, MouseEvent)
@@ -32,13 +32,11 @@ registerMouseEvent e t = do
   addEventListener t e (pure eventListener) True
   return addHandler
 
-
-
-
 class IsWidget w where
   data WidgetInput w :: *
 
   mkWidgetIO :: (MonadIO m, IsNode parent) =>
                parent -> WidgetInput w -> m (MomentIO w)
 
-
+  mkWidget :: (IsNode parent) => parent -> WidgetInput w -> MomentIO w
+  mkWidget parent i = join . liftIO $ mkWidgetIO parent i

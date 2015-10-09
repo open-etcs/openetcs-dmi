@@ -1,8 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeFamilies      #-}
 
-module ETCS.DMI.MenuWindow ( mkMenuWindow ) where
+module ETCS.DMI.MenuWindow ( MenuWindow(..), mkMenuWindow ) where
 
-import           Control.Monad
 import           Data.Text                  (Text)
 import           ETCS.DMI.Button
 import           ETCS.DMI.ButtonGroup
@@ -15,45 +15,57 @@ import           Reactive.Banana.DOM
 import           Reactive.Banana.Frameworks
 
 
+newtype MenuWindow =
+  MenuWindow { menuWindowEvent :: Event Int }
 
-mkMenuWindow :: (MonadIO m, IsNode p) => p
-                -> Behavior Text -> Event Bool ->
-                [ Int -> WidgetInput (Button Int) ]
-                -> m (MomentIO (Event Int))
-mkMenuWindow parent bTitle eVisible bs = do
-  doc <- _getOwnerDocument parent
+mkMenuWindow :: Behavior Text -> Event Bool -> [Int -> WidgetInput (Button Int)]
+                -> WidgetInput MenuWindow
+mkMenuWindow = MkMenuWindow
 
-  -- the window
-  win <- _createDivElement doc
-  setClassName win ("MenuWindow" :: String)
+instance IsWidget MenuWindow where
+  data WidgetInput MenuWindow = MkMenuWindow {
+    _menuWindowTitle   :: Behavior Text,
+    _menuWindowVisible :: Event Bool,
+    _menuWindowButtons :: [ Int -> WidgetInput (Button Int) ]
+  }
 
-  -- the window title
-  titleElem <- _createDivElement doc
-  setClassName titleElem ("MenuTitle" :: String)
-  () <$ appendChild win (pure titleElem)
+  mkWidgetIO parent i = do
+    doc <- _getOwnerDocument parent
 
-  -- the close button
-  closeContainer <- _createDivElement doc
-  setClassName closeContainer ("MenuClose" :: String)
-  closeButtonR <-
-    mkWidgetIO closeContainer $ mkButton UpButton (pure "x") (pure True) ()
-  () <$ appendChild win (pure closeContainer)
+    -- the window
+    win <- _createDivElement doc
+    setClassName win ("MenuWindow" :: String)
 
-  -- apend window
-  () <$ appendChild parent (pure win)
-
-  return $ do
-    -- the title
-    let titleHandler = setTextContent titleElem . pure
-    valueBLater bTitle >>= liftIOLater . titleHandler
-    changes bTitle >>= reactimate' . fmap (fmap titleHandler)
+    -- the window title
+    titleElem <- _createDivElement doc
+    setClassName titleElem ("MenuTitle" :: String)
+    () <$ appendChild win (pure titleElem)
 
     -- the close button
-    closeButton <- closeButtonR
-    let eCloseIntern =
-          unionWith const eVisible . fmap (const False) $ buttonEvent closeButton
-    reactimate $ fmap (setHidden win . not) eCloseIntern
+    closeContainer <- _createDivElement doc
+    setClassName closeContainer ("MenuClose" :: String)
+    closeButtonR <-
+      mkWidgetIO closeContainer $ mkButton UpButton (pure "x") (pure True) ()
+    () <$ appendChild win (pure closeContainer)
 
-    -- the button group
-    bg <- join . liftIO . mkWidgetIO win . mkButtonGroup $ bs
-    return $ buttonGroupEvent bg
+    -- apend window
+    () <$ appendChild parent (pure win)
+
+    return $ do
+      -- the title
+      let titleHandler = setTextContent titleElem . pure
+      valueBLater (_menuWindowTitle i) >>= liftIOLater . titleHandler
+      changes (_menuWindowTitle i) >>= reactimate' . fmap (fmap titleHandler)
+
+      -- the close button
+      closeButton <- closeButtonR
+      let eCloseIntern =
+            unionWith const (_menuWindowVisible i) . fmap (const False) $
+              buttonEvent closeButton
+      reactimate $ fmap (setHidden win . not) eCloseIntern
+
+      -- the button group
+      bg <- mkWidget win . mkButtonGroup . _menuWindowButtons $ i
+      return . MenuWindow $ buttonGroupEvent bg
+
+
