@@ -5,6 +5,7 @@ module ETCS.DMI.MenuWindow ( mkMenuWindow ) where
 import           Control.Monad
 import           Data.Text                  (Text)
 import           ETCS.DMI.Button
+import           ETCS.DMI.ButtonGroup
 import           ETCS.DMI.Helpers
 import           GHCJS.DOM.Element          (setClassName)
 import           GHCJS.DOM.HTMLElement      (setHidden)
@@ -21,7 +22,9 @@ mkMenuWindow :: (MonadIO m, IsNode p) => p
                 -> m (MomentIO (Event Int))
 mkMenuWindow parent bTitle eVisible bs = do
   doc <- _getOwnerDocument parent
-  win <- _mkWindow doc
+
+  win <- _createDivElement doc
+  setClassName win ("MenuWindow" :: String)
 
   titleElem <- _createDivElement doc
   setClassName titleElem ("MenuTitle" :: String)
@@ -33,8 +36,8 @@ mkMenuWindow parent bTitle eVisible bs = do
     mkWidgetIO closeContainer $ mkButton UpButton (pure "x") (pure True) ()
   () <$ appendChild win (pure closeContainer)
 
-  buttonsR <- _mkButtons doc win
   () <$ appendChild parent (pure win)
+
 
   return $ do
     -- the title
@@ -44,24 +47,13 @@ mkMenuWindow parent bTitle eVisible bs = do
 
     -- the close button
     closeButton <- closeButtonR
-    let eCloseIntern = unionWith const eVisible . fmap (const False) $ buttonEvent closeButton
+    let eCloseIntern =
+          unionWith const eVisible . fmap (const False) $ buttonEvent closeButton
     reactimate $ fmap (setHidden win . not) eCloseIntern
 
-    -- union of all button events
-    foldl (unionWith const) never <$> sequence (fmap (fmap buttonEvent) buttonsR)
-
+    -- the button group
+    bg <- join . liftIO . mkWidgetIO win . mkButtonGroup $ bs
+    return $ buttonGroupEvent bg
 
   where _mkWindow doc = do
-          win <- _createDivElement doc
-          setClassName win ("MenuWindow" :: String)
-          return win
-
-        _mkButtons doc win = do
-            bsContainer <- _createDivElement doc
-            setClassName bsContainer ("MenuButtons" :: String)
-
-            bs' <- zipWithM (\i f -> f i) [(0 :: Int) .. 9]
-                   [ mkWidgetIO bsContainer . b | b <- bs]
-            () <$ appendChild win (pure bsContainer)
-            return bs'
-
+          

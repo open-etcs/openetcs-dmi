@@ -11,7 +11,6 @@ import qualified Data.Text                  as T
 import           ETCS.DMI.Helpers
 import           ETCS.DMI.Types
 import           GHCJS.DOM.Element          (setAttribute, setClassName)
-
 import           GHCJS.DOM.HTMLElement      (setTitle)
 import           GHCJS.DOM.Node             (appendChild, setTextContent)
 import           GHCJS.DOM.Types            (castToHTMLElement)
@@ -27,7 +26,7 @@ mkButton :: ButtonType -> Behavior Text -> Behavior Bool -> e -> WidgetInput (Bu
 mkButton = MkButton
 
 data Button e =
-  Button {  buttonEvent :: Event e }
+  Button { buttonEvent :: Event e }
 
 
 instance IsWidget (Button e) where
@@ -38,15 +37,18 @@ instance IsWidget (Button e) where
     _buttonValue :: e
     }
   mkWidgetIO parent i = do
-    doc <- _getOwnerDocument parent
-    button <- _createDivElement doc
-    setAttribute button "data-role" "button"
-    inner_div <- _createDivElement doc
+    doc        <- _getOwnerDocument parent
+    button     <- _createDivElement doc
+    inner_div  <- _createDivElement doc
     inner_span <- _createSpanElement doc
-    empty_div <- _createDivElement doc
+    empty_div  <- _createDivElement doc
+
+    setAttribute button "data-role" "button"
     setClassName empty_div "EmptyButton"
+
     () <$ appendChild inner_div (pure inner_span)
     () <$ appendChild button (pure inner_div)
+
     mv_thread <- liftIO newEmptyMVar
 
     return $ do
@@ -71,7 +73,7 @@ instance IsWidget (Button e) where
       changes bButtonState >>= reactimate' . fmap (fmap stateHandler)
       let bButtonNotDisabled = (/= ButtonDisabled) <$> bButtonState
 
-      -- handle clicks
+      -- internal click event
       (eButtonClick, fireButton') <- newEvent
       let fireButtonEventValue = fireButton' (_buttonValue i)
 
@@ -98,7 +100,7 @@ instance IsWidget (Button e) where
 
 
       -- mouse up
-      eMouseUp   <- whenE bButtonNotDisabled <$> registerMouseUp button
+      eMouseUp <- whenE bButtonNotDisabled <$> registerMouseUp button
       let mouseUpHandler () = do
             fireButtonPressed False
             case _buttonType i of
@@ -108,7 +110,6 @@ instance IsWidget (Button e) where
               DelayButton ->
                 tryTakeMVar mv_thread >>= maybe fireButtonEventValue killThread
       reactimate $ fmap mouseUpHandler eMouseUp
-
 
       return . Button $ eButtonClick
 
@@ -121,7 +122,7 @@ buttonState False     _ = ButtonDisabled
 buttonState True  False = ButtonEnabled
 buttonState True  True  = ButtonPressed
 
-
+-- used by down down
 repeatAction :: MVar a -> IO () -> IO ()
 repeatAction mv_thread fireButtonEventValue = do
   threadDelay 1500000
@@ -132,7 +133,7 @@ repeatAction mv_thread fireButtonEventValue = do
           unless em $ do fireButtonEventValue
                          threadDelay 300000
                          repeatAction'
-
+-- used by delay button
 animateDelay :: MVar a -> (Bool -> IO ()) -> IO ()
 animateDelay mv_thread fireButtonPressed = animateDelay' (8 :: Int) True
   where animateDelay' 0 v = do
