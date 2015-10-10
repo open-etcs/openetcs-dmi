@@ -7,13 +7,16 @@ module ETCS.DMI.Keyboard ( NumericKeyboard, mkNumericKeyboard
                          , DedicatedKeyboard, mkDedicatedKeyboard
                          ) where
 
+import           Control.Monad
 import           Data.Text                  (Text)
 import           Data.Typeable              (Typeable)
 import           ETCS.DMI.Button
 import           ETCS.DMI.Helpers
+import           GHCJS.DOM.Element          (setClassName)
+import           GHCJS.DOM.HTMLElement      (setHidden)
 import           GHCJS.DOM.Node             (appendChild)
-import           GHCJS.DOM.Types            (Element, castToDocument,
-                                             castToElement)
+import           GHCJS.DOM.Types            (Element, castToElement,
+                                             castToHTMLElement)
 import           Reactive.Banana
 import           Reactive.Banana.DOM
 import           Reactive.Banana.Frameworks
@@ -121,27 +124,53 @@ instance Typeable a => IsWidget (DedicatedKeyboard a) where
         bs = take 11 bs'
         n = length $ mappend as bs
     in do
-      kbdContainer <- _getOwnerDocument parent >>= _createDivElement
-      () <$ appendChild parent (pure kbdContainer)
-      page1 <- _createDivElement $ castToDocument kbdContainer
-      page2 <- _createDivElement $ castToDocument kbdContainer
-      () <$ appendChild kbdContainer (pure page1)
-      () <$ appendChild kbdContainer (pure page2)
+      doc <- _getOwnerDocument parent
+      kbdContainer <- _createDivElement doc
+      page1 <- _createDivElement doc
 
       let mkKey p (b, e) = mkWidget p . mkButton DownButton (pure b) (pure True) $ e
-          keyboardWidget =
+          keyboardWidget = do
+            liftIOLater $ do
+              () <$ appendChild kbdContainer (pure page1)
+              () <$ appendChild parent (pure kbdContainer)
+              return ()
             if n <= 12
             then do
               bsP1 <- sequence . fmap (mkKey page1) $ _keyboardData i
               let e =  foldl (unionWith const) never . fmap widgetEvent $ bsP1
               return . DedicatedKeyboard $ e
             else do
-              -- FIXME me: needs a) page swapping, b) fixed [more] button
+              page2 <- liftIO $ _createDivElement doc
+              more1 <- liftIO $ _createDivElement doc
+              more2 <- liftIO $ _createDivElement doc
+              setClassName more1 ("MoreButton" :: String)
+              setClassName more2 ("MoreButton" :: String)
+
+
               bsP1 <- sequence . fmap (mkKey page1) $ as
-              bsP2 <- sequence . fmap (mkKey page1) $ as
-              let e =  foldl (unionWith const) never . fmap widgetEvent $
+              bsP2 <- sequence . fmap (mkKey page2) $ bs
+              let  moreButton = mkButton DownButton (pure $ pure "[More]") (pure True) not
+              btTP1 <- mkWidget more1 moreButton
+              btTP2 <- mkWidget more2 moreButton
+              () <$ appendChild page1 (pure more1)
+              () <$ appendChild page2 (pure more2)
+              eP1 <- accumE True $ unionWith const (widgetEvent btTP1) (widgetEvent btTP2)
+              bP1 <- stepper True eP1
+
+              let bP2 = fmap not bP1
+                  sP1 = setHidden (castToHTMLElement page1) . not
+                  sP2 = setHidden (castToHTMLElement page2) . not
+              valueBLater bP1 >>= liftIOLater . sP1
+              valueBLater bP2 >>= liftIOLater . sP2
+              changes bP1 >>= reactimate' . fmap (fmap sP1)
+              changes bP2 >>= reactimate' . fmap (fmap sP2)
+
+
+              () <$ appendChild kbdContainer (pure page2)
+              let kbdEvent =  foldl (unionWith const) never . fmap widgetEvent $
                        mappend bsP1 bsP2
-              return . DedicatedKeyboard $ e
+
+              return . DedicatedKeyboard $ kbdEvent
 
       return (keyboardWidget, castToElement kbdContainer)
 
@@ -174,17 +203,17 @@ instance IsWidget (Keyboard a) where
     }
 
   mkWidgetIO parent i = do
-    doc <- _getOwnerDocument parent
-    kbdContainer <- _createDivElement doc
-    () <$ appendChild parent (pure kbdContainer)
+    kbdContainer <- _getOwnerDocument parent >>= _createDivElement
+
 
     let mkKbdButton :: Behavior Text -> Int -> MomentIO (Button Int)
         mkKbdButton b e =
-          let dot = not $ (not $ _keyboardDot i) && (e == 11)
+          let dot = e /= 11 || _keyboardDot i
           in mkWidget kbdContainer . mkButton DownButton (pure b) (pure dot) $ e
 
         keyboardWidget = do
-          bs <- sequence $ zipWith (\f j -> f j) (fmap mkKbdButton (_keyboardLabels i)) [0..11]
+          liftIOLater $ do () <$ appendChild parent (pure kbdContainer) ; return ()
+          bs <- zipWithM ($) (fmap mkKbdButton (_keyboardLabels i)) [0..11]
           let e =  foldl (unionWith const) never . fmap widgetEvent $ bs
           return . Keyboard . fmap (_keyboardMapping i) $ e
 

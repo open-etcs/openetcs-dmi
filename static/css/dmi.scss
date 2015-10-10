@@ -175,17 +175,24 @@ div[data-widget="WindowTitle"] {
   padding-left: $paddingWidth;
 }
 
+div[data-widget="Keyboard"], div[data-widget="DedicatedKeyboard"] {
+  $keyboardButtonWidth: 102px;
+  $keyboardButtonHeight: 50px;
+  @include absoluteWidthHeight(3 * $keyboardButtonWidth, 4 * $keyboardButtonHeight);
 
-div[data-widget="Keyboard"] {
-  @include absoluteWidthHeight(306,200);
-  
+  .MoreButton {
+    position: absolute;
+    left: 2 * $keyboardButtonWidth;
+    top: 3 * $keyboardButtonHeight + 15px; // FIXME: 15px ?!?!
+  }
+    
   div[data-widget="Button"] {    
     font-size: 16px;
     float: left;
-    @include absoluteWidthHeight(102px - $doubleBorder, 50px - $doubleBorder);
+    @include absoluteWidthHeight($keyboardButtonWidth - $doubleBorder, $keyboardButtonHeight - $doubleBorder);
   }
 }
-
+    
 div[data-widget="Window"] {
   float: left;
 
