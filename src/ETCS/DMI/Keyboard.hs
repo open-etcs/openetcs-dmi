@@ -5,6 +5,7 @@ module ETCS.DMI.Keyboard ( NumericKeyboard, mkNumericKeyboard
                          , EnhancedNumericKeyboard, mkEnhancedNumericKeyboard
                          , AlphaNumKeyboard, mkAlphaNumKeyboard
                          , DedicatedKeyboard, mkDedicatedKeyboard
+                         , mkKeyboardBuffer
                          ) where
 
 import           Control.Monad
@@ -22,6 +23,14 @@ import           Reactive.Banana.DOM
 import           Reactive.Banana.Frameworks
 
 
+newtype NumericKeyboard = NumericKeyboard (Keyboard (Maybe Char))
+
+newtype EnhancedNumericKeyboard = EnhancedNumericKeyboard (Keyboard (Maybe Char))
+
+newtype AlphaNumKeyboard = AlphaNumKeyboard (Keyboard (Maybe Int))
+
+newtype DedicatedKeyboard a = DedicatedKeyboard (Event a)
+
 mkNumericKeyboard :: WidgetInput NumericKeyboard
 mkNumericKeyboard = MkNumericKeyboard
 
@@ -35,9 +44,6 @@ mkDedicatedKeyboard :: [(Behavior Text, a)] -> WidgetInput (DedicatedKeyboard a)
 mkDedicatedKeyboard = MkDedicatedKeyboard
 
 
-newtype EnhancedNumericKeyboard =
-  EnhancedNumericKeyboard (Keyboard (Maybe Char))
-
 instance IsEventWidget EnhancedNumericKeyboard where
   type WidgetEventType EnhancedNumericKeyboard = Maybe Char
   widgetEvent (EnhancedNumericKeyboard kbd) = widgetEvent kbd
@@ -47,9 +53,6 @@ instance IsWidget EnhancedNumericKeyboard where
   mkWidgetIO = numKeyboard EnhancedNumericKeyboard True
 
 
-newtype NumericKeyboard =
-  NumericKeyboard (Keyboard (Maybe Char))
-
 instance IsEventWidget NumericKeyboard where
   type WidgetEventType NumericKeyboard = Maybe Char
   widgetEvent (NumericKeyboard kbd) = widgetEvent kbd
@@ -57,11 +60,6 @@ instance IsEventWidget NumericKeyboard where
 instance IsWidget NumericKeyboard where
   data WidgetInput NumericKeyboard = MkNumericKeyboard
   mkWidgetIO = numKeyboard NumericKeyboard False
-
-
-
-newtype AlphaNumKeyboard =
-  AlphaNumKeyboard (Keyboard (Maybe Int))
 
 instance IsEventWidget AlphaNumKeyboard where
   type WidgetEventType AlphaNumKeyboard = Maybe Int
@@ -105,11 +103,6 @@ numKeyboard c dot parent _ =
 
       return ( c <$> mkWidget kbdContainer numericKeyboard
              , castToElement kbdContainer)
-
-
-
-newtype DedicatedKeyboard a =
-  DedicatedKeyboard (Event a)
 
 instance Typeable a => IsEventWidget (DedicatedKeyboard a) where
   type WidgetEventType (DedicatedKeyboard a) = a
@@ -218,3 +211,19 @@ instance IsWidget (Keyboard a) where
           return . Keyboard . fmap (_keyboardMapping i) $ e
 
     return (keyboardWidget, castToElement kbdContainer)
+
+
+
+mkKeyboardBuffer :: (Eq a, MonadMoment m) =>
+                    Event r -> Event (Maybe a) -> m (Behavior [a])
+mkKeyboardBuffer r e = do
+  bufferE' <- accumE [] (fmap baseBuffer e)
+  let resetE = fmap (const []) r
+      bufferE = unionWith const bufferE' resetE
+  stepper [] bufferE
+
+
+baseBuffer :: Eq a => Maybe a -> [a] -> [a]
+baseBuffer (Just c) bs = bs ++ [c]
+baseBuffer Nothing bs = if bs == [] then [] else init bs
+
