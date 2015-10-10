@@ -20,7 +20,8 @@ library
                        ETCS.DMI.Types,
                        ETCS.DMI.Button,
                        ETCS.DMI.ButtonGroup,
-                       ETCS.DMI.Keyboard,                       
+                       ETCS.DMI.Keyboard,
+                       ETCS.DMI.InputField,
                        ETCS.DMI.MenuWindows,
                        Reactive.Banana.DOM
                        

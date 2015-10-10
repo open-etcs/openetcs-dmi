@@ -76,6 +76,14 @@ $F_height: $D_height + $G_height;
   @include absoluteWidthHeight($w,$h);
 }
 
+ 
+@mixin vertical-align($position: relative) {
+  position: $position;
+  top: 50%;
+  -webkit-transform: translateY(-50%);
+  -ms-transform: translateY(-50%);
+  transform: translateY(-50%);
+}
 
 
 body {
@@ -242,7 +250,78 @@ div[data-widget="Window"] {
 
 }
 
+
+div[data-widget="InputField"] {
+  $fieldWidth: 306px;
+  $fieldHeight: 50px;
+
+  $fieldDataLabelWidth: 102px;
   
+  @include absoluteWidthHeight( $fieldWidth
+                              , $fieldHeight);
+
+  
+  .LabelArea {
+    $paddingRight: 10px;
+    
+    @extend .notSelectable;    
+    @include absoluteWidthHeight(
+    $fieldWidth - $fieldDataLabelWidth - $paddingRight - $borderWidth,
+    $fieldHeight - $doubleBorder);
+
+    float: left;
+    padding-right: $paddingRight;
+    vartial-align: middle;
+    display: table-cell;
+    
+    span {
+      @include vertical-align();    
+      float: right;
+    }
+    
+    background-color:  $ColorDarkGrey;
+    border: 1px solid $ColorMediumGrey;
+    border-right: none;
+  }
+
+  .DataAreaLabel {
+    $paddingLeft: 10px;
+
+    @include absoluteWidthHeight(
+    $fieldDataLabelWidth - $paddingLeft - $borderWidth,
+    $fieldHeight - $doubleBorder);
+
+    float: left;
+    padding-left: $paddingLeft;
+    background-color:  $ColorDarkGrey;
+    border: 1px solid $ColorMediumGrey;
+    border-left: none;
+  }
+  
+  .DataAreaFull {
+    $paddingLeft: 10px;
+    height: 100%;
+
+    @include absoluteWidthHeight(
+    $fieldWidth - $paddingLeft - $doubleBorder,
+    $fieldHeight - $doubleBorder);
+
+    float: left;
+    padding-left: $paddingLeft;
+    background-color:  $ColorDarkGrey;
+    border: 1px solid $ColorMediumGrey;
+  }
+
+  .DataAreaLabel:focus {
+        background-color:  $ColorGrey;
+        color: $ColorBlack;
+        padding-left: 9px;
+        @include borderTL($borderWidth, solid, $ColorWhite);
+        @include borderBR($borderWidth, solid, $ColorDarkGrey);
+  }
+
+}
+
 
 #dmiMain {
   $w: $C_width + $G_width + $F_width;
