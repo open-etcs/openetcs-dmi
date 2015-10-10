@@ -215,15 +215,13 @@ instance IsWidget (Keyboard a) where
 
 
 mkKeyboardBuffer :: (Eq a, MonadMoment m) =>
-                    Event r -> Event (Maybe a) -> m (Behavior [a])
-mkKeyboardBuffer r e = do
-  bufferE' <- accumE [] (fmap baseBuffer e)
-  let resetE = fmap (const []) r
-      bufferE = unionWith const bufferE' resetE
-  stepper [] bufferE
+                    Int -> Event r -> Event (Maybe a) -> m (Behavior [a])
+mkKeyboardBuffer l r e = do
+  bufferE' <- accumE [] (fmap (baseBuffer l) e)
+  stepper [] . unionWith const bufferE' . fmap (const []) $ r
 
 
-baseBuffer :: Eq a => Maybe a -> [a] -> [a]
-baseBuffer (Just c) bs = bs ++ [c]
-baseBuffer Nothing bs = if bs == [] then [] else init bs
+baseBuffer :: Eq a => Int -> Maybe a -> [a] -> [a]
+baseBuffer l (Just c) bs = if l > length bs then  bs ++ [c] else bs
+baseBuffer _ Nothing bs = if null bs then [] else init bs
 
