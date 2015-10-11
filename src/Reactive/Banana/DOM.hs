@@ -4,6 +4,7 @@ module Reactive.Banana.DOM
        ( IsWidget(..), mkWidget, IsEventWidget(..),
          -- * Mouse Events
          registerMouseClick, registerMouseDown, registerMouseUp, registerMouseOut,
+         focusBehavior, registerFocusInEvent, registerFocusOutEvent,
          -- * re-exports
          IsNode
        ) where
@@ -12,26 +13,49 @@ import           Data.Typeable
 import           GHCJS.DOM.Element             (Element, setAttribute)
 import           GHCJS.DOM.EventTarget         (addEventListener)
 import           GHCJS.DOM.EventTargetClosures (eventListenerNew)
-import           GHCJS.DOM.Types               (IsNode, MouseEvent)
+import           GHCJS.DOM.Types               (FocusEvent, IsEvent, IsNode,
+                                                MouseEvent)
 import           Reactive.Banana
 import           Reactive.Banana.Frameworks
 
+
 registerMouseDown, registerMouseUp, registerMouseOut, registerMouseClick ::
   (IsNode n ) => n -> MomentIO (Event ())
-registerMouseDown n = liftIO (registerMouseEvent "mousedown" n) >>= fromAddHandler
-registerMouseUp   n = liftIO (registerMouseEvent "mouseup" n) >>= fromAddHandler
-registerMouseOut  n = liftIO (registerMouseEvent "mouseout" n) >>= fromAddHandler
-registerMouseClick  n = liftIO (registerMouseEvent "click" n) >>= fromAddHandler
+registerMouseDown   = registerMouseEvent "mousedown"
+registerMouseUp     = registerMouseEvent "mouseup"
+registerMouseOut    = registerMouseEvent "mouseout"
+registerMouseClick  = registerMouseEvent "click"
 
 
-registerMouseEvent :: (IsNode n) => String -> n -> IO (AddHandler ())
-registerMouseEvent e t = do
-  (addHandler, fire) <- newAddHandler
-  let handler :: MouseEvent -> IO ()
-      handler = const $ fire ()
-  eventListener <- eventListenerNew handler
-  addEventListener t e (pure eventListener) True
-  return addHandler
+registerMouseEvent :: (IsNode n) => String -> n -> MomentIO (Event ())
+registerMouseEvent = registerEvent (const () :: MouseEvent -> ())
+
+
+registerFocusInEvent :: (IsNode n) => n -> MomentIO (Event ())
+registerFocusInEvent = registerEvent (const () :: FocusEvent -> ()) "focus"
+
+registerFocusOutEvent :: (IsNode n) => n -> MomentIO (Event ())
+registerFocusOutEvent = registerEvent (const () :: FocusEvent -> ()) "blur"
+
+focusBehavior :: (IsNode n) => n -> MomentIO (Behavior Bool)
+focusBehavior n = do
+  fi <- registerFocusInEvent n
+  fo <- registerFocusOutEvent n
+  let e = unionWith const (fmap (const False) fo) (fmap (const True) fi)
+  stepper False e
+
+
+
+registerEvent ::
+  (IsNode n, IsEvent e) => (e -> a) -> String -> n -> MomentIO (Event a)
+registerEvent h e t = do
+  ah <- liftIO $ do
+    (addHandler, fire) <- newAddHandler
+    eventListener <- eventListenerNew (fire . h)
+    addEventListener t e (pure eventListener) True
+    return addHandler
+  fromAddHandler ah
+
 
 class IsWidget w where
   data WidgetInput w :: *

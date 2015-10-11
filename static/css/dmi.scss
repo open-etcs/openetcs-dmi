@@ -259,6 +259,8 @@ div[data-widget="InputField"] {
   @include absoluteWidthHeight( $fieldWidth
                               , $fieldHeight);
 
+  cursor: pointer;
+
   .LabelArea {
     $paddingRight: 10px; 
     @extend .notSelectable;    
@@ -311,17 +313,26 @@ div[data-widget="InputField"] {
     border-left: none;
   }
 
-  .DataAreaFull[data-accepted="true"] {
+  .DataAreaFull[data-state="Accepted"] {
     background-color: $ColorDarkGrey;
     color: $ColorWhite;
   }
   
-  .DataAreaLabel[data-accepted="true"] {
+  .DataAreaLabel[data-state="Accepted"] {
     background-color: $ColorDarkGrey;
     color: $ColorWhite;
   }
 
-  .DataAreaLabel:focus {
+  .DataAreaLabel[data-state="Selected"] {
+    background-color:  $ColorGrey;
+    color: $ColorBlack;
+    padding-left: 9px;
+
+    @include borderTL($borderWidth, solid, $ColorWhite);
+    @include borderBR($borderWidth, solid, $ColorDarkGrey);
+  }
+
+  .DataAreaLFull[data-state="Selected"] {
     background-color:  $ColorGrey;
     color: $ColorBlack;
     padding-left: 9px;
