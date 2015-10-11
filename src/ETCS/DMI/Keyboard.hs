@@ -5,11 +5,13 @@ module ETCS.DMI.Keyboard ( NumericKeyboard, mkNumericKeyboard
                          , EnhancedNumericKeyboard, mkEnhancedNumericKeyboard
                          , AlphaNumKeyboard, mkAlphaNumKeyboard
                          , DedicatedKeyboard, mkDedicatedKeyboard
-                         , mkKeyboardBuffer
+                         , mkEnumKeyboard
+                         , mkKeyboardBuffer, renderData
                          ) where
 
 import           Control.Monad
 import           Data.Text                  (Text)
+import qualified Data.Text                  as T
 import           Data.Typeable              (Typeable)
 import           ETCS.DMI.Button
 import           ETCS.DMI.Helpers
@@ -21,7 +23,6 @@ import           GHCJS.DOM.Types            (Element, castToElement,
 import           Reactive.Banana
 import           Reactive.Banana.DOM
 import           Reactive.Banana.Frameworks
-
 
 newtype NumericKeyboard = NumericKeyboard (Keyboard (Maybe Char))
 
@@ -43,6 +44,10 @@ mkAlphaNumKeyboard = MkAlphaNumKeyboard
 mkDedicatedKeyboard :: [(Behavior Text, a)] -> WidgetInput (DedicatedKeyboard a)
 mkDedicatedKeyboard = MkDedicatedKeyboard
 
+
+mkEnumKeyboard :: (Enum a, Bounded a, Show a) => WidgetInput (DedicatedKeyboard a)
+mkEnumKeyboard = mkDedicatedKeyboard
+  [ (pure . T.pack . show $ i, i)  | i <- [minBound .. maxBound] ]
 
 instance IsEventWidget EnhancedNumericKeyboard where
   type WidgetEventType EnhancedNumericKeyboard = Maybe Char
@@ -213,6 +218,18 @@ instance IsWidget (Keyboard a) where
     return (keyboardWidget, castToElement kbdContainer)
 
 
+renderData :: String -> String
+renderData =  renderDataChunks
+
+renderDataLines :: String -> [String]
+renderDataLines [] = []
+renderDataLines a = let (as,bs) = splitAt 9 a in as : renderDataLines bs
+
+renderDataChunks :: String -> String
+renderDataChunks a =
+  let (as,bs) = splitAt 6 a
+  in if null bs then as
+     else mconcat [ as, " ", renderDataChunks bs]
 
 mkKeyboardBuffer :: (Eq a, MonadMoment m) =>
                     Int -> Event r -> Event (Maybe a) -> m (Behavior [a])
