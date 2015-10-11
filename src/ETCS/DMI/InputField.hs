@@ -4,7 +4,7 @@ module ETCS.DMI.InputField where
 
 import           Data.Text                  (Text)
 import           ETCS.DMI.Helpers
-import           GHCJS.DOM.Element          (setAttribute, setClassName)
+import           GHCJS.DOM.Element          (focus, setAttribute, setClassName)
 import           GHCJS.DOM.HTMLElement      (setTabIndex, setTitle)
 import           GHCJS.DOM.Node             (appendChild, setTextContent)
 import           GHCJS.DOM.Types            (castToElement)
@@ -61,6 +61,10 @@ instance IsWidget (InputField) where
             let setLabel = setTextContent labelArea . pure
             valueBLater (_inputLabel i) >>= liftIOLater . setLabel
             changes (_inputLabel i)  >>= reactimate' . fmap (fmap setLabel)
+
+            lblClick <- registerMouseClick labelArea
+            let lblClickHandler _ = focus dataArea
+            reactimate $ fmap lblClickHandler lblClick
 
             liftIOLater $ do
               () <$ appendChild field (pure labelArea)

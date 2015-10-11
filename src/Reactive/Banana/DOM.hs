@@ -3,7 +3,7 @@
 module Reactive.Banana.DOM
        ( IsWidget(..), mkWidget, IsEventWidget(..),
          -- * Mouse Events
-         registerMouseDown, registerMouseUp, registerMouseOut,
+         registerMouseClick, registerMouseDown, registerMouseUp, registerMouseOut,
          -- * re-exports
          IsNode
        ) where
@@ -12,15 +12,16 @@ import           Data.Typeable
 import           GHCJS.DOM.Element             (Element, setAttribute)
 import           GHCJS.DOM.EventTarget         (addEventListener)
 import           GHCJS.DOM.EventTargetClosures (eventListenerNew)
-import           GHCJS.DOM.Types               (IsElement, IsNode, MouseEvent)
+import           GHCJS.DOM.Types               (IsNode, MouseEvent)
 import           Reactive.Banana
 import           Reactive.Banana.Frameworks
 
-registerMouseDown, registerMouseUp, registerMouseOut ::
+registerMouseDown, registerMouseUp, registerMouseOut, registerMouseClick ::
   (IsNode n ) => n -> MomentIO (Event ())
 registerMouseDown n = liftIO (registerMouseEvent "mousedown" n) >>= fromAddHandler
 registerMouseUp   n = liftIO (registerMouseEvent "mouseup" n) >>= fromAddHandler
 registerMouseOut  n = liftIO (registerMouseEvent "mouseout" n) >>= fromAddHandler
+registerMouseClick  n = liftIO (registerMouseEvent "click" n) >>= fromAddHandler
 
 
 registerMouseEvent :: (IsNode n) => String -> n -> IO (AddHandler ())
