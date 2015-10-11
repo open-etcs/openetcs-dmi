@@ -310,7 +310,17 @@ div[data-widget="InputField"] {
     $fieldHeight - $doubleBorder);
     border-left: none;
   }
-      
+
+  .DataAreaFull[data-accepted="true"] {
+    background-color: $ColorDarkGrey;
+    color: $ColorWhite;
+  }
+  
+  .DataAreaLabel[data-accepted="true"] {
+    background-color: $ColorDarkGrey;
+    color: $ColorWhite;
+  }
+
   .DataAreaLabel:focus {
     background-color:  $ColorGrey;
     color: $ColorBlack;
@@ -319,6 +329,7 @@ div[data-widget="InputField"] {
     @include borderTL($borderWidth, solid, $ColorWhite);
     @include borderBR($borderWidth, solid, $ColorDarkGrey);
   }
+    
 }
 
 
