@@ -49,6 +49,7 @@ executable openetcs-dmi
                    ghcjs-dom >=0.2,
                    reactive-banana,
                    text,
+                   dimensional-tf,
                    lens,
                    openetcs-dmi
     main-is: main.hs

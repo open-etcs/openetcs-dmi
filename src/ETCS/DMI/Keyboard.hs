@@ -32,30 +32,48 @@ newtype AlphaNumKeyboard = AlphaNumKeyboard (Keyboard (Maybe Int))
 
 newtype DedicatedKeyboard a = DedicatedKeyboard (Event a)
 
-mkNumericKeyboard :: WidgetInput NumericKeyboard
+mkNumericKeyboard :: Behavior Bool -> WidgetInput NumericKeyboard
 mkNumericKeyboard = MkNumericKeyboard
 
-mkEnhancedNumericKeyboard :: WidgetInput EnhancedNumericKeyboard
+mkEnhancedNumericKeyboard :: Behavior Bool -> WidgetInput EnhancedNumericKeyboard
 mkEnhancedNumericKeyboard = MkEnhancedNumericKeyboard
 
-mkAlphaNumKeyboard :: WidgetInput AlphaNumKeyboard
+mkAlphaNumKeyboard :: Behavior Bool -> WidgetInput AlphaNumKeyboard
 mkAlphaNumKeyboard = MkAlphaNumKeyboard
 
-mkDedicatedKeyboard :: [(Behavior Text, a)] -> WidgetInput (DedicatedKeyboard a)
+mkDedicatedKeyboard :: Behavior Bool -> [(Behavior Text, a)] -> WidgetInput (DedicatedKeyboard a)
 mkDedicatedKeyboard = MkDedicatedKeyboard
 
 
-mkEnumKeyboard :: (Enum a, Bounded a, Show a) => WidgetInput (DedicatedKeyboard a)
-mkEnumKeyboard = mkDedicatedKeyboard
+mkEnumKeyboard :: (Enum a, Bounded a, Show a) => Behavior Bool -> WidgetInput (DedicatedKeyboard a)
+mkEnumKeyboard v = mkDedicatedKeyboard v
   [ (pure . T.pack . show $ i, i)  | i <- [minBound .. maxBound] ]
+
+
+
+{-
+numKeyboard :: (MonadIO m, IsNode self) =>
+                  (Keyboard (Maybe Char) -> b)
+               -> Bool
+               -> self
+               -> t
+               -> m (MomentIO b, Element)
+numKeyboard c dot parent i =
+
+newtype EnhancedNumericKeyboard = EnhancedNumericKeyboard (Keyboard (Maybe Char))
+-}
 
 instance IsEventWidget EnhancedNumericKeyboard where
   type WidgetEventType EnhancedNumericKeyboard = Maybe Char
   widgetEvent (EnhancedNumericKeyboard kbd) = widgetEvent kbd
 
 instance IsWidget EnhancedNumericKeyboard where
-  data WidgetInput EnhancedNumericKeyboard = MkEnhancedNumericKeyboard
-  mkWidgetIO = numKeyboard EnhancedNumericKeyboard True
+  data WidgetInput EnhancedNumericKeyboard = MkEnhancedNumericKeyboard {
+    _keyboardEnhancedNumericVisible :: Behavior Bool
+    }
+  mkWidgetIO parent i =
+    numKeyboard EnhancedNumericKeyboard True
+    (_keyboardEnhancedNumericVisible i) parent i
 
 
 instance IsEventWidget NumericKeyboard where
@@ -63,18 +81,24 @@ instance IsEventWidget NumericKeyboard where
   widgetEvent (NumericKeyboard kbd) = widgetEvent kbd
 
 instance IsWidget NumericKeyboard where
-  data WidgetInput NumericKeyboard = MkNumericKeyboard
-  mkWidgetIO = numKeyboard NumericKeyboard False
+  data WidgetInput NumericKeyboard = MkNumericKeyboard {
+    _keyboardNumericVisible :: Behavior Bool
+    }
+  mkWidgetIO parent i =
+    numKeyboard NumericKeyboard False (_keyboardNumericVisible i) parent i
 
 instance IsEventWidget AlphaNumKeyboard where
   type WidgetEventType AlphaNumKeyboard = Maybe Int
   widgetEvent (AlphaNumKeyboard kbd) = widgetEvent kbd
 
 instance IsWidget AlphaNumKeyboard where
-  data WidgetInput AlphaNumKeyboard = MkAlphaNumKeyboard
-  mkWidgetIO parent _ =
+  data WidgetInput AlphaNumKeyboard =
+    MkAlphaNumKeyboard {
+      _keyboardAlphaNumVisible :: Behavior Bool
+      }
+  mkWidgetIO parent i =
     let keyboard =
-          MkKeyboard False
+          MkKeyboard False (_keyboardAlphaNumVisible i)
           (fmap pure [ "1", "2 abc", "3 def", "4 ghi", "5 jkl", "6 mno"
                      , "7 pqrs" ,"8 tuv", "9 wxyz", "Del", "0", "." ])
           mapKeysAlphaNumKeyboard
@@ -96,10 +120,10 @@ mapKeysAlphaNumKeyboard i
 
 numKeyboard :: (MonadIO m, IsNode self) =>
                (Keyboard (Maybe Char) -> b)
-               -> Bool -> self -> t -> m (MomentIO b, Element)
-numKeyboard c dot parent _ =
+               -> Bool -> Behavior Bool -> self -> t -> m (MomentIO b, Element)
+numKeyboard c dot v parent _ =
     let numericKeyboard =
-          MkKeyboard dot
+          MkKeyboard dot v
           (fmap pure [ "1", "2", "3", "4", "5", "6", "7" ,"8", "9", "Del", "0", "." ])
           mapKeysNumericKeyboard
     in do
@@ -115,6 +139,7 @@ instance Typeable a => IsEventWidget (DedicatedKeyboard a) where
 
 instance Typeable a => IsWidget (DedicatedKeyboard a) where
   data WidgetInput (DedicatedKeyboard a) = MkDedicatedKeyboard {
+    _keboardDedicatedVisible :: Behavior Bool,
     _keyboardData :: [(Behavior Text, a)]
     }
   mkWidgetIO parent i =
@@ -196,6 +221,7 @@ instance IsEventWidget (Keyboard a) where
 instance IsWidget (Keyboard a) where
   data WidgetInput (Keyboard a) = MkKeyboard {
       _keyboardDot     :: Bool,
+      _keyboardVisible :: Behavior Bool,
       _keyboardLabels  :: [ Behavior Text ],
       _keyboardMapping :: Int -> a
     }
