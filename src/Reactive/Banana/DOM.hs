@@ -11,7 +11,8 @@ module Reactive.Banana.DOM
 
 import           Data.Typeable
 import           GHCJS.DOM.Element             (Element, setAttribute)
-import           GHCJS.DOM.EventTarget         (addEventListener)
+import           GHCJS.DOM.EventTarget         (addEventListener,
+                                                removeEventListener)
 import           GHCJS.DOM.EventTargetClosures (eventListenerNew)
 import           GHCJS.DOM.Types               (FocusEvent, IsEvent, IsNode,
                                                 MouseEvent)
@@ -20,41 +21,43 @@ import           Reactive.Banana.Frameworks
 
 
 registerMouseDown, registerMouseUp, registerMouseOut, registerMouseClick ::
-  (IsNode n ) => n -> MomentIO (Event ())
+  (IsNode n ) => n -> MomentIO (Event (), MomentIO ())
 registerMouseDown   = registerMouseEvent "mousedown"
 registerMouseUp     = registerMouseEvent "mouseup"
 registerMouseOut    = registerMouseEvent "mouseout"
 registerMouseClick  = registerMouseEvent "click"
 
 
-registerMouseEvent :: (IsNode n) => String -> n -> MomentIO (Event ())
+registerMouseEvent :: (IsNode n) => String -> n -> MomentIO (Event (), MomentIO ())
 registerMouseEvent = registerEvent (const () :: MouseEvent -> ())
 
 
-registerFocusInEvent :: (IsNode n) => n -> MomentIO (Event ())
+registerFocusInEvent :: (IsNode n) => n -> MomentIO (Event (), MomentIO ())
 registerFocusInEvent = registerEvent (const () :: FocusEvent -> ()) "focus"
 
-registerFocusOutEvent :: (IsNode n) => n -> MomentIO (Event ())
+registerFocusOutEvent :: (IsNode n) => n -> MomentIO (Event (), MomentIO ())
 registerFocusOutEvent = registerEvent (const () :: FocusEvent -> ()) "blur"
 
-focusBehavior :: (IsNode n) => n -> MomentIO (Behavior Bool)
+focusBehavior :: (IsNode n) => n -> MomentIO (Behavior Bool, MomentIO ())
 focusBehavior n = do
-  fi <- registerFocusInEvent n
-  fo <- registerFocusOutEvent n
+  (fi, cfi) <- registerFocusInEvent n
+  (fo, cfo) <- registerFocusOutEvent n
   let e = unionWith const (fmap (const False) fo) (fmap (const True) fi)
-  stepper False e
+  b <- stepper False e
+  return (b, do cfi ; cfo)
 
 
 
 registerEvent ::
-  (IsNode n, IsEvent e) => (e -> a) -> String -> n -> MomentIO (Event a)
+  (IsNode n, IsEvent e) => (e -> a) -> String -> n -> MomentIO (Event a, MomentIO ())
 registerEvent h e t = do
-  ah <- liftIO $ do
+  (ah, el) <- liftIO $ do
     (addHandler, fire) <- newAddHandler
     eventListener <- eventListenerNew (fire . h)
     addEventListener t e (pure eventListener) True
-    return addHandler
-  fromAddHandler ah
+    return (addHandler, eventListener)
+  ev <- fromAddHandler ah
+  return (ev, liftIO $ removeEventListener t e (pure el) True)
 
 
 class IsWidget w where
@@ -62,6 +65,7 @@ class IsWidget w where
 
   mkWidgetIO :: (IsNode parent) => parent -> WidgetInput w -> MomentIO w
   widgetRoot :: w -> Element
+  widgetCleanup :: w -> MomentIO ()
 
 mkWidget :: (Typeable w, IsWidget w, IsNode parent) =>
             parent -> WidgetInput w -> MomentIO w

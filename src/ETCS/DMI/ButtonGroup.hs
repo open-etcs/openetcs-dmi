@@ -29,6 +29,7 @@ instance IsWidget ButtonGroup where
   }
 
   widgetRoot = buttonGroupRoot
+  widgetCleanup _ = return ()
   mkWidgetIO parent i = do
     doc <- _getOwnerDocument parent
     bsContainer <- _createDivElement doc

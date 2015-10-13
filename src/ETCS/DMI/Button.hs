@@ -26,7 +26,7 @@ mkButton :: ButtonType -> Maybe (Behavior Text) -> Behavior Bool -> e -> WidgetI
 mkButton = MkButton
 
 data Button e =
-  Button { buttonEvent :: Event e, buttonRoot :: Element }
+  Button { buttonEvent :: Event e, buttonRoot :: Element, buttonCleanup :: MomentIO () }
 
 instance IsEventWidget (Button e) where
   type WidgetEventType (Button e) = e
@@ -40,6 +40,7 @@ instance IsWidget (Button e) where
     _buttonValue :: e
     }
   widgetRoot = buttonRoot
+  widgetCleanup = buttonCleanup
   mkWidgetIO parent i = do
     doc        <- _getOwnerDocument parent
     button     <- _createDivElement doc
@@ -54,10 +55,10 @@ instance IsWidget (Button e) where
       () <$ appendChild inner_div (pure inner_span)
       () <$ appendChild button (pure inner_div)
 
-    eButtonClick <- case _buttonText i of
+    (eButtonClick, cleanup) <- case _buttonText i of
       Nothing -> do
         _ <- appendChild parent . pure $ castToHTMLElement empty_div
-        return never
+        return (never, return ())
       Just t -> do
         _ <- appendChild parent . pure $ castToHTMLElement button
         let setLabel l = do
@@ -80,15 +81,18 @@ instance IsWidget (Button e) where
         let fireButtonEventValue = fireButton' (_buttonValue i)
 
         -- mouse out
-        eMouseOut  <- whenE (bOr bButtonNotDisabled bButtonPressed) <$>
-                      registerMouseOut button
+        (eMouseOut', cMouseOut) <- registerMouseOut button
+        let eMouseOut = whenE (bOr bButtonNotDisabled bButtonPressed) eMouseOut'
+
         let mouseOutHandler () = do
               () <$ maybe (return ()) killThread <$> tryTakeMVar mv_thread
               fireButtonPressed False
         reactimate $ fmap mouseOutHandler eMouseOut
 
         -- mouse down
-        eMouseDown <- whenE bButtonNotDisabled <$> registerMouseDown button
+        (eMouseDown', cMouseDown) <- registerMouseDown button
+        let eMouseDown = whenE bButtonNotDisabled eMouseDown'
+
         let mouseDownHandler () = case _buttonType i of
               UpButton -> fireButtonPressed True
               DownButton -> do
@@ -103,7 +107,9 @@ instance IsWidget (Button e) where
 
 
         -- mouse up
-        eMouseUp <- whenE bButtonNotDisabled <$> registerMouseUp button
+        (eMouseUp', cMouseUp) <-registerMouseUp button
+        let eMouseUp =  whenE bButtonNotDisabled eMouseUp'
+
         let mouseUpHandler () = do
               fireButtonPressed False
               case _buttonType i of
@@ -113,8 +119,8 @@ instance IsWidget (Button e) where
                 DelayButton ->
                   tryTakeMVar mv_thread >>= maybe fireButtonEventValue killThread
         reactimate $ fmap mouseUpHandler eMouseUp
-        return eButtonClick
-    return $ Button eButtonClick (castToElement button)
+        return (eButtonClick, do cMouseDown ; cMouseOut ; cMouseUp)
+    return $ Button eButtonClick (castToElement button) cleanup
 
 
 

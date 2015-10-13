@@ -21,7 +21,8 @@ data InputFieldState = NotSelected | Selected | Accepted
 data InputField = InputField {
   inputFieldNewValue :: Event Text,
   inputFieldGotFocus :: Event (),
-  inputFieldRoot     :: Element
+  inputFieldRoot     :: Element,
+  inputFieldCleanup  :: MomentIO ()
   }
 
 mkInputField :: Behavior Text -> Bool -> Behavior Text -> Behavior Bool ->
@@ -39,6 +40,7 @@ instance IsWidget InputField where
     _inputReset :: Event ()
     }
   widgetRoot = inputFieldRoot
+  widgetCleanup = inputFieldCleanup
 
   mkWidgetIO parent i = do
     doc   <- _getOwnerDocument parent
@@ -61,10 +63,10 @@ instance IsWidget InputField where
     reactimate $ fmap fireFocus eReset
 
 
-    eClick <- registerMouseClick dataArea
-    reactimate $ fmap (fireFocus) eClick
+    (eClickData, cClickData) <- registerMouseClick dataArea
+    reactimate $ fmap fireFocus eClickData
 
-    eValueOnClick' <- execute $ fmap (const $ valueB (_inputBuffer i)) eClick
+    eValueOnClick' <- execute $ fmap (const $ valueB (_inputBuffer i)) eClickData
     let eValueOnClick = whenE bHasFocus eValueOnClick'
 
     let bDisplay =
@@ -92,14 +94,15 @@ instance IsWidget InputField where
         () <$ appendChild field (pure dataArea)
         () <$ appendChild parent (pure field)
         setClassName dataArea "DataAreaFull"
-      return $ InputField eValueOnClick eGotFocus (castToElement field)
+      return $ InputField eValueOnClick eGotFocus (castToElement field) cClickData
       else do
       labelArea <- liftIO $ _createDivElement doc
       liftIOLater $ setClassName labelArea "LabelArea"
       let setLabel = setTextContent labelArea . pure
       valueBLater (_inputLabel i) >>= liftIOLater . setLabel
       changes (_inputLabel i)  >>= reactimate' . fmap (fmap setLabel)
-      registerMouseClick labelArea >>= reactimate . fmap (fireFocus)
+      (eClickLabel, cClickLabel) <- registerMouseClick labelArea
+      reactimate . fmap fireFocus $ eClickLabel
 
       liftIOLater $ do
         () <$ appendChild field (pure labelArea)
@@ -108,3 +111,4 @@ instance IsWidget InputField where
         setClassName dataArea "DataAreaLabel"
 
       return $ InputField eValueOnClick eGotFocus (castToElement field)
+        (do cClickData ; cClickLabel)

@@ -61,6 +61,7 @@ instance IsWidget EnhancedNumericKeyboard where
     _keyboardEnhancedNumericVisible :: Behavior Bool
     }
   widgetRoot (EnhancedNumericKeyboard kbd) = widgetRoot kbd
+  widgetCleanup (EnhancedNumericKeyboard kbd) = widgetCleanup kbd
   mkWidgetIO parent i =
     numKeyboard EnhancedNumericKeyboard True
     (_keyboardEnhancedNumericVisible i) parent i
@@ -75,6 +76,7 @@ instance IsWidget NumericKeyboard where
     _keyboardNumericVisible :: Behavior Bool
     }
   widgetRoot (NumericKeyboard kbd) = widgetRoot kbd
+  widgetCleanup (NumericKeyboard kbd) = widgetCleanup kbd
   mkWidgetIO parent i =
     numKeyboard NumericKeyboard False (_keyboardNumericVisible i) parent i
 
@@ -88,6 +90,7 @@ instance IsWidget AlphaNumKeyboard where
       _keyboardAlphaNumVisible :: Behavior Bool
       }
   widgetRoot (AlphaNumKeyboard kbd) = widgetRoot kbd
+  widgetCleanup _ = return ()
   mkWidgetIO parent i =
     let keyboard =
           MkKeyboard False (_keyboardAlphaNumVisible i)
@@ -132,6 +135,7 @@ instance Typeable a => IsWidget (DedicatedKeyboard a) where
     _keyboardData :: [(Behavior Text, a)]
     }
   widgetRoot = dedicatedKeyboardRoot
+  widgetCleanup _ = return ()
   mkWidgetIO parent i =
     let (as, bs') = splitAt 11 (_keyboardData i)
         bs = take 11 bs'
@@ -217,6 +221,7 @@ instance IsWidget (Keyboard a) where
     }
 
   widgetRoot = keyboardRoot
+  widgetCleanup _ = return ()
   mkWidgetIO parent i = do
     kbdContainer <- _getOwnerDocument parent >>= _createDivElement
 
