@@ -23,6 +23,7 @@ instance IsWidget WindowTitle where
   data WidgetInput WindowTitle = MkWindowTitle (Behavior Text)
 
   widgetRoot = windowTitleRoot
+  widgetCleanup _ = return ()
   mkWidgetIO parent (MkWindowTitle t) = do
     doc <- _getOwnerDocument parent
 
@@ -42,7 +43,7 @@ type MenuWindow = Window ButtonGroup
 
 data Window a =
   Window { windowEvent :: Event (Either () (WidgetEventType a))
-         , windowRoot  :: Element
+         , windowRoot  :: Element, windowCleanup :: MomentIO ()
          }
 
 mkWindow :: Behavior Text -> Behavior Bool -> WidgetInput a -> WidgetInput (Window a)
@@ -58,7 +59,7 @@ instance (Typeable a, IsEventWidget a) => IsWidget (Window a) where
     _windowVisible :: Behavior Bool,
     _windowWidget  :: WidgetInput a
   }
-
+  widgetCleanup = windowCleanup
   widgetRoot = windowRoot
 
   mkWidgetIO parent i = do
@@ -73,7 +74,7 @@ instance (Typeable a, IsEventWidget a) => IsWidget (Window a) where
       () <$ appendChild parent (pure win)
       () <$ appendChild win (pure closeContainer)
 
-    () <$ (mkWidget win . MkWindowTitle . _windowTitle $ i)
+    title_widget <- mkWidget win . MkWindowTitle . _windowTitle $ i
 
     inner_widget <- mkWidget win $ _windowWidget i
 
@@ -89,3 +90,7 @@ instance (Typeable a, IsEventWidget a) => IsWidget (Window a) where
         outputB = Right <$> widgetEvent inner_widget
         output  = whenE (_windowVisible i)$ unionWith const outputB outputC
     return $ Window output (castToElement win)
+      (do widgetCleanup inner_widget ;
+          widgetCleanup title_widget ;
+          widgetCleanup closeButton
+      )
