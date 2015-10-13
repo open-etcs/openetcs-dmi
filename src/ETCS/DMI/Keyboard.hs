@@ -24,13 +24,16 @@ import           Reactive.Banana
 import           Reactive.Banana.DOM
 import           Reactive.Banana.Frameworks
 
-newtype NumericKeyboard = NumericKeyboard (Keyboard (Maybe Char))
+data NumericKeyboard = NumericKeyboard (Keyboard (Maybe Char))
 
-newtype EnhancedNumericKeyboard = EnhancedNumericKeyboard (Keyboard (Maybe Char))
 
-newtype AlphaNumKeyboard = AlphaNumKeyboard (Keyboard (Maybe Int))
+data EnhancedNumericKeyboard = EnhancedNumericKeyboard (Keyboard (Maybe Char))
 
-newtype DedicatedKeyboard a = DedicatedKeyboard (Event a)
+data AlphaNumKeyboard = AlphaNumKeyboard (Keyboard (Maybe Int))
+
+data DedicatedKeyboard a = DedicatedKeyboard { dedicatedKeyboardEvent :: Event a
+                                             , dedicatedKeyboardRoot  :: Element
+                                             }
 
 mkNumericKeyboard :: Behavior Bool -> WidgetInput NumericKeyboard
 mkNumericKeyboard = MkNumericKeyboard
@@ -49,20 +52,6 @@ mkEnumKeyboard :: (Enum a, Bounded a, Show a) => Behavior Bool -> WidgetInput (D
 mkEnumKeyboard v = mkDedicatedKeyboard v
   [ (pure . T.pack . show $ i, i)  | i <- [minBound .. maxBound] ]
 
-
-
-{-
-numKeyboard :: (MonadIO m, IsNode self) =>
-                  (Keyboard (Maybe Char) -> b)
-               -> Bool
-               -> self
-               -> t
-               -> m (MomentIO b, Element)
-numKeyboard c dot parent i =
-
-newtype EnhancedNumericKeyboard = EnhancedNumericKeyboard (Keyboard (Maybe Char))
--}
-
 instance IsEventWidget EnhancedNumericKeyboard where
   type WidgetEventType EnhancedNumericKeyboard = Maybe Char
   widgetEvent (EnhancedNumericKeyboard kbd) = widgetEvent kbd
@@ -71,6 +60,7 @@ instance IsWidget EnhancedNumericKeyboard where
   data WidgetInput EnhancedNumericKeyboard = MkEnhancedNumericKeyboard {
     _keyboardEnhancedNumericVisible :: Behavior Bool
     }
+  widgetRoot (EnhancedNumericKeyboard kbd) = widgetRoot kbd
   mkWidgetIO parent i =
     numKeyboard EnhancedNumericKeyboard True
     (_keyboardEnhancedNumericVisible i) parent i
@@ -84,6 +74,7 @@ instance IsWidget NumericKeyboard where
   data WidgetInput NumericKeyboard = MkNumericKeyboard {
     _keyboardNumericVisible :: Behavior Bool
     }
+  widgetRoot (NumericKeyboard kbd) = widgetRoot kbd
   mkWidgetIO parent i =
     numKeyboard NumericKeyboard False (_keyboardNumericVisible i) parent i
 
@@ -96,18 +87,18 @@ instance IsWidget AlphaNumKeyboard where
     MkAlphaNumKeyboard {
       _keyboardAlphaNumVisible :: Behavior Bool
       }
+  widgetRoot (AlphaNumKeyboard kbd) = widgetRoot kbd
   mkWidgetIO parent i =
     let keyboard =
           MkKeyboard False (_keyboardAlphaNumVisible i)
           (fmap pure [ "1", "2 abc", "3 def", "4 ghi", "5 jkl", "6 mno"
                      , "7 pqrs" ,"8 tuv", "9 wxyz", "Del", "0", "." ])
           mapKeysAlphaNumKeyboard
-      in do
+    in do
       kbdContainer <- _getOwnerDocument parent >>= _createDivElement
       () <$ appendChild parent (pure kbdContainer)
 
-      return ( AlphaNumKeyboard <$> mkWidget kbdContainer keyboard
-             , castToElement kbdContainer)
+      AlphaNumKeyboard <$> mkWidget kbdContainer keyboard
 
 
 mapKeysAlphaNumKeyboard :: Int -> Maybe Int
@@ -118,9 +109,9 @@ mapKeysAlphaNumKeyboard i
   | otherwise       = error $ "undefined AlphaNumKeyboard value: " ++ show i
 
 
-numKeyboard :: (MonadIO m, IsNode self) =>
+numKeyboard :: (IsNode self) =>
                (Keyboard (Maybe Char) -> b)
-               -> Bool -> Behavior Bool -> self -> t -> m (MomentIO b, Element)
+               -> Bool -> Behavior Bool -> self -> t -> MomentIO b
 numKeyboard c dot v parent _ =
     let numericKeyboard =
           MkKeyboard dot v
@@ -129,19 +120,18 @@ numKeyboard c dot v parent _ =
     in do
       kbdContainer <- _getOwnerDocument parent >>= _createDivElement
       () <$ appendChild parent (pure kbdContainer)
-
-      return ( c <$> mkWidget kbdContainer numericKeyboard
-             , castToElement kbdContainer)
+      c <$> mkWidget kbdContainer numericKeyboard
 
 instance Typeable a => IsEventWidget (DedicatedKeyboard a) where
   type WidgetEventType (DedicatedKeyboard a) = a
-  widgetEvent (DedicatedKeyboard e) = e
+  widgetEvent = dedicatedKeyboardEvent
 
 instance Typeable a => IsWidget (DedicatedKeyboard a) where
   data WidgetInput (DedicatedKeyboard a) = MkDedicatedKeyboard {
     _keboardDedicatedVisible :: Behavior Bool,
     _keyboardData :: [(Behavior Text, a)]
     }
+  widgetRoot = dedicatedKeyboardRoot
   mkWidgetIO parent i =
     let (as, bs') = splitAt 11 (_keyboardData i)
         bs = take 11 bs'
@@ -152,50 +142,49 @@ instance Typeable a => IsWidget (DedicatedKeyboard a) where
       page1 <- _createDivElement doc
 
       let mkKey p (b, e) = mkWidget p . mkButton DownButton (pure b) (pure True) $ e
-          keyboardWidget = do
-            liftIOLater $ do
-              () <$ appendChild kbdContainer (pure page1)
-              () <$ appendChild parent (pure kbdContainer)
-              return ()
-            if n <= 12
-            then do
-              bsP1 <- sequence . fmap (mkKey page1) $ _keyboardData i
-              let e =  foldl (unionWith const) never . fmap widgetEvent $ bsP1
-              return . DedicatedKeyboard $ e
-            else do
-              page2 <- liftIO $ _createDivElement doc
-              more1 <- liftIO $ _createDivElement doc
-              more2 <- liftIO $ _createDivElement doc
-              setClassName more1 ("MoreButton" :: String)
-              setClassName more2 ("MoreButton" :: String)
+
+      liftIOLater $ do
+        () <$ appendChild kbdContainer (pure page1)
+        () <$ appendChild parent (pure kbdContainer)
+        return ()
+
+      if n <= 12
+        then do
+        bsP1 <- sequence . fmap (mkKey page1) $ _keyboardData i
+        let e =  foldl (unionWith const) never . fmap widgetEvent $ bsP1
+        return $ DedicatedKeyboard e (castToElement kbdContainer)
+        else do
+        page2 <- liftIO $ _createDivElement doc
+        more1 <- liftIO $ _createDivElement doc
+        more2 <- liftIO $ _createDivElement doc
+        setClassName more1 ("MoreButton" :: String)
+        setClassName more2 ("MoreButton" :: String)
 
 
-              bsP1 <- sequence . fmap (mkKey page1) $ as
-              bsP2 <- sequence . fmap (mkKey page2) $ bs
-              let  moreButton = mkButton DownButton (pure $ pure "[More]") (pure True) not
-              btTP1 <- mkWidget more1 moreButton
-              btTP2 <- mkWidget more2 moreButton
-              () <$ appendChild page1 (pure more1)
-              () <$ appendChild page2 (pure more2)
-              eP1 <- accumE True $ unionWith const (widgetEvent btTP1) (widgetEvent btTP2)
-              bP1 <- stepper True eP1
+        bsP1 <- sequence . fmap (mkKey page1) $ as
+        bsP2 <- sequence . fmap (mkKey page2) $ bs
+        let  moreButton = mkButton DownButton (pure $ pure "[More]") (pure True) not
+        btTP1 <- mkWidget more1 moreButton
+        btTP2 <- mkWidget more2 moreButton
+        () <$ appendChild page1 (pure more1)
+        () <$ appendChild page2 (pure more2)
+        eP1 <- accumE True $ unionWith const (widgetEvent btTP1) (widgetEvent btTP2)
+        bP1 <- stepper True eP1
 
-              let bP2 = fmap not bP1
-                  sP1 = setHidden (castToHTMLElement page1) . not
-                  sP2 = setHidden (castToHTMLElement page2) . not
-              valueBLater bP1 >>= liftIOLater . sP1
-              valueBLater bP2 >>= liftIOLater . sP2
-              changes bP1 >>= reactimate' . fmap (fmap sP1)
-              changes bP2 >>= reactimate' . fmap (fmap sP2)
+        let bP2 = fmap not bP1
+            sP1 = setHidden (castToHTMLElement page1) . not
+            sP2 = setHidden (castToHTMLElement page2) . not
+        valueBLater bP1 >>= liftIOLater . sP1
+        valueBLater bP2 >>= liftIOLater . sP2
+        changes bP1 >>= reactimate' . fmap (fmap sP1)
+        changes bP2 >>= reactimate' . fmap (fmap sP2)
 
 
-              () <$ appendChild kbdContainer (pure page2)
-              let kbdEvent =  foldl (unionWith const) never . fmap widgetEvent $
-                       mappend bsP1 bsP2
+        () <$ appendChild kbdContainer (pure page2)
+        let kbdEvent =  foldl (unionWith const) never . fmap widgetEvent $
+                        mappend bsP1 bsP2
 
-              return . DedicatedKeyboard $ kbdEvent
-
-      return (keyboardWidget, castToElement kbdContainer)
+        return $ DedicatedKeyboard kbdEvent (castToElement kbdContainer)
 
 
 mapKeysNumericKeyboard :: Int -> Maybe Char
@@ -210,8 +199,9 @@ mapKeysNumericKeyboard i
 
 
 
-newtype Keyboard a =
+data Keyboard a =
   Keyboard { keyboardEvent :: Event a
+           , keyboardRoot  :: Element
            }
 
 instance IsEventWidget (Keyboard a) where
@@ -226,6 +216,7 @@ instance IsWidget (Keyboard a) where
       _keyboardMapping :: Int -> a
     }
 
+  widgetRoot = keyboardRoot
   mkWidgetIO parent i = do
     kbdContainer <- _getOwnerDocument parent >>= _createDivElement
 
@@ -235,21 +226,21 @@ instance IsWidget (Keyboard a) where
           let dot = e /= 11 || _keyboardDot i
           in mkWidget kbdContainer . mkButton DownButton (pure b) (pure dot) $ e
 
-        keyboardWidget = do
-          liftIOLater $ do () <$ appendChild parent (pure kbdContainer) ; return ()
-          bs <- zipWithM ($) (fmap mkKbdButton (_keyboardLabels i)) [0..11]
-          let e =  foldl (unionWith const) never . fmap widgetEvent $ bs
-          return . Keyboard . fmap (_keyboardMapping i) $ e
 
-    return (keyboardWidget, castToElement kbdContainer)
+    liftIOLater $ do () <$ appendChild parent (pure kbdContainer) ; return ()
+    bs <- zipWithM ($) (fmap mkKbdButton (_keyboardLabels i)) [0..11]
+    let e =  foldl (unionWith const) never . fmap widgetEvent $ bs
+    return $ Keyboard (fmap (_keyboardMapping i) $ e) (castToElement kbdContainer)
 
 
 renderData :: String -> String
 renderData =  renderDataChunks
 
+{-
 renderDataLines :: String -> [String]
 renderDataLines [] = []
 renderDataLines a = let (as,bs) = splitAt 9 a in as : renderDataLines bs
+-}
 
 renderDataChunks :: String -> String
 renderDataChunks a =

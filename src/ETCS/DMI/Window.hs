@@ -8,7 +8,7 @@ import           Data.Typeable
 import           ETCS.DMI.Button
 import           ETCS.DMI.ButtonGroup
 import           ETCS.DMI.Helpers
-import           GHCJS.DOM.Element          (setClassName)
+import           GHCJS.DOM.Element          (Element, setClassName)
 import           GHCJS.DOM.HTMLElement      (setHidden)
 import           GHCJS.DOM.Node             (appendChild, setTextContent)
 import           GHCJS.DOM.Types            (castToElement)
@@ -17,10 +17,12 @@ import           Reactive.Banana.DOM
 import           Reactive.Banana.Frameworks
 
 
-data WindowTitle = WindowTitle
+newtype WindowTitle = WindowTitle { windowTitleRoot :: Element }
 
 instance IsWidget WindowTitle where
   data WidgetInput WindowTitle = MkWindowTitle (Behavior Text)
+
+  widgetRoot = windowTitleRoot
   mkWidgetIO parent (MkWindowTitle t) = do
     doc <- _getOwnerDocument parent
 
@@ -28,20 +30,20 @@ instance IsWidget WindowTitle where
     titleElem <- _createDivElement doc
     () <$ appendChild parent (pure titleElem)
 
-    let titleWidget = do
-          let setTitle = setTextContent titleElem . pure
-          valueBLater t >>= liftIOLater . setTitle
-          changes t >>= reactimate' . fmap (fmap setTitle)
-          return WindowTitle
 
-    return (titleWidget, castToElement titleElem)
+    let setTitle = setTextContent titleElem . pure
+    valueBLater t >>= liftIOLater . setTitle
+    changes t >>= reactimate' . fmap (fmap setTitle)
+    return $ WindowTitle (castToElement titleElem)
 
 
 
 type MenuWindow = Window ButtonGroup
 
-newtype Window a =
-  Window { windowEvent :: Event (Either () (WidgetEventType a)) }
+data Window a =
+  Window { windowEvent :: Event (Either () (WidgetEventType a))
+         , windowRoot  :: Element
+         }
 
 mkWindow :: Behavior Text -> Behavior Bool -> WidgetInput a -> WidgetInput (Window a)
 mkWindow = MkWindow
@@ -57,33 +59,33 @@ instance (Typeable a, IsEventWidget a) => IsWidget (Window a) where
     _windowWidget  :: WidgetInput a
   }
 
+  widgetRoot = windowRoot
+
   mkWidgetIO parent i = do
     doc <- _getOwnerDocument parent
     win <- _createDivElement doc
     closeContainer <- _createDivElement doc
 
-    let windowWidget = do
-          liftIOLater $ do
-            setClassName closeContainer ("MenuClose" :: String)
-            setClassName win ("MenuWindow" :: String)
-            () <$ appendChild parent (pure win)
-            () <$ appendChild win (pure closeContainer)
 
-          () <$ (mkWidget win . MkWindowTitle . _windowTitle $ i)
+    liftIO $ do
+      setClassName closeContainer ("MenuClose" :: String)
+      setClassName win ("MenuWindow" :: String)
+      () <$ appendChild parent (pure win)
+      () <$ appendChild win (pure closeContainer)
 
-          inner_widget <- mkWidget win $ _windowWidget i
+    () <$ (mkWidget win . MkWindowTitle . _windowTitle $ i)
 
-          -- the close button
-          closeButton <- mkWidget closeContainer $
-                         mkButton UpButton (Just $ pure "x") (pure True) ()
+    inner_widget <- mkWidget win $ _windowWidget i
 
-          let setShown = setHidden win . not
-          valueBLater (_windowVisible i) >>= liftIOLater . setShown
-          changes (_windowVisible i) >>= reactimate' . fmap (fmap setShown)
+    -- the close button
+    closeButton <- mkWidget closeContainer $
+                   mkButton UpButton (Just $ pure "x") (pure True) ()
 
-          let outputC = Left <$> widgetEvent closeButton
-              outputB = Right <$> widgetEvent inner_widget
-              output  = whenE (_windowVisible i)$ unionWith const outputB outputC
-          return . Window $ output
-    return (windowWidget, castToElement win)
+    let setShown = setHidden win . not
+    valueBLater (_windowVisible i) >>= liftIOLater . setShown
+    changes (_windowVisible i) >>= reactimate' . fmap (fmap setShown)
 
+    let outputC = Left <$> widgetEvent closeButton
+        outputB = Right <$> widgetEvent inner_widget
+        output  = whenE (_windowVisible i)$ unionWith const outputB outputC
+    return $ Window output (castToElement win)

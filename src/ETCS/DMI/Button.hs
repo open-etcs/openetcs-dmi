@@ -9,7 +9,8 @@ import           Control.Monad
 import           Data.Text                  (Text)
 import           ETCS.DMI.Helpers
 import           ETCS.DMI.Types
-import           GHCJS.DOM.Element          (setAttribute, setClassName)
+import           GHCJS.DOM.Element          (Element, setAttribute,
+                                             setClassName)
 import           GHCJS.DOM.HTMLElement      (setTitle)
 import           GHCJS.DOM.Node             (appendChild, setTextContent)
 import           GHCJS.DOM.Types            (castToElement, castToHTMLElement)
@@ -25,7 +26,7 @@ mkButton :: ButtonType -> Maybe (Behavior Text) -> Behavior Bool -> e -> WidgetI
 mkButton = MkButton
 
 data Button e =
-  Button { buttonEvent :: Event e }
+  Button { buttonEvent :: Event e, buttonRoot :: Element }
 
 instance IsEventWidget (Button e) where
   type WidgetEventType (Button e) = e
@@ -38,6 +39,7 @@ instance IsWidget (Button e) where
     _buttonEnabled :: Behavior Bool,
     _buttonValue :: e
     }
+  widgetRoot = buttonRoot
   mkWidgetIO parent i = do
     doc        <- _getOwnerDocument parent
     button     <- _createDivElement doc
@@ -46,73 +48,73 @@ instance IsWidget (Button e) where
     empty_div  <- _createDivElement doc
     mv_thread <- liftIO newEmptyMVar
 
-    let   buttonWidget = do
-            liftIOLater $ do
-              setClassName empty_div "EmptyButton"
-              () <$ appendChild inner_div (pure inner_span)
-              () <$ appendChild button (pure inner_div)
 
-            case _buttonText i of
-              Nothing -> do
-                _ <- appendChild parent . pure $ castToHTMLElement empty_div
-                return ()
-              Just t -> do
-                _ <- appendChild parent . pure $ castToHTMLElement button
-                let setLabel l = do
-                      setTitle button l
-                      setTextContent inner_span . pure $ l
-                valueBLater t >>= liftIOLater . setLabel
-                changes t >>= reactimate' . fmap (fmap setLabel)
+    liftIOLater $ do
+      setClassName empty_div "EmptyButton"
+      () <$ appendChild inner_div (pure inner_span)
+      () <$ appendChild button (pure inner_div)
 
-            -- construct and react on button pressed behavior
-            (eButtonPressed, fireButtonPressed) <- newEvent
-            bButtonPressed <- stepper False eButtonPressed
-            let bButtonState = buttonState <$> _buttonEnabled i <*> bButtonPressed
-            let stateHandler = setAttribute button "data-state" . show
-            valueBLater bButtonState >>= liftIOLater . stateHandler
-            changes bButtonState >>= reactimate' . fmap (fmap stateHandler)
-            let bButtonNotDisabled = (/= ButtonDisabled) <$> bButtonState
+    eButtonClick <- case _buttonText i of
+      Nothing -> do
+        _ <- appendChild parent . pure $ castToHTMLElement empty_div
+        return never
+      Just t -> do
+        _ <- appendChild parent . pure $ castToHTMLElement button
+        let setLabel l = do
+              setTitle button l
+              setTextContent inner_span . pure $ l
+        valueBLater t >>= liftIOLater . setLabel
+        changes t >>= reactimate' . fmap (fmap setLabel)
 
-            -- internal click event
-            (eButtonClick, fireButton') <- newEvent
-            let fireButtonEventValue = fireButton' (_buttonValue i)
+        -- construct and react on button pressed behavior
+        (eButtonPressed, fireButtonPressed) <- newEvent
+        bButtonPressed <- stepper False eButtonPressed
+        let bButtonState = buttonState <$> _buttonEnabled i <*> bButtonPressed
+        let stateHandler = setAttribute button "data-state" . show
+        valueBLater bButtonState >>= liftIOLater . stateHandler
+        changes bButtonState >>= reactimate' . fmap (fmap stateHandler)
+        let bButtonNotDisabled = (/= ButtonDisabled) <$> bButtonState
 
-            -- mouse out
-            eMouseOut  <- whenE (bOr bButtonNotDisabled bButtonPressed) <$>
-                          registerMouseOut button
-            let mouseOutHandler () = do
+        -- internal click event
+        (eButtonClick, fireButton') <- newEvent
+        let fireButtonEventValue = fireButton' (_buttonValue i)
+
+        -- mouse out
+        eMouseOut  <- whenE (bOr bButtonNotDisabled bButtonPressed) <$>
+                      registerMouseOut button
+        let mouseOutHandler () = do
+              () <$ maybe (return ()) killThread <$> tryTakeMVar mv_thread
+              fireButtonPressed False
+        reactimate $ fmap mouseOutHandler eMouseOut
+
+        -- mouse down
+        eMouseDown <- whenE bButtonNotDisabled <$> registerMouseDown button
+        let mouseDownHandler () = case _buttonType i of
+              UpButton -> fireButtonPressed True
+              DownButton -> do
+                fireButtonEventValue
+                fireButtonPressed True
+                forkIO (repeatAction mv_thread fireButtonEventValue) >>=
+                  putMVar mv_thread
+              DelayButton ->
+                forkIO (animateDelay mv_thread fireButtonPressed) >>=
+                  putMVar mv_thread
+        reactimate $ fmap mouseDownHandler eMouseDown
+
+
+        -- mouse up
+        eMouseUp <- whenE bButtonNotDisabled <$> registerMouseUp button
+        let mouseUpHandler () = do
+              fireButtonPressed False
+              case _buttonType i of
+                UpButton -> fireButtonEventValue
+                DownButton ->
                   () <$ maybe (return ()) killThread <$> tryTakeMVar mv_thread
-                  fireButtonPressed False
-            reactimate $ fmap mouseOutHandler eMouseOut
-
-            -- mouse down
-            eMouseDown <- whenE bButtonNotDisabled <$> registerMouseDown button
-            let mouseDownHandler () = case _buttonType i of
-                  UpButton -> fireButtonPressed True
-                  DownButton -> do
-                    fireButtonEventValue
-                    fireButtonPressed True
-                    forkIO (repeatAction mv_thread fireButtonEventValue) >>=
-                      putMVar mv_thread
-                  DelayButton ->
-                    forkIO (animateDelay mv_thread fireButtonPressed) >>=
-                    putMVar mv_thread
-            reactimate $ fmap mouseDownHandler eMouseDown
-
-
-            -- mouse up
-            eMouseUp <- whenE bButtonNotDisabled <$> registerMouseUp button
-            let mouseUpHandler () = do
-                  fireButtonPressed False
-                  case _buttonType i of
-                    UpButton -> fireButtonEventValue
-                    DownButton ->
-                      () <$ maybe (return ()) killThread <$> tryTakeMVar mv_thread
-                    DelayButton ->
-                      tryTakeMVar mv_thread >>= maybe fireButtonEventValue killThread
-            reactimate $ fmap mouseUpHandler eMouseUp
-            return . Button $ eButtonClick
-    return (buttonWidget, castToElement button)
+                DelayButton ->
+                  tryTakeMVar mv_thread >>= maybe fireButtonEventValue killThread
+        reactimate $ fmap mouseUpHandler eMouseUp
+        return eButtonClick
+    return $ Button eButtonClick (castToElement button)
 
 
 

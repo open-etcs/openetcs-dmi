@@ -60,17 +60,15 @@ registerEvent h e t = do
 class IsWidget w where
   data WidgetInput w :: *
 
-  mkWidgetIO :: (MonadIO m, IsNode parent) =>
-               parent -> WidgetInput w -> m (MomentIO w, Element)
-
+  mkWidgetIO :: (IsNode parent) => parent -> WidgetInput w -> MomentIO w
+  widgetRoot :: w -> Element
 
 mkWidget :: (Typeable w, IsWidget w, IsNode parent) =>
             parent -> WidgetInput w -> MomentIO w
 mkWidget parent i = do
-  (widgetM, node) <- mkWidgetIO parent i
-  widget <- widgetM
+  widget <- mkWidgetIO parent i
   let widgetClass = takeWhile (not . (==) ' ') . show . typeOf $ widget
-  liftIOLater . setAttribute node "data-widget" $ widgetClass
+  liftIOLater . setAttribute (widgetRoot widget) "data-widget" $ widgetClass
   return widget
 
 
