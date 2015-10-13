@@ -49,6 +49,8 @@ instance IsWidget (Button e) where
     empty_div  <- _createDivElement doc
     mv_thread <- liftIO newEmptyMVar
 
+    let killThreadIfExists =
+          maybe (return ()) killThread <$> tryTakeMVar mv_thread
 
     liftIOLater $ do
       setClassName empty_div "EmptyButton"
@@ -85,7 +87,7 @@ instance IsWidget (Button e) where
         let eMouseOut = whenE (bOr bButtonNotDisabled bButtonPressed) eMouseOut'
 
         let mouseOutHandler () = do
-              () <$ maybe (return ()) killThread <$> tryTakeMVar mv_thread
+              () <$ killThreadIfExists
               fireButtonPressed False
         reactimate $ fmap mouseOutHandler eMouseOut
 
@@ -114,12 +116,13 @@ instance IsWidget (Button e) where
               fireButtonPressed False
               case _buttonType i of
                 UpButton -> fireButtonEventValue
-                DownButton ->
-                  () <$ maybe (return ()) killThread <$> tryTakeMVar mv_thread
+                DownButton -> () <$ killThreadIfExists
                 DelayButton ->
                   tryTakeMVar mv_thread >>= maybe fireButtonEventValue killThread
         reactimate $ fmap mouseUpHandler eMouseUp
-        return (eButtonClick, do cMouseDown ; cMouseOut ; cMouseUp)
+        return (eButtonClick,
+                do { () <$ liftIO killThreadIfExists;
+                     cMouseDown ; cMouseOut ; cMouseUp } )
     return $ Button eButtonClick (castToElement button) cleanup
 
 
