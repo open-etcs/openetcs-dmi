@@ -1,7 +1,7 @@
 {-# LANGUAGE TypeFamilies #-}
 
 module Reactive.Banana.DOM
-       ( IsWidget(..), mkWidget, IsEventWidget(..),
+       ( IsWidget(..), mkWidget, removeWidget, IsEventWidget(..),
          -- * Mouse Events
          registerMouseClick, registerMouseDown, registerMouseUp, registerMouseOut,
          focusBehavior, registerFocusInEvent, registerFocusOutEvent,
@@ -14,6 +14,7 @@ import           GHCJS.DOM.Element             (Element, setAttribute)
 import           GHCJS.DOM.EventTarget         (addEventListener,
                                                 removeEventListener)
 import           GHCJS.DOM.EventTargetClosures (eventListenerNew)
+import           GHCJS.DOM.Node                (getParentNode, removeChild)
 import           GHCJS.DOM.Types               (FocusEvent, IsEvent, IsNode,
                                                 MouseEvent)
 import           Reactive.Banana
@@ -75,10 +76,21 @@ mkWidget parent i = do
   liftIOLater . setAttribute (widgetRoot widget) "data-widget" $ widgetClass
   return widget
 
+-- | calls cleanup of 'Widget' tree. removes element from DOM
+removeWidget :: (IsWidget w) => w -> MomentIO ()
+removeWidget w = do
+   widgetCleanup w
+   let r = widgetRoot w
+   pM <- getParentNode r
+   case pM of
+     Nothing -> return ()
+     Just p -> removeChild p (pure r) >> return ()
+
 
 
 class (IsWidget w) => IsEventWidget w where
   type WidgetEventType w :: *
   widgetEvent :: w -> Event (WidgetEventType w)
+
 
 
