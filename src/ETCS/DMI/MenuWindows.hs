@@ -32,10 +32,10 @@ instance IsWidget MainWindow where
   }
 
   widgetRoot = widgetRoot . mainWindow
-  mkWidgetIO parent wi =
+  mkWidgetInstance parent wi =
     let i = _mainWindowTrainBehavior wi
     in do
-      w <- mkWidget' parent . mkWindow (pure "Main") (_mainWindowVisible wi) . mkButtonGroup $
+      w <- mkSubWidget parent . mkWindow (pure "Main") (_mainWindowVisible wi) . mkButtonGroup $
            [ mkButton UpButton (pure $ pure "Start") (bStartButtonEnabled i)
            , mkButton UpButton (pure $ pure "Driver ID") (bDriverIDButtonEnabled i)
            , mkButton UpButton (pure $ pure "Train Data") (bTrainDataButtonEnabled i)
@@ -46,7 +46,7 @@ instance IsWidget MainWindow where
            , mkButton DelayButton (pure $ pure "Non-Leading") (pure True)
            , mkButton DelayButton (pure $ pure "Maintain Shunting") (pure False)
        ]
-      return . MainWindow . widgetWidget $  w
+      return . MainWindow . fromWidgetInstance $  w
 
 instance IsEventWidget MainWindow where
   type WidgetEventType MainWindow = Either () Int
@@ -103,24 +103,24 @@ bLevelButtonEnabled i = bsAnd
         ]
 
 
-mkOverrideWindow :: (IsNode p) => p -> Behavior Bool -> ReactiveDom (Widget MenuWindow)
+mkOverrideWindow :: (IsNode p) => p -> Behavior Bool -> ReactiveDom (WidgetInstance MenuWindow)
 mkOverrideWindow parent visible =
-  mkWidget' parent $ mkWindow (pure "Override") visible . mkButtonGroup $
+  mkSubWidget parent $ mkWindow (pure "Override") visible . mkButtonGroup $
   [ mkButton UpButton (pure $ pure "EOA") (pure True)
   ]
 
 
-mkSpecialWindow :: (IsNode p) => p -> Behavior Bool -> ReactiveDom (Widget MenuWindow)
+mkSpecialWindow :: (IsNode p) => p -> Behavior Bool -> ReactiveDom (WidgetInstance MenuWindow)
 mkSpecialWindow parent visible =
-  mkWidget' parent $ mkWindow (pure "Special") visible . mkButtonGroup $
+  mkSubWidget parent $ mkWindow (pure "Special") visible . mkButtonGroup $
   [ mkButton UpButton (pure $ pure "Ahension") (pure True)
   , mkButton UpButton (pure $ pure "SR speed / distance") (pure True)
   , mkButton DelayButton (pure $ pure "Train integrety") (pure True)
   ]
 
-mkSettingsWindow :: (IsNode p) => p -> Behavior Bool -> ReactiveDom (Widget MenuWindow)
+mkSettingsWindow :: (IsNode p) => p -> Behavior Bool -> ReactiveDom (WidgetInstance MenuWindow)
 mkSettingsWindow parent visible =
-  mkWidget' parent $ mkWindow (pure "Settings") visible . mkButtonGroup $
+  mkSubWidget parent $ mkWindow (pure "Settings") visible . mkButtonGroup $
   [ mkButton UpButton (pure $ pure "Language") (pure True) -- TODO: Image SE03
   , mkButton UpButton (pure $ pure "Volume") (pure True) -- TODO: Image SE02
   , mkButton UpButton (pure $ pure "Brightness") (pure True) -- TODO: Image SE01
@@ -129,9 +129,9 @@ mkSettingsWindow parent visible =
   , mkButton UpButton (pure $ pure "Remove VBC") (pure True)
   ]
 
-mkRBCContactWindow :: (IsNode p) => p -> Behavior Bool -> ReactiveDom (Widget MenuWindow)
+mkRBCContactWindow :: (IsNode p) => p -> Behavior Bool -> ReactiveDom (WidgetInstance MenuWindow)
 mkRBCContactWindow parent visible =
-  mkWidget' parent $ mkWindow (pure "RBC Contact") visible . mkButtonGroup $
+  mkSubWidget parent $ mkWindow (pure "RBC Contact") visible . mkButtonGroup $
   [ mkButton UpButton (pure $ pure "Contact last RBC") (pure True)
   , mkButton UpButton (pure $ pure "Use short number") (pure True)
   , mkButton UpButton (pure $ pure "Enter RBC data") (pure True) -- TODO: Image SE01

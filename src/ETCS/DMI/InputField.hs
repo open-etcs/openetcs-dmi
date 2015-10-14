@@ -41,7 +41,7 @@ instance IsWidget InputField where
     }
   widgetRoot = inputFieldRoot
 
-  mkWidgetIO parent i = do
+  mkWidgetInstance parent i = do
     doc   <- _getOwnerDocument parent
     field <- _createDivElement doc
     dataArea <- _createDivElement doc

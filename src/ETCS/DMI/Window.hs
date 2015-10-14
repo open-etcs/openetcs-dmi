@@ -24,7 +24,7 @@ instance IsWidget WindowTitle where
   data WidgetInput WindowTitle = MkWindowTitle (Behavior Text)
 
   widgetRoot = windowTitleRoot
-  mkWidgetIO parent (MkWindowTitle t) = do
+  mkWidgetInstance parent (MkWindowTitle t) = do
     doc <- _getOwnerDocument parent
 
     -- the window title
@@ -62,7 +62,7 @@ instance (Typeable a, IsEventWidget a) => IsWidget (Window a) where
   }
   widgetRoot = windowRoot
 
-  mkWidgetIO parent i = do
+  mkWidgetInstance parent i = do
     doc <- _getOwnerDocument parent
     win <- _createDivElement doc
     closeContainer <- _createDivElement doc
@@ -74,12 +74,12 @@ instance (Typeable a, IsEventWidget a) => IsWidget (Window a) where
       () <$ appendChild parent (pure win)
       () <$ appendChild win (pure closeContainer)
 
-    _ <- mkWidget' win . MkWindowTitle . _windowTitle $ i
+    _ <- mkSubWidget win . MkWindowTitle . _windowTitle $ i
 
-    inner_widget <- mkWidget' win $ _windowWidget i
+    inner_widget <- mkSubWidget win $ _windowWidget i
 
     -- the close button
-    closeButton <- mkWidget' closeContainer $
+    closeButton <- mkSubWidget closeContainer $
                    mkButton UpButton (Just $ pure "x") (pure True) ()
 
     let setShown = setHidden win . not
@@ -87,8 +87,8 @@ instance (Typeable a, IsEventWidget a) => IsWidget (Window a) where
       valueBLater (_windowVisible i) >>= liftIOLater . setShown
       changes (_windowVisible i) >>= reactimate' . fmap (fmap setShown)
 
-    let outputC = Left  <$> widgetEvent (widgetWidget closeButton)
-        outputB = Right <$> widgetEvent (widgetWidget inner_widget)
+    let outputC = Left  <$> widgetEvent (fromWidgetInstance closeButton)
+        outputB = Right <$> widgetEvent (fromWidgetInstance inner_widget)
         output  = whenE (_windowVisible i)$ unionWith const outputB outputC
     return $ Window output (castToElement win)
 

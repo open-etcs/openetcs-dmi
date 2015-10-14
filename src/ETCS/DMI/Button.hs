@@ -41,7 +41,7 @@ instance IsWidget (Button e) where
     _buttonValue :: e
     }
   widgetRoot = buttonRoot
-  mkWidgetIO parent i = do
+  mkWidgetInstance parent i = do
     doc        <- _getOwnerDocument parent
     button     <- _createDivElement doc
     inner_div  <- _createDivElement doc

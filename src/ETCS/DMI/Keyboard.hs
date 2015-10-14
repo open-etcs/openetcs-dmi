@@ -61,7 +61,7 @@ instance IsWidget EnhancedNumericKeyboard where
     _keyboardEnhancedNumericVisible :: Behavior Bool
     }
   widgetRoot (EnhancedNumericKeyboard kbd) = widgetRoot kbd
-  mkWidgetIO parent i =
+  mkWidgetInstance parent i =
     numKeyboard EnhancedNumericKeyboard True
     (_keyboardEnhancedNumericVisible i) parent i
 
@@ -75,7 +75,7 @@ instance IsWidget NumericKeyboard where
     _keyboardNumericVisible :: Behavior Bool
     }
   widgetRoot (NumericKeyboard kbd) = widgetRoot kbd
-  mkWidgetIO parent i =
+  mkWidgetInstance parent i =
     numKeyboard NumericKeyboard False (_keyboardNumericVisible i) parent i
 
 instance IsEventWidget AlphaNumKeyboard where
@@ -88,7 +88,7 @@ instance IsWidget AlphaNumKeyboard where
       _keyboardAlphaNumVisible :: Behavior Bool
       }
   widgetRoot (AlphaNumKeyboard kbd) = widgetRoot kbd
-  mkWidgetIO parent i =
+  mkWidgetInstance parent i =
     let keyboard =
           MkKeyboard False (_keyboardAlphaNumVisible i)
           (fmap pure [ "1", "2 abc", "3 def", "4 ghi", "5 jkl", "6 mno"
@@ -98,7 +98,7 @@ instance IsWidget AlphaNumKeyboard where
       kbdContainer <- _getOwnerDocument parent >>= _createDivElement
       () <$ appendChild parent (pure kbdContainer)
 
-      AlphaNumKeyboard . widgetWidget <$> mkWidget' kbdContainer keyboard
+      AlphaNumKeyboard . fromWidgetInstance <$> mkSubWidget kbdContainer keyboard
 
 
 mapKeysAlphaNumKeyboard :: Int -> Maybe Int
@@ -120,7 +120,7 @@ numKeyboard c dot v parent _ =
     in do
       kbdContainer <- _getOwnerDocument parent >>= _createDivElement
       () <$ appendChild parent (pure kbdContainer)
-      c . widgetWidget <$> mkWidget' kbdContainer numericKeyboard
+      c . fromWidgetInstance <$> mkSubWidget kbdContainer numericKeyboard
 
 instance Typeable a => IsEventWidget (DedicatedKeyboard a) where
   type WidgetEventType (DedicatedKeyboard a) = a
@@ -132,7 +132,7 @@ instance Typeable a => IsWidget (DedicatedKeyboard a) where
     _keyboardData :: [(Behavior Text, a)]
     }
   widgetRoot = dedicatedKeyboardRoot
-  mkWidgetIO parent i =
+  mkWidgetInstance parent i =
     let (as, bs') = splitAt 11 (_keyboardData i)
         bs = take 11 bs'
         n = length $ mappend as bs
@@ -141,7 +141,7 @@ instance Typeable a => IsWidget (DedicatedKeyboard a) where
       kbdContainer <- _createDivElement doc
       page1 <- _createDivElement doc
 
-      let mkKey p (b, e) = mkWidget' p . mkButton DownButton (pure b) (pure True) $ e
+      let mkKey p (b, e) = mkSubWidget p . mkButton DownButton (pure b) (pure True) $ e
 
       lift . liftIOLater $ do
         () <$ appendChild kbdContainer (pure page1)
@@ -152,7 +152,7 @@ instance Typeable a => IsWidget (DedicatedKeyboard a) where
         then do
         bsP1 <- sequence . fmap (mkKey page1) $ _keyboardData i
 
-        let e =  foldl (unionWith const) never . fmap (widgetEvent . widgetWidget) $ bsP1
+        let e =  foldl (unionWith const) never . fmap (widgetEvent . fromWidgetInstance) $ bsP1
         return $ DedicatedKeyboard e (castToElement kbdContainer)
         else do
         page2 <- liftIO $ _createDivElement doc
@@ -166,12 +166,12 @@ instance Typeable a => IsWidget (DedicatedKeyboard a) where
         bsP2 <- sequence . fmap (mkKey page2) $ bs
 
         let  moreButton = mkButton DownButton (pure $ pure "[More]") (pure True) not
-        btTP1 <- mkWidget' more1 moreButton
-        btTP2 <- mkWidget' more2 moreButton
+        btTP1 <- mkSubWidget more1 moreButton
+        btTP2 <- mkSubWidget more2 moreButton
         () <$ appendChild page1 (pure more1)
         () <$ appendChild page2 (pure more2)
         eP1 <- lift . accumE True $ unionWith const
-          (widgetEvent . widgetWidget $ btTP1) (widgetEvent . widgetWidget $ btTP2)
+          (widgetEvent . fromWidgetInstance $ btTP1) (widgetEvent . fromWidgetInstance $ btTP2)
         bP1 <- lift $ stepper True eP1
 
         let bP2 = fmap not bP1
@@ -185,7 +185,7 @@ instance Typeable a => IsWidget (DedicatedKeyboard a) where
 
 
         () <$ appendChild kbdContainer (pure page2)
-        let kbdEvent =  foldl (unionWith const) never . fmap (widgetEvent . widgetWidget) $
+        let kbdEvent =  foldl (unionWith const) never . fmap (widgetEvent . fromWidgetInstance) $
                         mappend bsP1 bsP2
 
         return $ DedicatedKeyboard kbdEvent (castToElement kbdContainer)
@@ -223,14 +223,14 @@ instance IsWidget (Keyboard a) where
 
   widgetRoot = keyboardRoot
 
-  mkWidgetIO parent i = do
+  mkWidgetInstance parent i = do
     kbdContainer <- _getOwnerDocument parent >>= _createDivElement
 
 
     let mkKbdButton :: Behavior Text -> Int -> ReactiveDom (Button Int)
         mkKbdButton b e =
           let dot = e /= 11 || _keyboardDot i
-          in fmap widgetWidget . mkWidget' kbdContainer . mkButton DownButton (pure b) (pure dot) $ e
+          in fmap fromWidgetInstance . mkSubWidget kbdContainer . mkButton DownButton (pure b) (pure dot) $ e
 
     lift . liftIOLater $ do () <$ appendChild parent (pure kbdContainer) ; return ()
     bs <- zipWithM ($) (fmap mkKbdButton (_keyboardLabels i)) [0..11]

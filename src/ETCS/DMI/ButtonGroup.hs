@@ -31,15 +31,15 @@ instance IsWidget ButtonGroup where
 
   widgetRoot = buttonGroupRoot
 
-  mkWidgetIO parent i = do
+  mkWidgetInstance parent i = do
     doc <- _getOwnerDocument parent
     bsContainer <- _createDivElement doc
     () <$ appendChild parent (pure bsContainer)
 
     buttonsR <-
-      zipWithM ($) [ mkWidget' bsContainer . b | b <- _buttonGroupButtons i] [0 .. 9]
+      zipWithM ($) [ mkSubWidget bsContainer . b | b <- _buttonGroupButtons i] [0 .. 9]
 
-    let e = foldl (unionWith const) never . fmap (widgetEvent . widgetWidget) $
+    let e = foldl (unionWith const) never . fmap (widgetEvent . fromWidgetInstance) $
             buttonsR
     return $ ButtonGroup e (castToElement bsContainer)
 
