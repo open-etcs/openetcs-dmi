@@ -9,7 +9,7 @@ import           Data.Typeable
 import           ETCS.DMI.Button
 import           ETCS.DMI.ButtonGroup
 import           ETCS.DMI.Helpers
-import           GHCJS.DOM.Element          (Element, setClassName)
+import           GHCJS.DOM.Element          (setClassName)
 import           GHCJS.DOM.HTMLElement      (setHidden)
 import           GHCJS.DOM.Node             (appendChild, setTextContent)
 import           GHCJS.DOM.Types            (castToElement)
@@ -18,12 +18,11 @@ import           Reactive.Banana.DOM
 import           Reactive.Banana.Frameworks
 
 
-newtype WindowTitle = WindowTitle { windowTitleRoot :: Element }
+data WindowTitle = WindowTitle
 
 instance IsWidget WindowTitle where
   data WidgetInput WindowTitle = MkWindowTitle (Behavior Text)
 
-  widgetRoot = windowTitleRoot
   mkWidgetInstance parent (MkWindowTitle t) = do
     doc <- _getOwnerDocument parent
 
@@ -36,16 +35,14 @@ instance IsWidget WindowTitle where
       valueBLater t >>= liftIOLater . setTitle
       changes t >>= reactimate' . fmap (fmap setTitle)
 
-    return $ WindowTitle (castToElement titleElem)
+    return (WindowTitle, castToElement titleElem)
 
 
 
 type MenuWindow = Window ButtonGroup
 
 data Window a =
-  Window { windowEvent :: Event (Either () (WidgetEventType a))
-         , windowRoot  :: Element
-         }
+  Window { windowEvent :: Event (Either () (WidgetEventType a)) }
 
 mkWindow :: Behavior Text -> Behavior Bool -> WidgetInput a -> WidgetInput (Window a)
 mkWindow = MkWindow
@@ -60,7 +57,7 @@ instance (Typeable a, IsEventWidget a) => IsWidget (Window a) where
     _windowVisible :: Behavior Bool,
     _windowWidget  :: WidgetInput a
   }
-  widgetRoot = windowRoot
+
 
   mkWidgetInstance parent i = do
     doc <- _getOwnerDocument parent
@@ -90,7 +87,7 @@ instance (Typeable a, IsEventWidget a) => IsWidget (Window a) where
     let outputC = Left  <$> widgetEvent (fromWidgetInstance closeButton)
         outputB = Right <$> widgetEvent (fromWidgetInstance inner_widget)
         output  = whenE (_windowVisible i)$ unionWith const outputB outputC
-    return $ Window output (castToElement win)
+    return (Window output, castToElement win)
 
 
 

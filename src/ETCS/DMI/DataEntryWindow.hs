@@ -11,10 +11,10 @@ import           Data.Text                  (Text)
 import qualified Data.Text                  as T
 import           Data.Typeable              (Typeable)
 import           ETCS.DMI.Keyboard
+import           GHCJS.DOM.Types            (IsNode)
 import           Reactive.Banana
 import           Reactive.Banana.DOM
 import           Reactive.Banana.Frameworks
-
 
 class (Typeable (DataValueKeyboard a), IsEventWidget (DataValueKeyboard a)) =>
       DataValue a where

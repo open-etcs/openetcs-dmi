@@ -5,8 +5,7 @@ module ETCS.DMI.InputField (InputField (..), mkInputField) where
 import           Control.Monad.Writer       (lift)
 import           Data.Text                  (Text)
 import           ETCS.DMI.Helpers
-import           GHCJS.DOM.Element          (Element, setAttribute,
-                                             setClassName)
+import           GHCJS.DOM.Element          (setAttribute, setClassName)
 import           GHCJS.DOM.HTMLElement      (setTabIndex, setTitle)
 import           GHCJS.DOM.Node             (appendChild, setTextContent)
 import           GHCJS.DOM.Types            (castToElement)
@@ -21,8 +20,7 @@ data InputFieldState = NotSelected | Selected | Accepted
 
 data InputField = InputField {
   inputFieldNewValue :: Event Text,
-  inputFieldGotFocus :: Event (),
-  inputFieldRoot     :: Element
+  inputFieldGotFocus :: Event ()
   }
 
 mkInputField :: Behavior Text -> Bool -> Behavior Text -> Behavior Bool ->
@@ -39,7 +37,6 @@ instance IsWidget InputField where
     _inputBuffer :: Behavior Text,
     _inputReset :: Event ()
     }
-  widgetRoot = inputFieldRoot
 
   mkWidgetInstance parent i = do
     doc   <- _getOwnerDocument parent
@@ -96,7 +93,7 @@ instance IsWidget InputField where
         () <$ appendChild field (pure dataArea)
         () <$ appendChild parent (pure field)
         setClassName dataArea "DataAreaFull"
-      return $ InputField eValueOnClick eGotFocus (castToElement field)
+      return (InputField eValueOnClick eGotFocus, castToElement field)
       else do
       labelArea <- liftIO $ _createDivElement doc
       lift . liftIOLater $ setClassName labelArea "LabelArea"
@@ -113,5 +110,5 @@ instance IsWidget InputField where
         () <$ appendChild parent (pure field)
         setClassName dataArea "DataAreaLabel"
 
-      return $ InputField eValueOnClick eGotFocus (castToElement field)
+      return (InputField eValueOnClick eGotFocus ,castToElement field)
 

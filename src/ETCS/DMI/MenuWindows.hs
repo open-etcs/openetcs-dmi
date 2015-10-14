@@ -13,6 +13,7 @@ import           ETCS.DMI.ButtonGroup
 import           ETCS.DMI.Helpers
 import           ETCS.DMI.Types
 import           ETCS.DMI.Window
+import           GHCJS.DOM.Types      (IsNode)
 import           Reactive.Banana
 import           Reactive.Banana.DOM
 
@@ -31,7 +32,6 @@ instance IsWidget MainWindow where
     _mainWindowVisible :: Behavior Bool
   }
 
-  widgetRoot = widgetRoot . mainWindow
   mkWidgetInstance parent wi =
     let i = _mainWindowTrainBehavior wi
     in do
@@ -46,7 +46,7 @@ instance IsWidget MainWindow where
            , mkButton DelayButton (pure $ pure "Non-Leading") (pure True)
            , mkButton DelayButton (pure $ pure "Maintain Shunting") (pure False)
        ]
-      return . MainWindow . fromWidgetInstance $  w
+      return (MainWindow . fromWidgetInstance $  w, widgetRoot w)
 
 instance IsEventWidget MainWindow where
   type WidgetEventType MainWindow = Either () Int

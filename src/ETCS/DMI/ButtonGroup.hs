@@ -6,15 +6,13 @@ module ETCS.DMI.ButtonGroup (ButtonGroup, mkButtonGroup) where
 import           Control.Monad
 import           ETCS.DMI.Button
 import           ETCS.DMI.Helpers
-import           GHCJS.DOM.Element   (Element)
 import           GHCJS.DOM.Node      (appendChild)
 import           GHCJS.DOM.Types     (castToElement)
 import           Reactive.Banana
 import           Reactive.Banana.DOM
 
 
-data ButtonGroup =
-  ButtonGroup {  buttonGroupEvent :: Event Int, buttonGroupRoot :: Element }
+data ButtonGroup = ButtonGroup { buttonGroupEvent :: Event Int }
 
 mkButtonGroup :: [Int -> WidgetInput (Button Int)] -> WidgetInput ButtonGroup
 mkButtonGroup = MkButtonGroup
@@ -29,8 +27,6 @@ instance IsWidget ButtonGroup where
                              WidgetInput (Button Int) ]
   }
 
-  widgetRoot = buttonGroupRoot
-
   mkWidgetInstance parent i = do
     doc <- _getOwnerDocument parent
     bsContainer <- _createDivElement doc
@@ -41,6 +37,4 @@ instance IsWidget ButtonGroup where
 
     let e = foldl (unionWith const) never . fmap (widgetEvent . fromWidgetInstance) $
             buttonsR
-    return $ ButtonGroup e (castToElement bsContainer)
-
-
+    return (ButtonGroup e, castToElement bsContainer)

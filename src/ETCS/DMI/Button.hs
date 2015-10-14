@@ -10,8 +10,7 @@ import           Control.Monad.Writer
 import           Data.Text                  (Text)
 import           ETCS.DMI.Helpers
 import           ETCS.DMI.Types
-import           GHCJS.DOM.Element          (Element, setAttribute,
-                                             setClassName)
+import           GHCJS.DOM.Element          (setAttribute, setClassName)
 import           GHCJS.DOM.HTMLElement      (setTitle)
 import           GHCJS.DOM.Node             (appendChild, setTextContent)
 import           GHCJS.DOM.Types            (castToElement, castToHTMLElement)
@@ -26,8 +25,7 @@ data ButtonState = ButtonDisabled | ButtonEnabled | ButtonPressed
 mkButton :: ButtonType -> Maybe (Behavior Text) -> Behavior Bool -> e -> WidgetInput (Button e)
 mkButton = MkButton
 
-data Button e =
-  Button { buttonEvent :: Event e, buttonRoot :: Element }
+data Button e = Button { buttonEvent :: Event e }
 
 instance IsEventWidget (Button e) where
   type WidgetEventType (Button e) = e
@@ -40,7 +38,6 @@ instance IsWidget (Button e) where
     _buttonEnabled :: Behavior Bool,
     _buttonValue :: e
     }
-  widgetRoot = buttonRoot
   mkWidgetInstance parent i = do
     doc        <- _getOwnerDocument parent
     button     <- _createDivElement doc
@@ -56,7 +53,7 @@ instance IsWidget (Button e) where
     case _buttonText i of
       Nothing -> do
         _ <- appendChild parent . pure $ castToHTMLElement empty_div
-        return $ Button never (castToElement button)
+        return $ (Button never, castToElement button)
       Just t -> do
         mv_thread <- liftIO newEmptyMVar
         let killThreadIfExists :: IO ()
@@ -123,7 +120,7 @@ instance IsWidget (Button e) where
                   tryTakeMVar mv_thread >>= maybe fireButtonEventValue killThread
         lift . reactimate $ fmap mouseUpHandler eMouseUp
 
-        return $ Button eButtonClick (castToElement button)
+        return $ (Button eButtonClick, castToElement button)
 
 
 
