@@ -3,6 +3,7 @@
 
 module ETCS.DMI.Window ( Window, mkWindow, MenuWindow ) where
 
+import           Control.Monad.Writer       (lift)
 import           Data.Text                  (Text)
 import           Data.Typeable
 import           ETCS.DMI.Button
@@ -23,7 +24,6 @@ instance IsWidget WindowTitle where
   data WidgetInput WindowTitle = MkWindowTitle (Behavior Text)
 
   widgetRoot = windowTitleRoot
-  widgetCleanup _ = return ()
   mkWidgetIO parent (MkWindowTitle t) = do
     doc <- _getOwnerDocument parent
 
@@ -31,10 +31,11 @@ instance IsWidget WindowTitle where
     titleElem <- _createDivElement doc
     () <$ appendChild parent (pure titleElem)
 
-
     let setTitle = setTextContent titleElem . pure
-    valueBLater t >>= liftIOLater . setTitle
-    changes t >>= reactimate' . fmap (fmap setTitle)
+    lift $ do
+      valueBLater t >>= liftIOLater . setTitle
+      changes t >>= reactimate' . fmap (fmap setTitle)
+
     return $ WindowTitle (castToElement titleElem)
 
 
@@ -43,7 +44,7 @@ type MenuWindow = Window ButtonGroup
 
 data Window a =
   Window { windowEvent :: Event (Either () (WidgetEventType a))
-         , windowRoot  :: Element, windowCleanup :: MomentIO ()
+         , windowRoot  :: Element
          }
 
 mkWindow :: Behavior Text -> Behavior Bool -> WidgetInput a -> WidgetInput (Window a)
@@ -59,7 +60,6 @@ instance (Typeable a, IsEventWidget a) => IsWidget (Window a) where
     _windowVisible :: Behavior Bool,
     _windowWidget  :: WidgetInput a
   }
-  widgetCleanup = windowCleanup
   widgetRoot = windowRoot
 
   mkWidgetIO parent i = do
@@ -74,23 +74,23 @@ instance (Typeable a, IsEventWidget a) => IsWidget (Window a) where
       () <$ appendChild parent (pure win)
       () <$ appendChild win (pure closeContainer)
 
-    title_widget <- mkWidget win . MkWindowTitle . _windowTitle $ i
+    _ <- mkWidget' win . MkWindowTitle . _windowTitle $ i
 
-    inner_widget <- mkWidget win $ _windowWidget i
+    inner_widget <- mkWidget' win $ _windowWidget i
 
     -- the close button
-    closeButton <- mkWidget closeContainer $
+    closeButton <- mkWidget' closeContainer $
                    mkButton UpButton (Just $ pure "x") (pure True) ()
 
     let setShown = setHidden win . not
-    valueBLater (_windowVisible i) >>= liftIOLater . setShown
-    changes (_windowVisible i) >>= reactimate' . fmap (fmap setShown)
+    lift $ do
+      valueBLater (_windowVisible i) >>= liftIOLater . setShown
+      changes (_windowVisible i) >>= reactimate' . fmap (fmap setShown)
 
-    let outputC = Left <$> widgetEvent closeButton
-        outputB = Right <$> widgetEvent inner_widget
+    let outputC = Left  <$> widgetEvent (widgetWidget closeButton)
+        outputB = Right <$> widgetEvent (widgetWidget inner_widget)
         output  = whenE (_windowVisible i)$ unionWith const outputB outputC
     return $ Window output (castToElement win)
-      (do widgetCleanup inner_widget ;
-          widgetCleanup title_widget ;
-          widgetCleanup closeButton
-      )
+
+
+

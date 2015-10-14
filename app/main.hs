@@ -8,8 +8,8 @@ import           GHCJS.DOM                  (enableInspector, runWebGUI,
                                              webViewGetDomDocument)
 import           GHCJS.DOM.Document         (getElementById)
 import           Reactive.Banana
+import           Reactive.Banana.DOM
 import           Reactive.Banana.Frameworks
-
 
 trainb :: TrainBehavior
 trainb =
@@ -36,14 +36,17 @@ main = runWebGUI $ \ webView -> do
     Just dmiMain <- getElementById doc ("dmiMain" :: String)
 
     network <- compile $ do
-      windowMain <- mkMainWindow trainb dmiMain (pure True)
-      reactimate $ fmap print (widgetEvent windowMain)
+      windowMain <- mkWidget dmiMain $ mkMainWindow trainb (pure True)
+      reactimate $ fmap print (widgetEvent . widgetWidget $ windowMain)
 
 
+{-
       ovw <- mkOverrideWindow dmiMain (pure False)
       spw <- mkSpecialWindow dmiMain (pure False)
       sew <- mkSettingsWindow dmiMain (pure False)
       rcw <- mkRBCContactWindow dmiMain (pure False)
+-}
+
       return ()
 
     actuate network

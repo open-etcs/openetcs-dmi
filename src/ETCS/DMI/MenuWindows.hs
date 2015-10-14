@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeFamilies      #-}
 
 module ETCS.DMI.MenuWindows
        ( mkMainWindow, mkOverrideWindow, mkSpecialWindow, mkSettingsWindow
@@ -14,7 +15,6 @@ import           ETCS.DMI.Types
 import           ETCS.DMI.Window
 import           Reactive.Banana
 import           Reactive.Banana.DOM
-import           Reactive.Banana.Frameworks
 
 trainInMode :: ETCSMode -> TrainBehavior -> Behavior Bool
 trainInMode m i = fmap (m ==) $ i ^. trainMode
@@ -23,23 +23,37 @@ trainInModes :: [ETCSMode] -> TrainBehavior -> Behavior Bool
 trainInModes ms i = fmap (`elem` ms) $ i ^. trainMode
 
 
+newtype MainWindow = MainWindow { mainWindow :: MenuWindow }
 
+instance IsWidget MainWindow where
+  data WidgetInput MainWindow = MkMainWindow {
+    _mainWindowTrainBehavior :: TrainBehavior,
+    _mainWindowVisible :: Behavior Bool
+  }
 
-mkMainWindow :: (IsNode p) =>
-                TrainBehavior -> p -> Behavior Bool -> MomentIO MenuWindow
-mkMainWindow i parent visible =
-  mkWidget parent $ mkWindow (pure "Main") visible . mkButtonGroup $
-  [ mkButton UpButton (pure $ pure "Start") (bStartButtonEnabled i)
-  , mkButton UpButton (pure $ pure "Driver ID") (bDriverIDButtonEnabled i)
-  , mkButton UpButton (pure $ pure "Train Data") (bTrainDataButtonEnabled i)
-  , mkButton UpButton Nothing (pure False)
-  , mkButton UpButton (pure $ pure "Level") (bLevelButtonEnabled i)
-  , mkButton UpButton (pure $ pure "Train running Number") (pure True)
-  , mkButton DelayButton (pure $ pure "Shunting") (pure True)
-  , mkButton DelayButton (pure $ pure "Non-Leading") (pure True)
-  , mkButton DelayButton (pure $ pure "Maintain Shunting") (pure False)
-  ]
+  widgetRoot = widgetRoot . mainWindow
+  mkWidgetIO parent wi =
+    let i = _mainWindowTrainBehavior wi
+    in do
+      w <- mkWidget' parent . mkWindow (pure "Main") (_mainWindowVisible wi) . mkButtonGroup $
+           [ mkButton UpButton (pure $ pure "Start") (bStartButtonEnabled i)
+           , mkButton UpButton (pure $ pure "Driver ID") (bDriverIDButtonEnabled i)
+           , mkButton UpButton (pure $ pure "Train Data") (bTrainDataButtonEnabled i)
+           , mkButton UpButton Nothing (pure False)
+           , mkButton UpButton (pure $ pure "Level") (bLevelButtonEnabled i)
+           , mkButton UpButton (pure $ pure "Train running Number") (pure True)
+           , mkButton DelayButton (pure $ pure "Shunting") (pure True)
+           , mkButton DelayButton (pure $ pure "Non-Leading") (pure True)
+           , mkButton DelayButton (pure $ pure "Maintain Shunting") (pure False)
+       ]
+      return . MainWindow . widgetWidget $  w
 
+instance IsEventWidget MainWindow where
+  type WidgetEventType MainWindow = Either () Int
+  widgetEvent = widgetEvent . mainWindow
+
+mkMainWindow :: TrainBehavior -> Behavior Bool -> WidgetInput MainWindow
+mkMainWindow = MkMainWindow
 
 
 
@@ -89,30 +103,24 @@ bLevelButtonEnabled i = bsAnd
         ]
 
 
-
-
-
-
-
-
-mkOverrideWindow :: (IsNode p) => p -> Behavior Bool -> MomentIO MenuWindow
+mkOverrideWindow :: (IsNode p) => p -> Behavior Bool -> ReactiveDom (Widget MenuWindow)
 mkOverrideWindow parent visible =
-  mkWidget parent $ mkWindow (pure "Override") visible . mkButtonGroup $
+  mkWidget' parent $ mkWindow (pure "Override") visible . mkButtonGroup $
   [ mkButton UpButton (pure $ pure "EOA") (pure True)
   ]
 
 
-mkSpecialWindow :: (IsNode p) => p -> Behavior Bool -> MomentIO MenuWindow
+mkSpecialWindow :: (IsNode p) => p -> Behavior Bool -> ReactiveDom (Widget MenuWindow)
 mkSpecialWindow parent visible =
-  mkWidget parent $ mkWindow (pure "Special") visible . mkButtonGroup $
+  mkWidget' parent $ mkWindow (pure "Special") visible . mkButtonGroup $
   [ mkButton UpButton (pure $ pure "Ahension") (pure True)
   , mkButton UpButton (pure $ pure "SR speed / distance") (pure True)
   , mkButton DelayButton (pure $ pure "Train integrety") (pure True)
   ]
 
-mkSettingsWindow :: (IsNode p) => p -> Behavior Bool -> MomentIO MenuWindow
+mkSettingsWindow :: (IsNode p) => p -> Behavior Bool -> ReactiveDom (Widget MenuWindow)
 mkSettingsWindow parent visible =
-  mkWidget parent $ mkWindow (pure "Settings") visible . mkButtonGroup $
+  mkWidget' parent $ mkWindow (pure "Settings") visible . mkButtonGroup $
   [ mkButton UpButton (pure $ pure "Language") (pure True) -- TODO: Image SE03
   , mkButton UpButton (pure $ pure "Volume") (pure True) -- TODO: Image SE02
   , mkButton UpButton (pure $ pure "Brightness") (pure True) -- TODO: Image SE01
@@ -121,9 +129,9 @@ mkSettingsWindow parent visible =
   , mkButton UpButton (pure $ pure "Remove VBC") (pure True)
   ]
 
-mkRBCContactWindow :: (IsNode p) => p -> Behavior Bool -> MomentIO MenuWindow
+mkRBCContactWindow :: (IsNode p) => p -> Behavior Bool -> ReactiveDom (Widget MenuWindow)
 mkRBCContactWindow parent visible =
-  mkWidget parent $ mkWindow (pure "RBC Contact") visible . mkButtonGroup $
+  mkWidget' parent $ mkWindow (pure "RBC Contact") visible . mkButtonGroup $
   [ mkButton UpButton (pure $ pure "Contact last RBC") (pure True)
   , mkButton UpButton (pure $ pure "Use short number") (pure True)
   , mkButton UpButton (pure $ pure "Enter RBC data") (pure True) -- TODO: Image SE01

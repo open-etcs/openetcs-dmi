@@ -35,7 +35,7 @@ mkDataValueKeyboard :: (DataValue a, IsNode n) => Proxy a -> Event r -> Behavior
          MomentIO (Behavior Text, Behavior Text, Proxy a)
 mkDataValueKeyboard t r v parent = do
     kbd <- mkWidget parent $ mkKeyboard t v
-    kbd_buf <- fromKeyboardEvent t r (widgetEvent kbd)
+    kbd_buf <- fromKeyboardEvent t r (widgetEvent . widgetWidget $ kbd)
     return (dataValueLabel t, kbd_buf, t)
 
 

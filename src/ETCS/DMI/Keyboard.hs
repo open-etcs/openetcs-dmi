@@ -10,6 +10,7 @@ module ETCS.DMI.Keyboard ( NumericKeyboard, mkNumericKeyboard
                          ) where
 
 import           Control.Monad
+import           Control.Monad.Writer       (lift)
 import           Data.Text                  (Text)
 import qualified Data.Text                  as T
 import           Data.Typeable              (Typeable)
@@ -26,14 +27,12 @@ import           Reactive.Banana.Frameworks
 
 data NumericKeyboard = NumericKeyboard (Keyboard (Maybe Char))
 
-
 data EnhancedNumericKeyboard = EnhancedNumericKeyboard (Keyboard (Maybe Char))
 
 data AlphaNumKeyboard = AlphaNumKeyboard (Keyboard (Maybe Int))
 
-data DedicatedKeyboard a = DedicatedKeyboard { dedicatedKeyboardEvent   :: Event a
-                                             , dedicatedKeyboardRoot    :: Element
-                                             , dedicatedKeyboardCleanup :: MomentIO ()
+data DedicatedKeyboard a = DedicatedKeyboard { dedicatedKeyboardEvent :: Event a
+                                             , dedicatedKeyboardRoot  :: Element
                                              }
 
 mkNumericKeyboard :: Behavior Bool -> WidgetInput NumericKeyboard
@@ -62,7 +61,6 @@ instance IsWidget EnhancedNumericKeyboard where
     _keyboardEnhancedNumericVisible :: Behavior Bool
     }
   widgetRoot (EnhancedNumericKeyboard kbd) = widgetRoot kbd
-  widgetCleanup (EnhancedNumericKeyboard kbd) = widgetCleanup kbd
   mkWidgetIO parent i =
     numKeyboard EnhancedNumericKeyboard True
     (_keyboardEnhancedNumericVisible i) parent i
@@ -77,7 +75,6 @@ instance IsWidget NumericKeyboard where
     _keyboardNumericVisible :: Behavior Bool
     }
   widgetRoot (NumericKeyboard kbd) = widgetRoot kbd
-  widgetCleanup (NumericKeyboard kbd) = widgetCleanup kbd
   mkWidgetIO parent i =
     numKeyboard NumericKeyboard False (_keyboardNumericVisible i) parent i
 
@@ -91,7 +88,6 @@ instance IsWidget AlphaNumKeyboard where
       _keyboardAlphaNumVisible :: Behavior Bool
       }
   widgetRoot (AlphaNumKeyboard kbd) = widgetRoot kbd
-  widgetCleanup (AlphaNumKeyboard kbd) = widgetCleanup kbd
   mkWidgetIO parent i =
     let keyboard =
           MkKeyboard False (_keyboardAlphaNumVisible i)
@@ -102,7 +98,7 @@ instance IsWidget AlphaNumKeyboard where
       kbdContainer <- _getOwnerDocument parent >>= _createDivElement
       () <$ appendChild parent (pure kbdContainer)
 
-      AlphaNumKeyboard <$> mkWidget kbdContainer keyboard
+      AlphaNumKeyboard . widgetWidget <$> mkWidget' kbdContainer keyboard
 
 
 mapKeysAlphaNumKeyboard :: Int -> Maybe Int
@@ -115,7 +111,7 @@ mapKeysAlphaNumKeyboard i
 
 numKeyboard :: (IsNode self) =>
                (Keyboard (Maybe Char) -> b)
-               -> Bool -> Behavior Bool -> self -> t -> MomentIO b
+               -> Bool -> Behavior Bool -> self -> t -> ReactiveDom b
 numKeyboard c dot v parent _ =
     let numericKeyboard =
           MkKeyboard dot v
@@ -124,7 +120,7 @@ numKeyboard c dot v parent _ =
     in do
       kbdContainer <- _getOwnerDocument parent >>= _createDivElement
       () <$ appendChild parent (pure kbdContainer)
-      c <$> mkWidget kbdContainer numericKeyboard
+      c . widgetWidget <$> mkWidget' kbdContainer numericKeyboard
 
 instance Typeable a => IsEventWidget (DedicatedKeyboard a) where
   type WidgetEventType (DedicatedKeyboard a) = a
@@ -136,7 +132,6 @@ instance Typeable a => IsWidget (DedicatedKeyboard a) where
     _keyboardData :: [(Behavior Text, a)]
     }
   widgetRoot = dedicatedKeyboardRoot
-  widgetCleanup = dedicatedKeyboardCleanup
   mkWidgetIO parent i =
     let (as, bs') = splitAt 11 (_keyboardData i)
         bs = take 11 bs'
@@ -146,9 +141,9 @@ instance Typeable a => IsWidget (DedicatedKeyboard a) where
       kbdContainer <- _createDivElement doc
       page1 <- _createDivElement doc
 
-      let mkKey p (b, e) = mkWidget p . mkButton DownButton (pure b) (pure True) $ e
+      let mkKey p (b, e) = mkWidget' p . mkButton DownButton (pure b) (pure True) $ e
 
-      liftIOLater $ do
+      lift . liftIOLater $ do
         () <$ appendChild kbdContainer (pure page1)
         () <$ appendChild parent (pure kbdContainer)
         return ()
@@ -156,9 +151,9 @@ instance Typeable a => IsWidget (DedicatedKeyboard a) where
       if n <= 12
         then do
         bsP1 <- sequence . fmap (mkKey page1) $ _keyboardData i
-        let bsP1c = do _ <- sequence $ fmap widgetCleanup bsP1; return ()
-        let e =  foldl (unionWith const) never . fmap widgetEvent $ bsP1
-        return $ DedicatedKeyboard e (castToElement kbdContainer) bsP1c
+
+        let e =  foldl (unionWith const) never . fmap (widgetEvent . widgetWidget) $ bsP1
+        return $ DedicatedKeyboard e (castToElement kbdContainer)
         else do
         page2 <- liftIO $ _createDivElement doc
         more1 <- liftIO $ _createDivElement doc
@@ -169,31 +164,32 @@ instance Typeable a => IsWidget (DedicatedKeyboard a) where
 
         bsP1 <- sequence . fmap (mkKey page1) $ as
         bsP2 <- sequence . fmap (mkKey page2) $ bs
-        let bsP1c = do _ <- sequence $ fmap widgetCleanup bsP1; return ()
-        let bsP2c = do _ <- sequence $ fmap widgetCleanup bsP2; return ()
+
         let  moreButton = mkButton DownButton (pure $ pure "[More]") (pure True) not
-        btTP1 <- mkWidget more1 moreButton
-        btTP2 <- mkWidget more2 moreButton
+        btTP1 <- mkWidget' more1 moreButton
+        btTP2 <- mkWidget' more2 moreButton
         () <$ appendChild page1 (pure more1)
         () <$ appendChild page2 (pure more2)
-        eP1 <- accumE True $ unionWith const (widgetEvent btTP1) (widgetEvent btTP2)
-        bP1 <- stepper True eP1
+        eP1 <- lift . accumE True $ unionWith const
+          (widgetEvent . widgetWidget $ btTP1) (widgetEvent . widgetWidget $ btTP2)
+        bP1 <- lift $ stepper True eP1
 
         let bP2 = fmap not bP1
             sP1 = setHidden (castToHTMLElement page1) . not
             sP2 = setHidden (castToHTMLElement page2) . not
-        valueBLater bP1 >>= liftIOLater . sP1
-        valueBLater bP2 >>= liftIOLater . sP2
-        changes bP1 >>= reactimate' . fmap (fmap sP1)
-        changes bP2 >>= reactimate' . fmap (fmap sP2)
+        lift $ do
+          valueBLater bP1 >>= liftIOLater . sP1
+          valueBLater bP2 >>= liftIOLater . sP2
+          changes bP1 >>= reactimate' . fmap (fmap sP1)
+          changes bP2 >>= reactimate' . fmap (fmap sP2)
 
 
         () <$ appendChild kbdContainer (pure page2)
-        let kbdEvent =  foldl (unionWith const) never . fmap widgetEvent $
+        let kbdEvent =  foldl (unionWith const) never . fmap (widgetEvent . widgetWidget) $
                         mappend bsP1 bsP2
 
         return $ DedicatedKeyboard kbdEvent (castToElement kbdContainer)
-          (do widgetCleanup btTP1; widgetCleanup btTP2; bsP1c; bsP2c)
+
 
 
 mapKeysNumericKeyboard :: Int -> Maybe Char
@@ -209,9 +205,8 @@ mapKeysNumericKeyboard i
 
 
 data Keyboard a =
-  Keyboard { keyboardEvent   :: Event a
-           , keyboardRoot    :: Element
-           , keyboardCleanup :: MomentIO ()
+  Keyboard { keyboardEvent :: Event a
+           , keyboardRoot  :: Element
            }
 
 instance IsEventWidget (Keyboard a) where
@@ -227,23 +222,21 @@ instance IsWidget (Keyboard a) where
     }
 
   widgetRoot = keyboardRoot
-  widgetCleanup = keyboardCleanup
+
   mkWidgetIO parent i = do
     kbdContainer <- _getOwnerDocument parent >>= _createDivElement
 
 
-    let mkKbdButton :: Behavior Text -> Int -> MomentIO (Button Int)
+    let mkKbdButton :: Behavior Text -> Int -> ReactiveDom (Button Int)
         mkKbdButton b e =
           let dot = e /= 11 || _keyboardDot i
-          in mkWidget kbdContainer . mkButton DownButton (pure b) (pure dot) $ e
+          in fmap widgetWidget . mkWidget' kbdContainer . mkButton DownButton (pure b) (pure dot) $ e
 
-
-    liftIOLater $ do () <$ appendChild parent (pure kbdContainer) ; return ()
+    lift . liftIOLater $ do () <$ appendChild parent (pure kbdContainer) ; return ()
     bs <- zipWithM ($) (fmap mkKbdButton (_keyboardLabels i)) [0..11]
     let e =  foldl (unionWith const) never . fmap widgetEvent $ bs
-    return $ Keyboard (fmap (_keyboardMapping i) $ e)
+    return $ Keyboard (fmap (_keyboardMapping i) e)
                       (castToElement kbdContainer)
-                      (do _ <- sequence $ fmap widgetCleanup bs; return ())
 
 renderData :: String -> String
 renderData =  renderDataChunks

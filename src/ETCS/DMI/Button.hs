@@ -6,6 +6,7 @@ module ETCS.DMI.Button (
 
 import           Control.Concurrent
 import           Control.Monad
+import           Control.Monad.Writer
 import           Data.Text                  (Text)
 import           ETCS.DMI.Helpers
 import           ETCS.DMI.Types
@@ -26,7 +27,7 @@ mkButton :: ButtonType -> Maybe (Behavior Text) -> Behavior Bool -> e -> WidgetI
 mkButton = MkButton
 
 data Button e =
-  Button { buttonEvent :: Event e, buttonRoot :: Element, buttonCleanup :: MomentIO () }
+  Button { buttonEvent :: Event e, buttonRoot :: Element }
 
 instance IsEventWidget (Button e) where
   type WidgetEventType (Button e) = e
@@ -40,59 +41,59 @@ instance IsWidget (Button e) where
     _buttonValue :: e
     }
   widgetRoot = buttonRoot
-  widgetCleanup = buttonCleanup
   mkWidgetIO parent i = do
     doc        <- _getOwnerDocument parent
     button     <- _createDivElement doc
     inner_div  <- _createDivElement doc
     inner_span <- _createSpanElement doc
     empty_div  <- _createDivElement doc
-    mv_thread <- liftIO newEmptyMVar
 
-    let killThreadIfExists =
-          maybe (return ()) killThread <$> tryTakeMVar mv_thread
-
-    liftIOLater $ do
+    lift $ liftIOLater $ do
       setClassName empty_div "EmptyButton"
       () <$ appendChild inner_div (pure inner_span)
       () <$ appendChild button (pure inner_div)
 
-    (eButtonClick, cleanup) <- case _buttonText i of
+    case _buttonText i of
       Nothing -> do
         _ <- appendChild parent . pure $ castToHTMLElement empty_div
-        return (never, return ())
+        return $ Button never (castToElement button)
       Just t -> do
+        mv_thread <- liftIO newEmptyMVar
+        let killThreadIfExists :: IO ()
+            killThreadIfExists = tryTakeMVar mv_thread >>= maybe (return ()) killThread
+        registerCleanupIO killThreadIfExists
+
         _ <- appendChild parent . pure $ castToHTMLElement button
         let setLabel l = do
               setTitle button l
               setTextContent inner_span . pure $ l
-        valueBLater t >>= liftIOLater . setLabel
-        changes t >>= reactimate' . fmap (fmap setLabel)
+        lift $ valueBLater t >>= liftIOLater . setLabel
+        lift $ changes t >>= reactimate' . fmap (fmap setLabel)
 
         -- construct and react on button pressed behavior
-        (eButtonPressed, fireButtonPressed) <- newEvent
-        bButtonPressed <- stepper False eButtonPressed
+        (eButtonPressed, fireButtonPressed) <- lift newEvent
+        bButtonPressed <- lift $ stepper False eButtonPressed
         let bButtonState = buttonState <$> _buttonEnabled i <*> bButtonPressed
         let stateHandler = setAttribute button "data-state" . show
-        valueBLater bButtonState >>= liftIOLater . stateHandler
-        changes bButtonState >>= reactimate' . fmap (fmap stateHandler)
+        lift $ valueBLater bButtonState >>= liftIOLater . stateHandler
+        lift $ changes bButtonState >>= reactimate' . fmap (fmap stateHandler)
         let bButtonNotDisabled = (/= ButtonDisabled) <$> bButtonState
 
         -- internal click event
-        (eButtonClick, fireButton') <- newEvent
+        (eButtonClick, fireButton') <- lift newEvent
         let fireButtonEventValue = fireButton' (_buttonValue i)
 
         -- mouse out
-        (eMouseOut', cMouseOut) <- registerMouseOut button
+        eMouseOut' <- registerMouseOut button
         let eMouseOut = whenE (bOr bButtonNotDisabled bButtonPressed) eMouseOut'
 
         let mouseOutHandler () = do
               () <$ killThreadIfExists
               fireButtonPressed False
-        reactimate $ fmap mouseOutHandler eMouseOut
+        lift . reactimate $ fmap mouseOutHandler eMouseOut
 
         -- mouse down
-        (eMouseDown', cMouseDown) <- registerMouseDown button
+        eMouseDown' <- registerMouseDown button
         let eMouseDown = whenE bButtonNotDisabled eMouseDown'
 
         let mouseDownHandler () = case _buttonType i of
@@ -105,11 +106,11 @@ instance IsWidget (Button e) where
               DelayButton ->
                 forkIO (animateDelay mv_thread fireButtonPressed) >>=
                   putMVar mv_thread
-        reactimate $ fmap mouseDownHandler eMouseDown
+        lift . reactimate $ fmap mouseDownHandler eMouseDown
 
 
         -- mouse up
-        (eMouseUp', cMouseUp) <-registerMouseUp button
+        eMouseUp' <- registerMouseUp button
         let eMouseUp =  whenE bButtonNotDisabled eMouseUp'
 
         let mouseUpHandler () = do
@@ -119,11 +120,9 @@ instance IsWidget (Button e) where
                 DownButton -> () <$ killThreadIfExists
                 DelayButton ->
                   tryTakeMVar mv_thread >>= maybe fireButtonEventValue killThread
-        reactimate $ fmap mouseUpHandler eMouseUp
-        return (eButtonClick,
-                do { () <$ liftIO killThreadIfExists;
-                     cMouseDown ; cMouseOut ; cMouseUp } )
-    return $ Button eButtonClick (castToElement button) cleanup
+        lift . reactimate $ fmap mouseUpHandler eMouseUp
+
+        return $ Button eButtonClick (castToElement button)
 
 
 

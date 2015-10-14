@@ -2,6 +2,7 @@
 
 module ETCS.DMI.InputField (InputField (..), mkInputField) where
 
+import           Control.Monad.Writer       (lift)
 import           Data.Text                  (Text)
 import           ETCS.DMI.Helpers
 import           GHCJS.DOM.Element          (Element, setAttribute,
@@ -21,8 +22,7 @@ data InputFieldState = NotSelected | Selected | Accepted
 data InputField = InputField {
   inputFieldNewValue :: Event Text,
   inputFieldGotFocus :: Event (),
-  inputFieldRoot     :: Element,
-  inputFieldCleanup  :: MomentIO ()
+  inputFieldRoot     :: Element
   }
 
 mkInputField :: Behavior Text -> Bool -> Behavior Text -> Behavior Bool ->
@@ -40,7 +40,6 @@ instance IsWidget InputField where
     _inputReset :: Event ()
     }
   widgetRoot = inputFieldRoot
-  widgetCleanup = inputFieldCleanup
 
   mkWidgetIO parent i = do
     doc   <- _getOwnerDocument parent
@@ -49,24 +48,25 @@ instance IsWidget InputField where
     setTabIndex dataArea 1
 
     let setFieldTitle = setTitle field
-    valueBLater (_inputLabel i) >>= liftIOLater . setFieldTitle
-    changes (_inputLabel i)  >>= reactimate' . fmap (fmap setFieldTitle)
+    lift $ do
+      valueBLater (_inputLabel i) >>= liftIOLater . setFieldTitle
+      changes (_inputLabel i)  >>= reactimate' . fmap (fmap setFieldTitle)
 
     -- focus
-    (eFocus, fireFocus) <- newEvent
-    eHasFocus <- accumE False $ fmap (const not) eFocus
-    bHasFocus <- stepper False eHasFocus
+    (eFocus, fireFocus) <- lift newEvent
+    eHasFocus <- lift . accumE False $ fmap (const not) eFocus
+    bHasFocus <- lift $ stepper False eHasFocus
     let eGotFocus = whenE (fmap not bHasFocus) eFocus
 
     -- handle Reset
     let eReset = whenE bHasFocus (_inputReset i)
-    reactimate $ fmap fireFocus eReset
+    lift . reactimate $ fmap fireFocus eReset
 
 
-    (eClickData, cClickData) <- registerMouseClick dataArea
-    reactimate $ fmap fireFocus eClickData
+    eClickData <- registerMouseClick dataArea
+    lift . reactimate $ fmap fireFocus eClickData
 
-    eValueOnClick' <- execute $ fmap (const $ valueB (_inputBuffer i)) eClickData
+    eValueOnClick' <- lift . execute $ fmap (const $ valueB (_inputBuffer i)) eClickData
     let eValueOnClick = whenE bHasFocus eValueOnClick'
 
     let bDisplay =
@@ -75,8 +75,9 @@ instance IsWidget InputField where
 
     -- what shall be actualy displayed (internal buffer or value)
     let setDataValue = setTextContent dataArea . pure
-    valueBLater bDisplay >>= liftIOLater . setDataValue
-    changes bDisplay  >>= reactimate' . fmap (fmap setDataValue)
+    lift $ do
+      valueBLater bDisplay >>= liftIOLater . setDataValue
+      changes bDisplay  >>= reactimate' . fmap (fmap setDataValue)
 
     -- set state
     let _state True  False = Accepted
@@ -84,31 +85,33 @@ instance IsWidget InputField where
         _state False False = NotSelected
         bState = _state <$> _inputIsAccepted i <*> bHasFocus
     let setFieldState = setAttribute dataArea "data-state" . show
-    valueBLater bState >>= liftIOLater . setFieldState
-    changes bState >>= reactimate' . fmap (fmap setFieldState)
+    lift $ do
+      valueBLater bState >>= liftIOLater . setFieldState
+      changes bState >>= reactimate' . fmap (fmap setFieldState)
 
-    (eFieldEnter, fireFieldEnter) <- newEvent
+    (eFieldEnter, fireFieldEnter) <- lift newEvent
 
     if _inputIsSingle i then do
-      liftIOLater $ do
+      lift . liftIOLater $ do
         () <$ appendChild field (pure dataArea)
         () <$ appendChild parent (pure field)
         setClassName dataArea "DataAreaFull"
-      return $ InputField eValueOnClick eGotFocus (castToElement field) cClickData
+      return $ InputField eValueOnClick eGotFocus (castToElement field)
       else do
       labelArea <- liftIO $ _createDivElement doc
-      liftIOLater $ setClassName labelArea "LabelArea"
+      lift . liftIOLater $ setClassName labelArea "LabelArea"
       let setLabel = setTextContent labelArea . pure
-      valueBLater (_inputLabel i) >>= liftIOLater . setLabel
-      changes (_inputLabel i)  >>= reactimate' . fmap (fmap setLabel)
-      (eClickLabel, cClickLabel) <- registerMouseClick labelArea
-      reactimate . fmap fireFocus $ eClickLabel
+      lift $ do
+        valueBLater (_inputLabel i) >>= liftIOLater . setLabel
+        changes (_inputLabel i)  >>= reactimate' . fmap (fmap setLabel)
+      eClickLabel <- registerMouseClick labelArea
+      lift . reactimate . fmap fireFocus $ eClickLabel
 
-      liftIOLater $ do
+      lift . liftIOLater $ do
         () <$ appendChild field (pure labelArea)
         () <$ appendChild field (pure dataArea)
         () <$ appendChild parent (pure field)
         setClassName dataArea "DataAreaLabel"
 
       return $ InputField eValueOnClick eGotFocus (castToElement field)
-        (do cClickData ; cClickLabel)
+
