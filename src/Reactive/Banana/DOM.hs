@@ -3,8 +3,9 @@
 {-# LANGUAGE TypeFamilies               #-}
 
 module Reactive.Banana.DOM
-       ( IsWidget(..), WidgetInstance, mkWidget, removeWidget,
-         ReactiveDom, mkSubWidget, registerCleanupIO, IsEventWidget(..), fromWidgetInstance,
+       ( IsWidget(..), IsEventWidget(..),
+         WidgetInstance, mkWidget, removeWidget,
+         ReactiveDom, mkSubWidget, registerCleanupIO, fromWidgetInstance,
          -- * Mouse Events
          registerMouseClick, registerMouseDown, registerMouseUp, registerMouseOut,
          -- * re-exports
@@ -28,13 +29,13 @@ import           Reactive.Banana.Frameworks
 class IsWidget w where
   data WidgetInput w :: *
 
-  -- | create and register 'WidgetInstance'. should not be called directly. use 'mkSubWidget.
+  -- | Create and register widget 'w'. Use 'mkSubWidget' to creat sub widgets.
   mkWidgetInstance :: (IsNode parent) => parent -> WidgetInput w -> ReactiveDom w
 
-  -- | the base element of the 'WidgetInstance' in DOM.
+  -- | the base element of the widget in DOM.
   widgetRoot :: w -> Element
 
--- | a 'WidgetInstance' witch emits an 'Event'
+-- | a widget witch emits an 'Event'
 class (IsWidget w) => IsEventWidget w where
   type WidgetEventType w :: *
   widgetEvent :: w -> Event (WidgetEventType w)
@@ -78,11 +79,11 @@ registerCleanupIO :: IO () -> ReactiveDom ()
 registerCleanupIO = tell . pure . liftIO
 
 -- | should deregister all event handlers, kill threads etc.
-widgetCleanup :: WidgetInstance w -> MomentIO ()
+widgetCleanup :: (IsWidget w) => WidgetInstance w -> MomentIO ()
 widgetCleanup (WidgetInstance w) = snd w
 
-
-fromWidgetInstance :: WidgetInstance w -> w
+-- | get the 'IsWidget' from a WidgetInstance
+fromWidgetInstance :: (IsWidget w) => WidgetInstance w -> w
 fromWidgetInstance (WidgetInstance w) = fst w
 
 -- | creates a new 'WidgetInstance' in the DOM
@@ -94,14 +95,6 @@ mkWidget parent i = do
   liftIOLater . setAttribute (widgetRoot widget) "data-widget" $ widgetClass
   return $ WidgetInstance (widget, sequence cs >> return ())
 
-mkSubWidget :: (Typeable w, IsWidget w, IsNode parent) =>
-            parent -> WidgetInput w -> ReactiveDom (WidgetInstance w)
-mkSubWidget parent i = do
- w <- lift $ mkWidget parent i
- tell . pure . widgetCleanup $ w
- return w
-
-
 -- | calls cleanup of 'WidgetInstance' tree. removes element from DOM
 removeWidget :: (IsWidget w) => WidgetInstance w -> MomentIO ()
 removeWidget w = do
@@ -111,6 +104,16 @@ removeWidget w = do
    case pM of
      Nothing -> return ()
      Just p -> removeChild p (pure r) >> return ()
+
+-- | creates a sub widget in the 'ReactiveDom' 'Monad'.
+mkSubWidget :: (Typeable w, IsWidget w, IsNode parent) =>
+            parent -> WidgetInput w -> ReactiveDom (WidgetInstance w)
+mkSubWidget parent i = do
+ w <- lift $ mkWidget parent i
+ tell . pure . widgetCleanup $ w
+ return w
+
+
 
 
 
