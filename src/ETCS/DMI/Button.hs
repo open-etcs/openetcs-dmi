@@ -115,6 +115,7 @@ instance IsWidget (Button e) where
 
         let mouseUpHandler () = do
               fireButtonPressed False
+              -- FIXME: Should not fire on: down - move out - move in - up
               case _buttonType i of
                 UpButton -> fireButtonEventValue
                 DownButton -> () <$ killThreadIfExists

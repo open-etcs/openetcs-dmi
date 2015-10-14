@@ -37,7 +37,10 @@ main = runWebGUI $ \ webView -> do
 
     network <- compile $ do
       windowMain <- mkWidget dmiMain $ mkMainWindow trainb (pure True)
-      reactimate $ fmap print (widgetEvent . widgetWidget $ windowMain)
+
+      let (eClose, eValue) = split . widgetEvent . widgetWidget $ windowMain
+      _ <- execute $ fmap (const $ removeWidget windowMain) eClose
+      reactimate $ fmap print eValue
 
 
 {-
