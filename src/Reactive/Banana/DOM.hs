@@ -108,10 +108,7 @@ removeWidget :: (IsWidget w) => WidgetInstance w -> MomentIO ()
 removeWidget w = do
    widgetCleanup w
    let r = widgetRoot w
-   pM <- getParentNode r
-   case pM of
-     Nothing -> return ()
-     Just p -> removeChild p (pure r) >> return ()
+   maybe (return ()) (\p -> removeChild p (pure r) >> return ()) <$> getParentNode r
 
 -- | creates a sub widget in the 'ReactiveDom' 'Monad'.
 mkSubWidget :: (Typeable w, IsWidget w, IsNode parent) =>
