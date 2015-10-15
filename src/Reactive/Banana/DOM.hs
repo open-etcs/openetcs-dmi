@@ -95,10 +95,12 @@ widgetRoot = view $ _WidgetInstance . _3
 mkWidget :: (Typeable w, IsWidget w, IsNode parent) =>
             parent -> WidgetInput w -> MomentIO (WidgetInstance w)
 mkWidget parent i = do
-  ((widget, e), cs) <- runWriterT $ mkWidgetInstance parent i
-  let widgetClass = mkWidgetClassName . show . typeOf $ widget
-  liftIOLater . setAttribute e "data-widget" $ widgetClass
-  return $ _WidgetInstance # (widget, sequence cs >> return (), e)
+  (r, cs) <- runWriterT $ mkWidgetInstance parent i
+  let widget = r ^. _1
+      widgetClass = mkWidgetClassName . show . typeOf . view _1 $ r
+  liftIOLater . setAttribute (r ^. _2) "data-widget" $ widgetClass
+  return $ _WidgetInstance # (r ^. _1, sequence cs >> return (), r ^. _2)
+
   where mkWidgetClassName = takeWhile (not . (==) ' ')
 
 -- | calls cleanup of 'WidgetInstance' tree. removes element from DOM
