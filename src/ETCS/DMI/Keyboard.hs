@@ -23,6 +23,7 @@ import           GHCJS.DOM.Types            (Element, IsNode, castToElement,
                                              castToHTMLElement)
 import           Reactive.Banana
 import           Reactive.Banana.DOM
+import           Reactive.Banana.DOM.Widget
 import           Reactive.Banana.Frameworks
 
 data NumericKeyboard = NumericKeyboard (Keyboard (Maybe Char))

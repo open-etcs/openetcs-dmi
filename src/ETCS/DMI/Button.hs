@@ -16,6 +16,7 @@ import           GHCJS.DOM.Node             (appendChild, setTextContent)
 import           GHCJS.DOM.Types            (castToElement, castToHTMLElement)
 import           Reactive.Banana
 import           Reactive.Banana.DOM
+import           Reactive.Banana.DOM.Widget
 import           Reactive.Banana.Frameworks
 
 

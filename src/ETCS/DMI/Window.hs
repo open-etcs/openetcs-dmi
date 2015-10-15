@@ -15,8 +15,8 @@ import           GHCJS.DOM.Node             (appendChild, setTextContent)
 import           GHCJS.DOM.Types            (castToElement)
 import           Reactive.Banana
 import           Reactive.Banana.DOM
+import           Reactive.Banana.DOM.Widget
 import           Reactive.Banana.Frameworks
-
 
 data WindowTitle = WindowTitle
 

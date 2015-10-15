@@ -25,6 +25,7 @@ library
                        ETCS.DMI.MenuWindows,
                        ETCS.DMI.DataEntryWindow,
                        Reactive.Banana.DOM
+                       Reactive.Banana.DOM.Widget
                        
   other-modules:       ETCS.DMI.Helpers,
                        ETCS.DMI.Window
@@ -35,6 +36,7 @@ library
                        text,
                        lens,
                        ghcjs-dom >= 0.2,
+                       dimensional-tf >= 0.3,
                        transformers,
                        reactive-banana
                        

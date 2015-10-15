@@ -1,25 +1,32 @@
 {-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE TypeFamilies      #-}
 
 module ETCS.DMI.DataEntryWindow where
 
 
 
+import           Control.Lens                         hiding ((*~))
 import           Data.Proxy
-import           Data.Text                  (Text)
-import qualified Data.Text                  as T
-import           Data.Typeable              (Typeable)
+import           Data.Text                            (Text)
+import qualified Data.Text                            as T
+import           Data.Typeable                        (Typeable)
 import           ETCS.DMI.Keyboard
-import           GHCJS.DOM.Types            (IsNode)
+import           GHCJS.DOM.Types                      (IsNode)
+import           Numeric.Units.Dimensional.TF.Prelude
+import           Prelude                              ()
 import           Reactive.Banana
 import           Reactive.Banana.DOM
+import           Reactive.Banana.DOM.Widget
 import           Reactive.Banana.Frameworks
 
 class (Typeable (DataValueKeyboard a), IsEventWidget (DataValueKeyboard a)) =>
       DataValue a where
   type DataValueType a :: *
   type DataValueKeyboard a :: *
+  type DataValueKeyboardType a :: *
+
   dataValueLabel :: Proxy a -> Behavior Text
   mkKeyboard :: Proxy a -> Behavior Bool -> WidgetInput (DataValueKeyboard a)
   fromKeyboardEvent :: (MonadMoment m) =>
@@ -28,7 +35,7 @@ class (Typeable (DataValueKeyboard a), IsEventWidget (DataValueKeyboard a)) =>
                        Event (WidgetEventType (DataValueKeyboard a)) ->
                        m (Behavior Text)
   fromText :: Text -> a
-
+  _DataValueKeyboard :: Prism' (DataValueKeyboardType a) a
 
 
 mkDataValueKeyboard :: (DataValue a, IsNode n) => Proxy a -> Event r -> Behavior Bool -> n ->
@@ -40,32 +47,44 @@ mkDataValueKeyboard t r v parent = do
 
 
 
-newtype MaxSpeed = MaxSpeed Int
+kmh :: (Fractional a) => Unit DVelocity a
+kmh = kilo meter / hour
+
+newtype MaxSpeed = MaxSpeed (Velocity Double)
+makePrisms ''MaxSpeed
+
 instance DataValue MaxSpeed where
-  type DataValueType MaxSpeed = Int
+  type DataValueType MaxSpeed = Velocity Double
+
   type DataValueKeyboard MaxSpeed = NumericKeyboard
+  type DataValueKeyboardType MaxSpeed = Int
+
   dataValueLabel _ = pure "Max speed (km/h)"
   mkKeyboard _ = mkNumericKeyboard
   fromKeyboardEvent _ r e = fmap T.pack <$> mkKeyboardBuffer 16 r e
-  fromText = MaxSpeed . read . T.unpack
+  fromText t = MaxSpeed $ (read . T.unpack $ t) *~ kmh
+  _DataValueKeyboard = prism a b
+    where a (MaxSpeed i) = round $ i /~ kmh
+          b i = if i >= 0 then Right . MaxSpeed $ (fromIntegral i) *~ kmh else Left i
 
-newtype TrainLength = TrainLength Int
+
+newtype TrainLength = TrainLength (Length Double)
 instance DataValue TrainLength where
-  type DataValueType TrainLength = Int
+  type DataValueType TrainLength = Length Double
   type DataValueKeyboard TrainLength = NumericKeyboard
   dataValueLabel _ = pure "Length (m)"
   mkKeyboard _ = mkNumericKeyboard
   fromKeyboardEvent _ r e = fmap T.pack <$> mkKeyboardBuffer 16 r e
-  fromText = TrainLength . read. T.unpack
+  fromText t = TrainLength $ (read . T.unpack $ t) *~ meter
 
-newtype BreakPercentage = BreakPercentage Int
+newtype BreakPercentage = BreakPercentage (Dimensionless Double)
 instance DataValue BreakPercentage where
-  type DataValueType BreakPercentage = Int
+  type DataValueType BreakPercentage = Dimensionless Double
   type DataValueKeyboard BreakPercentage = NumericKeyboard
   dataValueLabel _ = pure "Break percentage"
   mkKeyboard _ = mkNumericKeyboard
   fromKeyboardEvent _ r e = fmap T.pack <$> mkKeyboardBuffer 16 r e
-  fromText = BreakPercentage . read . T.unpack
+  fromText t = BreakPercentage $ (read . T.unpack $ t) *~ one
 
 data TrainCategoryType =
   PASS1 | PASS2 | PASS3 |

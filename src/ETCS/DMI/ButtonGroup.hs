@@ -6,11 +6,11 @@ module ETCS.DMI.ButtonGroup (ButtonGroup, mkButtonGroup) where
 import           Control.Monad
 import           ETCS.DMI.Button
 import           ETCS.DMI.Helpers
-import           GHCJS.DOM.Node      (appendChild)
-import           GHCJS.DOM.Types     (castToElement)
+import           GHCJS.DOM.Node             (appendChild)
+import           GHCJS.DOM.Types            (castToElement)
 import           Reactive.Banana
 import           Reactive.Banana.DOM
-
+import           Reactive.Banana.DOM.Widget
 
 data ButtonGroup = ButtonGroup { buttonGroupEvent :: Event Int }
 

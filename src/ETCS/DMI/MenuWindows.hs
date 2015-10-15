@@ -13,9 +13,10 @@ import           ETCS.DMI.ButtonGroup
 import           ETCS.DMI.Helpers
 import           ETCS.DMI.Types
 import           ETCS.DMI.Window
-import           GHCJS.DOM.Types      (IsNode)
+import           GHCJS.DOM.Types            (IsNode)
 import           Reactive.Banana
 import           Reactive.Banana.DOM
+import           Reactive.Banana.DOM.Widget
 
 trainInMode :: ETCSMode -> TrainBehavior -> Behavior Bool
 trainInMode m i = fmap (m ==) $ i ^. trainMode
