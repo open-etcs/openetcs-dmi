@@ -17,7 +17,7 @@ import           Reactive.Banana.DOM.Widget
 import           Reactive.Banana.Frameworks
 
 
--- | see 'registerEvent'
+--- | Register mouse click 'Event'.
 registerMouseDown, registerMouseUp, registerMouseOut, registerMouseClick ::
   (IsNode n ) => n -> ReactiveDom (Event ())
 registerMouseDown   = registerMouseEvent "mousedown"

@@ -15,17 +15,14 @@ import           Control.Lens
 import           Control.Monad.Writer
 import           Data.Typeable
 import           GHCJS.DOM.Element          (Element, setAttribute)
-
-
-
 import           GHCJS.DOM.Node             (getParentNode, removeChild)
 import           GHCJS.DOM.Types            (IsNode)
 import           Reactive.Banana
 import           Reactive.Banana.Frameworks
 
 
--- | the monad in which 'WidgetInstance' creation is enacted. use 'registerCleanupIO'
---   to register cleanup handles. use 'mkSubWidget to create sub 'WidgetInstance's
+--- | The 'Monad' in which 'WidgetInstance' creation is enacted. Use 'registerCleanupIO'
+---   to register cleanup handles. Use 'mkSubWidget' to create sub 'WidgetInstance's
 type ReactiveDom a =  WriterT [CleanupHandler] MomentIO a
 
 -- | a type class for all reactive widgets
@@ -37,45 +34,45 @@ class IsWidget w where
   mkWidgetInstance :: (IsNode parent) =>
     parent -> WidgetInput w -> ReactiveDom (w, Element)
 
--- | a widget witch emits an 'Event'
+-- | A widget witch emits an 'Event'
 class (IsWidget w) => IsEventWidget w where
   type WidgetEventType w :: *
   widgetEvent :: w -> Event (WidgetEventType w)
 
 type CleanupHandler = MomentIO ()
 
--- | represents an instance of an 'IsWidget'
+-- | Represents an instance of an 'IsWidget'
 newtype WidgetInstance w = WidgetInstance (w,  CleanupHandler, Element)
 makePrisms ''WidgetInstance
 
--- | register an 'IO' action as cleanup function in 'ReactiveDom'
+-- | Register an 'IO' action as cleanup function in 'ReactiveDom'
 registerCleanupIO :: IO () -> ReactiveDom ()
 registerCleanupIO = tell . pure . liftIO
 
--- | get the 'IsWidget' from a WidgetInstance
+-- | Get the widget from a 'WidgetInstance'
 fromWidgetInstance :: (IsWidget w) => WidgetInstance w -> w
 fromWidgetInstance = view $ _WidgetInstance . _1
 
--- | should deregister all event handlers, kill threads etc.
+-- | Should deregister all event handlers, kill threads etc.
 widgetCleanup :: (IsWidget w) => WidgetInstance w -> CleanupHandler
 widgetCleanup = view $ _WidgetInstance . _2
 
--- | get the root 'Element' of a 'WidgetInstance'
+-- | Get the root 'Element' of a 'WidgetInstance'
 widgetRoot :: (IsWidget w) => WidgetInstance w -> Element
 widgetRoot = view $ _WidgetInstance . _3
 
--- | creates a new 'WidgetInstance' in the DOM
+-- | Creates a new 'WidgetInstance' in the DOM
 mkWidget :: (Typeable w, IsWidget w, IsNode parent) =>
             parent -> WidgetInput w -> MomentIO (WidgetInstance w)
 mkWidget parent i = do
   (r, cs) <- runWriterT $ mkWidgetInstance parent i
   let widgetClass = mkWidgetClassName . show . typeOf . view _1 $ r
   liftIOLater . setAttribute (r ^. _2) "data-widget" $ widgetClass
-  return $ _WidgetInstance # (r ^. _1, sequence cs >> return (), r ^. _2)
+  return $ _WidgetInstance # (r ^. _1, sequence_ cs, r ^. _2)
 
   where mkWidgetClassName = takeWhile (not . (==) ' ')
 
--- | calls cleanup of 'WidgetInstance' tree. removes element from DOM
+-- | Calls cleanup of 'WidgetInstance' tree. Removes element from DOM.
 removeWidget :: (IsWidget w) => WidgetInstance w -> MomentIO ()
 removeWidget w = do
    widgetCleanup w
@@ -85,11 +82,11 @@ removeWidget w = do
      Nothing -> return ()
      Just p -> removeChild p (pure r) >> return ()
 
--- | creates a sub widget in the 'ReactiveDom' 'Monad'.
+-- | Creates a sub widget in the 'ReactiveDom' 'Monad'.
 mkSubWidget :: (Typeable w, IsWidget w, IsNode parent) =>
             parent -> WidgetInput w -> ReactiveDom (WidgetInstance w)
 mkSubWidget parent i = do
- w <- lift $ mkWidget parent i
+ w <- lift . mkWidget parent $ i
  tell . pure . widgetCleanup $ w
  return w
 
