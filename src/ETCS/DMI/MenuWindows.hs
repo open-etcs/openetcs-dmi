@@ -43,20 +43,25 @@ instance IsWidget MainWindow where
   mkWidgetInstance parent wi =
     let i = _mainWindowTrainBehavior wi
         titleIcon =
-          fmap (\g -> if g then pure "ST_05" else Nothing) $
+          (\g -> if g then pure "ST_05" else Nothing) <$>
             _mainWindowHourGlassVisible wi
         mainWinC = mkWindow (pure "Main") titleIcon (_mainWindowVisible wi)
+        en = not <$> _mainWindowButtonsDisabled wi
     in do
       w <- mkSubWidget parent . mainWinC  . mkButtonGroup $
-           [ mkButton UpButton (pure $ pure "Start") (bStartButtonEnabled i)
-           , mkButton UpButton (pure $ pure "Driver ID") (bDriverIDButtonEnabled i)
-           , mkButton UpButton (pure $ pure "Train Data") (bTrainDataButtonEnabled i)
+           [ mkButton UpButton (pure $ pure "Start")
+             (bStartButtonEnabled i en)
+           , mkButton UpButton (pure $ pure "Driver ID")
+             (bDriverIDButtonEnabled i en)
+           , mkButton UpButton (pure $ pure "Train Data")
+             (bTrainDataButtonEnabled i en)
            , mkEmptyButton
-           , mkButton UpButton (pure $ pure "Level") (bLevelButtonEnabled i)
-           , mkButton UpButton (pure $ pure "Train running Number") (pure True)
-           , mkButton DelayButton (pure $ pure "Shunting") (pure True)
-           , mkButton DelayButton (pure $ pure "Non-Leading") (pure True)
-           , mkButton DelayButton (pure $ pure "Maintain Shunting") (pure False)
+           , mkButton UpButton (pure $ pure "Level")
+             (bLevelButtonEnabled i en)
+           , mkButton UpButton (pure $ pure "Train running Number") en
+           , mkButton DelayButton (pure $ pure "Shunting") en
+           , mkButton DelayButton (pure $ pure "Non-Leading") en
+           , mkButton DelayButton (pure $ pure "Maintain Shunting") en
        ]
       return (MainWindow . fromWidgetInstance $  w, widgetRoot w)
 
@@ -66,8 +71,8 @@ instance IsEventWidget MainWindow where
 
 
 
-bStartButtonEnabled :: TrainBehavior -> Behavior Bool
-bStartButtonEnabled i =
+bStartButtonEnabled :: TrainBehavior -> Behavior Bool -> Behavior Bool
+bStartButtonEnabled i en =
   let bStartEnabled1 = bsAnd
         [ i ^. trainIsAtStandstill, trainInMode SB i
         , i ^. trainDriverIDIsValid, i ^. trainDataIsValid
@@ -81,12 +86,12 @@ bStartButtonEnabled i =
       bStartEnabled3 = bAnd bLevel23 $ trainInMode SR i
       bLevel1  = fmap (Level1 ==) $ i ^. trainLevel
       bLevel23 = fmap (`elem` [Level2, Level3]) $ i ^. trainLevel
-  in (bStartEnabled1 `bOr` bStartEnabled2) `bOr` bStartEnabled3
+  in en `bAnd` ((bStartEnabled1 `bOr` bStartEnabled2) `bOr` bStartEnabled3)
 
 
 
-bDriverIDButtonEnabled :: TrainBehavior -> Behavior Bool
-bDriverIDButtonEnabled i =
+bDriverIDButtonEnabled :: TrainBehavior -> Behavior Bool -> Behavior Bool
+bDriverIDButtonEnabled i en =
   let bDriverIdEnabled1 = bsAnd
         [ i ^. trainIsAtStandstill, trainInMode SB i
         , i ^. trainDriverIDIsValid, i ^. trainLevelIsValid
@@ -96,18 +101,20 @@ bDriverIDButtonEnabled i =
               , i ^. trainIsAtStandstill
               , trainInModes [ SH, FS, LS, SR, OS, NL, UN, SN ] i
               ]
-  in bDriverIdEnabled1 `bOr` bDriverIdEnabled2
+  in en `bAnd` (bDriverIdEnabled1 `bOr` bDriverIdEnabled2)
 
 
-bTrainDataButtonEnabled :: TrainBehavior -> Behavior Bool
-bTrainDataButtonEnabled i = bsAnd
-        [ i ^. trainIsAtStandstill, i ^. trainLevelIsValid
+bTrainDataButtonEnabled :: TrainBehavior -> Behavior Bool -> Behavior Bool
+bTrainDataButtonEnabled i en = bsAnd
+        [ en
+        , i ^. trainIsAtStandstill, i ^. trainLevelIsValid
         , i ^. trainDriverIDIsValid, trainInModes [SB, FS, LS, SR, OS, UN, SN] i
         ]
 
-bLevelButtonEnabled :: TrainBehavior -> Behavior Bool
-bLevelButtonEnabled i = bsAnd
-        [ i ^. trainIsAtStandstill
+bLevelButtonEnabled :: TrainBehavior -> Behavior Bool -> Behavior Bool
+bLevelButtonEnabled i en = bsAnd
+        [ en
+        , i ^. trainIsAtStandstill
         , i ^. trainDriverIDIsValid, trainInModes [SB, FS, LS, SR, OS, NL, UN, SN] i
         ]
 

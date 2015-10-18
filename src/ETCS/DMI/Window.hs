@@ -17,7 +17,7 @@ import           ETCS.DMI.Sprites
 import           GHCJS.DOM.Element          (setClassName)
 import           GHCJS.DOM.HTMLElement      (setHidden)
 import           GHCJS.DOM.Node             (appendChild, setTextContent)
-import           GHCJS.DOM.Types            (castToElement, castToHTMLElement)
+import           GHCJS.DOM.Types            (castToElement)
 import           Reactive.Banana
 import           Reactive.Banana.DOM
 import           Reactive.Banana.DOM.Widget
