@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies      #-}
 
-module ETCS.DMI.Sprites (Sprite, mkSprite, mkEmptySprite) where
+module ETCS.DMI.Widgets.Sprites (Sprite, mkSprite, mkEmptySprite) where
 
 
 import           Control.Monad.Writer

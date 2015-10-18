@@ -1,21 +1,22 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies      #-}
 
-module ETCS.DMI.Keyboard ( NumericKeyboard, mkNumericKeyboard
-                         , EnhancedNumericKeyboard, mkEnhancedNumericKeyboard
-                         , AlphaNumKeyboard, mkAlphaNumKeyboard
-                         , DedicatedKeyboard, mkDedicatedKeyboard
-                         , mkEnumKeyboard
-                         , mkKeyboardBuffer, renderData
-                         ) where
+module ETCS.DMI.Widgets.Keyboard
+  ( NumericKeyboard, mkNumericKeyboard
+  , EnhancedNumericKeyboard, mkEnhancedNumericKeyboard
+  , AlphaNumKeyboard, mkAlphaNumKeyboard
+  , DedicatedKeyboard, mkDedicatedKeyboard
+  , mkEnumKeyboard
+  , mkKeyboardBuffer, renderData
+  ) where
 
 import           Control.Monad
 import           Control.Monad.Writer       (lift)
 import           Data.Text                  (Text)
 import qualified Data.Text                  as T
 import           Data.Typeable              (Typeable)
-import           ETCS.DMI.Button
 import           ETCS.DMI.Helpers
+import           ETCS.DMI.Widgets.Button
 import           GHCJS.DOM.Element          (setClassName)
 import           GHCJS.DOM.HTMLElement      (setHidden)
 import           GHCJS.DOM.Node             (appendChild)

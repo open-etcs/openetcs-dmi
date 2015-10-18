@@ -13,7 +13,7 @@ import           Data.Text                            (Text)
 import qualified Data.Text                            as T
 import           Data.Typeable                        (Typeable)
 import           ETCS.DMI.Helpers
-import           ETCS.DMI.Keyboard
+import           ETCS.DMI.Widgets.Keyboard
 import           GHCJS.DOM.Types                      (IsNode)
 import           Numeric.Units.Dimensional.TF.Prelude
 import           Prelude                              ()

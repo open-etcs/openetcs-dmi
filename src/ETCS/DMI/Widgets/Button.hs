@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeFamilies #-}
 
-module ETCS.DMI.Button (
+module ETCS.DMI.Widgets.Button (
     Button, ButtonType (..), mkButton, mkEmptyButton
 ) where
 

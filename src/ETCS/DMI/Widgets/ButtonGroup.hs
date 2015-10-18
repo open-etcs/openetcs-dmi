@@ -1,11 +1,11 @@
 {-# LANGUAGE TypeFamilies #-}
 
-module ETCS.DMI.ButtonGroup (ButtonGroup, mkButtonGroup) where
+module ETCS.DMI.Widgets.ButtonGroup (ButtonGroup, mkButtonGroup) where
 
 
 import           Control.Monad
-import           ETCS.DMI.Button
 import           ETCS.DMI.Helpers
+import           ETCS.DMI.Widgets.Button
 import           GHCJS.DOM.Node             (appendChild)
 import           GHCJS.DOM.Types            (castToElement)
 import           Reactive.Banana

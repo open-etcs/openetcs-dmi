@@ -18,14 +18,14 @@ cabal-version:       >=1.10
 library
   exposed-modules:     ETCS.DMI,
                        ETCS.DMI.Types,
-                       ETCS.DMI.Button,
-                       ETCS.DMI.ButtonGroup,
-                       ETCS.DMI.Keyboard,
-                       ETCS.DMI.InputField,
+                       ETCS.DMI.Widgets.Button,
+                       ETCS.DMI.Widgets.ButtonGroup,
+                       ETCS.DMI.Widgets.Keyboard,
+                       ETCS.DMI.Widgets.InputField,
+                       ETCS.DMI.Widgets.Sprites,
                        ETCS.DMI.MenuWindows,
                        ETCS.DMI.MainWindow,
                        ETCS.DMI.DataEntryWindow,
-                       ETCS.DMI.Sprites,
                        Reactive.Banana.DOM
                        Reactive.Banana.DOM.Widget
                        

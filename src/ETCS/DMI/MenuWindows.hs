@@ -8,11 +8,11 @@ module ETCS.DMI.MenuWindows
        ) where
 
 
-import           ETCS.DMI.Button
-import           ETCS.DMI.ButtonGroup
 import           ETCS.DMI.MainWindow
+import           ETCS.DMI.Widgets.Button
+import           ETCS.DMI.Widgets.ButtonGroup
 import           ETCS.DMI.Window
-import           GHCJS.DOM.Types            (IsNode)
+import           GHCJS.DOM.Types              (IsNode)
 import           Reactive.Banana
 import           Reactive.Banana.DOM
 import           Reactive.Banana.DOM.Widget

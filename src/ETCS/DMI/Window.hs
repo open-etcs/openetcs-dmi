@@ -5,19 +5,19 @@ module ETCS.DMI.Window ( Window, mkWindow, MenuWindow ) where
 
 
 import           Control.Concurrent
-import           Control.Monad              (unless)
-import           Control.Monad.Writer       (lift)
-import           Data.Maybe                 (isJust)
-import           Data.Text                  (Text)
+import           Control.Monad                (unless)
+import           Control.Monad.Writer         (lift)
+import           Data.Maybe                   (isJust)
+import           Data.Text                    (Text)
 import           Data.Typeable
-import           ETCS.DMI.Button
-import           ETCS.DMI.ButtonGroup
 import           ETCS.DMI.Helpers
-import           ETCS.DMI.Sprites
-import           GHCJS.DOM.Element          (setClassName)
-import           GHCJS.DOM.HTMLElement      (setHidden)
-import           GHCJS.DOM.Node             (appendChild, setTextContent)
-import           GHCJS.DOM.Types            (castToElement)
+import           ETCS.DMI.Widgets.Button
+import           ETCS.DMI.Widgets.ButtonGroup
+import           ETCS.DMI.Widgets.Sprites
+import           GHCJS.DOM.Element            (setClassName)
+import           GHCJS.DOM.HTMLElement        (setHidden)
+import           GHCJS.DOM.Node               (appendChild, setTextContent)
+import           GHCJS.DOM.Types              (castToElement)
 import           Reactive.Banana
 import           Reactive.Banana.DOM
 import           Reactive.Banana.DOM.Widget

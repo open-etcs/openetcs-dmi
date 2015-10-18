@@ -8,10 +8,10 @@ module ETCS.DMI.MainWindow
        ) where
 
 import           Control.Lens
-import           ETCS.DMI.Button
-import           ETCS.DMI.ButtonGroup
 import           ETCS.DMI.Helpers
 import           ETCS.DMI.Types
+import           ETCS.DMI.Widgets.Button
+import           ETCS.DMI.Widgets.ButtonGroup
 import           ETCS.DMI.Window
 import           Reactive.Banana
 import           Reactive.Banana.DOM

@@ -1,6 +1,6 @@
 {-# LANGUAGE TypeFamilies #-}
 
-module ETCS.DMI.InputField (InputField (..), mkInputField) where
+module ETCS.DMI.Widgets.InputField (InputField (..), mkInputField) where
 
 import           Control.Monad.Writer       (lift)
 import           Data.Text                  (Text)
