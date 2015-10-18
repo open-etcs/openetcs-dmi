@@ -85,6 +85,18 @@ $F_height: $D_height + $G_height;
   transform: translateY(-50%);
 }
 
+@mixin zoom($zf) {
+  transform-origin: 0px 0px;
+  -moz-transform-origin: 0px 0px;
+  -webkit-transform-origin: 0px 0px;
+  -o-transform-origin: 0px 0px;
+  -ms-transform-origin: 0px 0px;
+  -moz-transform: scale($zf);
+  -webkit-transform: scale($zf);
+  -o-transform: scale($zf);
+  -ms-transform: scale($zf);
+  transform: scale($zf);
+}
 
 body {
   background-color: red;
@@ -94,6 +106,8 @@ body {
   color: $ColorGrey;
   stroke: $ColorGrey;
   fill: $ColorGrey;
+  overflow: hidden;
+  @include zoom(1.4);
 }
 
 
