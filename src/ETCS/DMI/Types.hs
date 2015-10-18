@@ -1,3 +1,4 @@
+{-# LANGUAGE Rank2Types      #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module ETCS.DMI.Types (
@@ -6,10 +7,14 @@ module ETCS.DMI.Types (
   trainDataIsValid, trainLevelIsValid, trainRunningNumberIsValid,
   trainHasPendingEmergencyStop, trainHasCommunicationSession,
   trainIsNonLeading, trainIsPassiveShunting, trainModDriverIDAllowed,
-  trainRadioSafeConnection, trainCommunicationSessionPending,
+  trainRadioSafeConnection, trainCommunicationSessionPending, trainVelocity,
+  trainInLevel, trainInLevels, trainInMode, trainInModes
   ) where
 
-import           Control.Lens
+import           Control.Lens                         hiding ((*~))
+import           ETCS.DMI.Helpers
+import           Numeric.Units.Dimensional.TF.Prelude
+import           Prelude                              ()
 import           Reactive.Banana
 
 data ETCSMode
@@ -46,28 +51,48 @@ data RadioSafeConnection = ConnectionUp | NoConnection | ConnectionLost
 
 data TrainBehavior =
   TrainBehavior {
-    _trainIsAtStandstill              :: Behavior Bool,
+    _trainVelocity                    :: Behavior (Velocity Double),
     _trainMode                        :: Behavior ETCSMode,
     _trainLevel                       :: Behavior ETCSLevel,
+    _trainHasPendingEmergencyStop     :: Behavior Bool,
+    _trainIsNonLeading                :: Behavior Bool,
+    _trainRadioSafeConnection         :: Behavior RadioSafeConnection,
+    _trainCommunicationSessionPending :: Behavior Bool,
+    _trainModDriverIDAllowed          :: Behavior Bool,
     _trainDriverIDIsValid             :: Behavior Bool,
     _trainDataIsValid                 :: Behavior Bool,
     _trainLevelIsValid                :: Behavior Bool,
-    _trainRunningNumberIsValid        :: Behavior Bool,
-    _trainHasPendingEmergencyStop     :: Behavior Bool,
-    _trainIsNonLeading                :: Behavior Bool,
-    _trainModDriverIDAllowed          :: Behavior Bool,
-    _trainRadioSafeConnection         :: Behavior RadioSafeConnection,
-    _trainCommunicationSessionPending :: Behavior Bool
+    _trainRunningNumberIsValid        :: Behavior Bool
     }
 
-makeLenses '' TrainBehavior
+makeLenses ''TrainBehavior
 
 
-trainHasCommunicationSession :: Prism' (Behavior Bool) TrainBehavior
-trainHasCommunicationSession = prism fromTB Left
+trainHasCommunicationSession :: Getter TrainBehavior (Behavior Bool)
+trainHasCommunicationSession = to fromTB
   where fromTB tb = (== ConnectionUp ) <$> tb ^. trainRadioSafeConnection
 
-trainIsPassiveShunting :: Prism' (Behavior Bool) TrainBehavior
-trainIsPassiveShunting = prism fromTB Left
+trainIsPassiveShunting :: Getter TrainBehavior (Behavior Bool)
+trainIsPassiveShunting = to fromTB
   where fromTB tb = (== PS) <$> tb ^. trainMode
+
+trainIsAtStandstill :: Getter TrainBehavior (Behavior Bool)
+trainIsAtStandstill = to fromTB
+  where fromTB tb = (== (0 *~ kmh)) <$> tb ^. trainVelocity
+
+
+
+trainInMode :: ETCSMode -> Getter TrainBehavior (Behavior Bool)
+trainInMode m = to $ fmap (m ==) . view trainMode
+
+trainInModes :: [ETCSMode] -> Getter TrainBehavior (Behavior Bool)
+trainInModes ms = to $ fmap (`elem` ms) . view trainMode
+
+trainInLevel :: ETCSLevel -> Getter TrainBehavior (Behavior Bool)
+trainInLevel m = to $ fmap (m ==) . view trainLevel
+
+trainInLevels :: [ETCSLevel] -> Getter TrainBehavior (Behavior Bool)
+trainInLevels ms = to $ fmap (`elem` ms) . view trainLevel
+
+
 

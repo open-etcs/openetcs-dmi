@@ -12,6 +12,7 @@ import           Data.Proxy
 import           Data.Text                            (Text)
 import qualified Data.Text                            as T
 import           Data.Typeable                        (Typeable)
+import           ETCS.DMI.Helpers
 import           ETCS.DMI.Keyboard
 import           GHCJS.DOM.Types                      (IsNode)
 import           Numeric.Units.Dimensional.TF.Prelude
@@ -45,10 +46,6 @@ mkDataValueKeyboard t r v parent = do
     kbd_buf <- fromKeyboardEvent t r (widgetEvent . fromWidgetInstance $ kbd)
     return (dataValueLabel t, kbd_buf, t)
 
-
-
-kmh :: (Fractional a) => Unit DVelocity a
-kmh = kilo meter / hour
 
 newtype MaxSpeed = MaxSpeed (Velocity Double)
 makePrisms ''MaxSpeed

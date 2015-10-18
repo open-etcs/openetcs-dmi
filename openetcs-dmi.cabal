@@ -23,6 +23,7 @@ library
                        ETCS.DMI.Keyboard,
                        ETCS.DMI.InputField,
                        ETCS.DMI.MenuWindows,
+                       ETCS.DMI.MainWindow,
                        ETCS.DMI.DataEntryWindow,
                        ETCS.DMI.Sprites,
                        Reactive.Banana.DOM

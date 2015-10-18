@@ -6,17 +6,27 @@ import           Control.Concurrent
 import           Control.Monad
 import           ETCS.DMI
 import           ETCS.DMI.Types
-import           GHCJS.DOM                  (enableInspector, runWebGUI,
-                                             webViewGetDomDocument)
-import           GHCJS.DOM.Document         (getElementById)
+import           GHCJS.DOM                            (enableInspector,
+                                                       runWebGUI,
+                                                       webViewGetDomDocument)
+import           GHCJS.DOM.Document                   (getElementById)
+import           Numeric.Units.Dimensional.TF.Prelude
+import           Prelude                              ()
 import           Reactive.Banana
 import           Reactive.Banana.DOM
 import           Reactive.Banana.Frameworks
 
+
+
+
+kmh :: (Fractional a) => Unit DVelocity a
+kmh = kilo meter / hour
+
+
 trainb :: TrainBehavior
 trainb =
   TrainBehavior {
-    _trainIsAtStandstill = pure True,
+    _trainVelocity = pure (0 *~ kmh),
     _trainMode = pure SB,
     _trainLevel = pure Level0,
     _trainDriverIDIsValid = pure False,

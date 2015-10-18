@@ -3,22 +3,37 @@ module ETCS.DMI.Helpers
        , _createSVGElement, _createSVGUseElement
        , _removeFromParentIfExists, _getOwnerDocument
        , bAnd, bOr, bsAnd, bsOr
+       , kmh
        ) where
 
 
 import           Control.Monad
 import           Control.Monad.IO.Class
-import           GHCJS.DOM.Document     (Document, createElement,
-                                         createElementNS)
-import           GHCJS.DOM.Node         (getOwnerDocument, getParentNode,
-                                         isEqualNode, removeChild)
-import           GHCJS.DOM.Types        (Element, HTMLButtonElement,
-                                         HTMLDivElement, HTMLSpanElement,
-                                         IsDocument, IsNode, SVGElement,
-                                         SVGUseElement, castToHTMLButtonElement,
-                                         castToHTMLDivElement,
-                                         castToHTMLSpanElement,
-                                         castToSVGElement, castToSVGUseElement)
+import           GHCJS.DOM.Document                   (Document, createElement,
+                                                       createElementNS)
+import           GHCJS.DOM.Node                       (getOwnerDocument,
+                                                       getParentNode,
+                                                       isEqualNode, removeChild)
+import           GHCJS.DOM.Types                      (Element,
+                                                       HTMLButtonElement,
+                                                       HTMLDivElement,
+                                                       HTMLSpanElement,
+                                                       IsDocument, IsNode,
+                                                       SVGElement,
+                                                       SVGUseElement,
+                                                       castToHTMLButtonElement,
+                                                       castToHTMLDivElement,
+                                                       castToHTMLSpanElement,
+                                                       castToSVGElement,
+                                                       castToSVGUseElement)
+import           Numeric.Units.Dimensional.TF.Prelude
+import qualified Prelude                              as Prelude
+
+
+
+kmh :: (Fractional a) => Unit DVelocity a
+kmh = kilo meter / hour
+
 
 bsAnd, bsOr :: (Applicative f, Traversable t) => t (f Bool) -> f Bool
 bsAnd = fmap Prelude.and . sequenceA
