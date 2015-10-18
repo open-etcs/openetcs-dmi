@@ -1,7 +1,7 @@
 {-# LANGUAGE TypeFamilies #-}
 
 module ETCS.DMI.Button (
-    Button, ButtonType (..), mkButton
+    Button, ButtonType (..), mkButton, mkEmptyButton
 ) where
 
 import           Control.Concurrent
@@ -25,6 +25,9 @@ data ButtonState = ButtonDisabled | ButtonEnabled | ButtonPressed
 
 mkButton :: ButtonType -> Maybe (Behavior Text) -> Behavior Bool -> e -> WidgetInput (Button e)
 mkButton = MkButton
+
+mkEmptyButton :: e -> WidgetInput (Button e)
+mkEmptyButton = mkButton UpButton Nothing (pure False)
 
 data Button e = Button { buttonEvent :: Event e }
 

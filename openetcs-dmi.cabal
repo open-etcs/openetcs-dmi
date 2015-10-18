@@ -24,6 +24,7 @@ library
                        ETCS.DMI.InputField,
                        ETCS.DMI.MenuWindows,
                        ETCS.DMI.DataEntryWindow,
+                       ETCS.DMI.Sprites,
                        Reactive.Banana.DOM
                        Reactive.Banana.DOM.Widget
                        

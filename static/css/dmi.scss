@@ -92,6 +92,8 @@ body {
   font-family: $fontStack;
   line-height: 200%;
   color: $ColorGrey;
+  stroke: $ColorGrey;
+  fill: $ColorGrey;
 }
 
 
@@ -181,6 +183,21 @@ div[data-widget="WindowTitle"] {
   border: none;
   cursor: default;
   padding-left: $paddingWidth;
+  position: relative;
+  
+  div {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+  }
+    
+  svg[data-sprite] {
+    position: absolute;
+    margin-top: 2px;
+    @include absoluteWidthHeight(20px, 20px);
+    top: 0px;
+    left: 42px;
+  }
 }
 
 div[data-widget="Keyboard"], div[data-widget="DedicatedKeyboard"] {

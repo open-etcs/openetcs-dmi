@@ -1,22 +1,24 @@
 module ETCS.DMI.Helpers
-       (_createDivElement, _createButtonElement, _createSpanElement
-       ,_removeFromParentIfExists, _getOwnerDocument
+       ( _createDivElement, _createButtonElement, _createSpanElement
+       , _createSVGElement, _createSVGUseElement
+       , _removeFromParentIfExists, _getOwnerDocument
        , bAnd, bOr, bsAnd, bsOr
        ) where
 
 
 import           Control.Monad
 import           Control.Monad.IO.Class
-import           Data.Maybe             (fromMaybe)
-import           GHCJS.DOM.Document     (Document, createElement)
+import           GHCJS.DOM.Document     (Document, createElement,
+                                         createElementNS)
 import           GHCJS.DOM.Node         (getOwnerDocument, getParentNode,
                                          isEqualNode, removeChild)
 import           GHCJS.DOM.Types        (Element, HTMLButtonElement,
                                          HTMLDivElement, HTMLSpanElement,
-                                         IsDocument, IsNode,
-                                         castToHTMLButtonElement,
+                                         IsDocument, IsNode, SVGElement,
+                                         SVGUseElement, castToHTMLButtonElement,
                                          castToHTMLDivElement,
-                                         castToHTMLSpanElement)
+                                         castToHTMLSpanElement,
+                                         castToSVGElement, castToSVGUseElement)
 
 bsAnd, bsOr :: (Applicative f, Traversable t) => t (f Bool) -> f Bool
 bsAnd = fmap Prelude.and . sequenceA
@@ -44,12 +46,26 @@ _createSpanElement doc = _createElement doc "span" castToHTMLSpanElement
 
 
 
+svgNS :: String
+svgNS = "http://www.w3.org/2000/svg"
+
+_createSVGElement :: (MonadIO m, IsDocument self) => self -> m SVGElement
+_createSVGElement doc = _createElementNS doc svgNS "svg" castToSVGElement
+
+_createSVGUseElement :: (MonadIO m, IsDocument self) => self -> m SVGUseElement
+_createSVGUseElement doc = _createElementNS doc svgNS "use" castToSVGUseElement
+
 _createElement :: (MonadIO m, IsDocument self) => self -> String -> (Element -> t) -> m t
 _createElement doc e c =
-  fmap (c . fromMaybe (error $ "unable to create " ++ e)) $
-  createElement doc . pure $ e
+  createElement doc (pure e) >>= maybe (error $ "unable to create " ++ e) (return . c)
+
+_createElementNS :: (MonadIO m, IsDocument self) => self -> String -> String -> (Element -> t) -> m t
+_createElementNS doc ns e c =
+  createElementNS doc (pure ns) (pure e) >>=
+    maybe (error $ mconcat ["unable to create ", e, " in NS ", ns]) (return . c)
 
 _getOwnerDocument :: (MonadIO m, IsNode self) => self -> m Document
-_getOwnerDocument n =
-  fromMaybe (error "unable to determine OwnerDocument") <$> getOwnerDocument n
+_getOwnerDocument n = do
+  getOwnerDocument n >>=
+    maybe (fail "unable to determine OwnerDocument") return
 

@@ -2,6 +2,8 @@
 
 module Main ( main ) where
 
+import           Control.Concurrent
+import           Control.Monad
 import           ETCS.DMI
 import           ETCS.DMI.Types
 import           GHCJS.DOM                  (enableInspector, runWebGUI,
@@ -36,7 +38,8 @@ main = runWebGUI $ \ webView -> do
     Just dmiMain <- getElementById doc ("dmiMain" :: String)
 
     network <- compile $ do
-      windowMain <- mkWidget dmiMain $ mkMainWindow trainb (pure True)
+      windowMain <- mkWidget dmiMain $
+                    mkMainWindow trainb (pure True) (pure True) (pure True)
 
       let (eClose, eValue) = split . widgetEvent . fromWidgetInstance $ windowMain
       _ <- execute $ fmap (const $ removeWidget windowMain) eClose
@@ -54,6 +57,7 @@ main = runWebGUI $ \ webView -> do
 
     actuate network
     print ("startup done" :: String)
-
+    forever $ do
+      threadDelay 10000000
 
 
