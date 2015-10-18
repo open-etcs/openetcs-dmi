@@ -1,17 +1,17 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies      #-}
 
-module ETCS.DMI.MenuWindows
+module ETCS.DMI.Windows.MenuWindows
        ( mkMainWindow, mkOverrideWindow, mkSpecialWindow, mkSettingsWindow
        , mkRBCContactWindow
-       , module ETCS.DMI.Window
+       , module ETCS.DMI.Windows.Window
        ) where
 
 
-import           ETCS.DMI.MainWindow
 import           ETCS.DMI.Widgets.Button
 import           ETCS.DMI.Widgets.ButtonGroup
-import           ETCS.DMI.Window
+import           ETCS.DMI.Windows.MainWindow
+import           ETCS.DMI.Windows.Window
 import           GHCJS.DOM.Types              (IsNode)
 import           Reactive.Banana
 import           Reactive.Banana.DOM

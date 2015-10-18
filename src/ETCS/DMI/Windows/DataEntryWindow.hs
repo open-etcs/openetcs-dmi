@@ -3,7 +3,7 @@
 {-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE TypeFamilies      #-}
 
-module ETCS.DMI.DataEntryWindow where
+module ETCS.DMI.Windows.DataEntryWindow where
 
 
 

@@ -23,14 +23,15 @@ library
                        ETCS.DMI.Widgets.Keyboard,
                        ETCS.DMI.Widgets.InputField,
                        ETCS.DMI.Widgets.Sprites,
-                       ETCS.DMI.MenuWindows,
-                       ETCS.DMI.MainWindow,
-                       ETCS.DMI.DataEntryWindow,
-                       Reactive.Banana.DOM
+                       ETCS.DMI.Windows.MenuWindows,
+                       ETCS.DMI.Windows.MainWindow,
+                       ETCS.DMI.Windows.DataEntryWindow,
+                       ETCS.DMI.Windows.Window,
+                       Reactive.Banana.DOM,
                        Reactive.Banana.DOM.Widget
                        
-  other-modules:       ETCS.DMI.Helpers,
-                       ETCS.DMI.Window
+  other-modules:       ETCS.DMI.Helpers
+
   
   -- other-extensions:    
   build-depends:       base >=4.8 && <4.9,

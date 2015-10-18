@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeFamilies      #-}
 
-module ETCS.DMI.Window ( Window, mkWindow, MenuWindow ) where
+module ETCS.DMI.Windows.Window ( Window, mkWindow, MenuWindow ) where
 
 
 import           Control.Concurrent

@@ -2,9 +2,9 @@
 {-# LANGUAGE Rank2Types        #-}
 {-# LANGUAGE TypeFamilies      #-}
 
-module ETCS.DMI.MainWindow
+module ETCS.DMI.Windows.MainWindow
        ( mkMainWindow
-       , module ETCS.DMI.Window
+       , module ETCS.DMI.Windows.Window
        ) where
 
 import           Control.Lens
@@ -12,7 +12,7 @@ import           ETCS.DMI.Helpers
 import           ETCS.DMI.Types
 import           ETCS.DMI.Widgets.Button
 import           ETCS.DMI.Widgets.ButtonGroup
-import           ETCS.DMI.Window
+import           ETCS.DMI.Windows.Window
 import           Reactive.Banana
 import           Reactive.Banana.DOM
 import           Reactive.Banana.DOM.Widget
