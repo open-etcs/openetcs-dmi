@@ -9,7 +9,6 @@ import           Control.Monad
 import           Control.Monad.Writer
 import           Data.Text                  (Text)
 import           ETCS.DMI.Helpers
-import           ETCS.DMI.Types
 import           GHCJS.DOM.Element          (setAttribute, setClassName)
 import           GHCJS.DOM.HTMLElement      (setTitle)
 import           GHCJS.DOM.Node             (appendChild, setTextContent)
@@ -19,6 +18,10 @@ import           Reactive.Banana.DOM
 import           Reactive.Banana.DOM.Widget
 import           Reactive.Banana.Frameworks
 
+
+
+data ButtonType = UpButton | DownButton | DelayButton
+  deriving (Eq, Ord, Show, Enum, Bounded)
 
 data ButtonState = ButtonDisabled | ButtonEnabled | ButtonPressed
   deriving (Eq, Ord, Show, Enum, Bounded)

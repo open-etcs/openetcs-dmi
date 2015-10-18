@@ -17,17 +17,17 @@ trainb :: TrainBehavior
 trainb =
   TrainBehavior {
     _trainIsAtStandstill = pure True,
-    _trainMode = pure SH,
-    _trainLevel = pure Level2,
-    _trainDriverIDIsValid = pure True,
-    _trainDataIsValid = pure True,
-    _trainLevelIsValid = pure True,
-    _trainRunningNumberIsValid = pure True,
+    _trainMode = pure SB,
+    _trainLevel = pure Level0,
+    _trainDriverIDIsValid = pure False,
+    _trainDataIsValid = pure False,
+    _trainLevelIsValid = pure False,
+    _trainRunningNumberIsValid = pure False,
     _trainHasPendingEmergencyStop = pure False,
-    _trainHasCommunicationSession = pure True,
     _trainIsNonLeading = pure False,
-    _trainIsPassiveShunting  = pure False,
-    _trainModDriverIDAllowed = pure True
+    _trainModDriverIDAllowed = pure True,
+    _trainRadioSafeConnection = pure NoConnection,
+    _trainCommunicationSessionPending = pure False
     }
 
 
