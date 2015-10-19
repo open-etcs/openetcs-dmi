@@ -99,7 +99,7 @@ $F_height: $D_height + $G_height;
 }
 
 body {
-  background-color: red;
+  background-color: $ColorBlack;
   font-size: $fontSize;  
   font-family: $fontStack;
   line-height: 200%;

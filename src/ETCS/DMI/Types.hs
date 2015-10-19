@@ -3,15 +3,20 @@
 
 module ETCS.DMI.Types (
   ETCSMode (..), ETCSLevel (..), RadioSafeConnection(..),
-  TrainBehavior(..), trainIsAtStandstill, trainMode, trainLevel, trainDriverIDIsValid,
+  DriverId, TrainLevel, RBCId, RBCPhoneNumber, RBCData, TrainDataValue,
+  RunningNumberValue, RunningNumber, TrainPositionValue, TrainPosition,
+  OnBoardData, _ValidData, _InvalidData, _UnknownData,
+  TrainBehavior(..), TrainDataValue(..),
+  trainIsAtStandstill, trainMode, trainLevel, trainDriverIDIsValid,
   trainDataIsValid, trainLevelIsValid, trainRunningNumberIsValid,
-  trainHasPendingEmergencyStop, trainHasCommunicationSession,
+  trainEmergencyStop, trainHasCommunicationSession,
   trainIsNonLeading, trainIsPassiveShunting, trainModDriverIDAllowed,
   trainRadioSafeConnection, trainCommunicationSessionPending, trainVelocity,
   trainInLevel, trainInLevels, trainInMode, trainInModes
   ) where
 
 import           Control.Lens                         hiding ((*~))
+import           Data.Text                            (Text)
 import           ETCS.DMI.Helpers
 import           Numeric.Units.Dimensional.TF.Prelude
 import           Prelude                              ()
@@ -49,23 +54,96 @@ data RadioSafeConnection = ConnectionUp | NoConnection | ConnectionLost
 
 
 
+data OnBoardData a
+  = ValidData a   -- ^ The stored value is known to be correct.
+  | InvalidData a -- ^ The stored value may be wrong.
+  | UnknownData   -- ^ No stored value stored.
+
+instance Functor OnBoardData where
+  fmap f (ValidData a) = ValidData (f a)
+  fmap f (InvalidData a) = InvalidData (f a)
+  fmap _ UnknownData = UnknownData
+
+instance Applicative OnBoardData where
+  pure = InvalidData
+  (ValidData f)   <*> (ValidData a)   = ValidData $ f a
+  (ValidData f)   <*> (InvalidData a) = InvalidData $ f a
+  (InvalidData f) <*> (ValidData a)   = InvalidData $ f a
+  (InvalidData f) <*> (InvalidData a) = InvalidData $ f a
+  UnknownData <*> _ = UnknownData
+  _ <*> UnknownData = UnknownData
+
+makePrisms ''OnBoardData
+
+
+type DriverId = OnBoardData Text
+
+type TrainLevel = OnBoardData ETCSLevel
+
+type RBCId = Text
+type RBCPhoneNumber = Text
+type RBCData = OnBoardData (Either RBCId RBCPhoneNumber)
+
+data TrainDataValue = TrainData
+
+makeLenses ''TrainDataValue
+
+type TrainData = OnBoardData TrainDataValue
+
+type RunningNumberValue = Int
+type RunningNumber = OnBoardData RunningNumberValue
+
+type TrainPositionValue = Length Double
+data TrainPosition = OnBoardData TrainPositionValue
+
 data TrainBehavior =
   TrainBehavior {
     _trainVelocity                    :: Behavior (Velocity Double),
     _trainMode                        :: Behavior ETCSMode,
-    _trainLevel                       :: Behavior ETCSLevel,
-    _trainHasPendingEmergencyStop     :: Behavior Bool,
+    _trainLevel                       :: Behavior TrainLevel,
+    _trainEmergencyStop               :: Behavior Bool,
     _trainIsNonLeading                :: Behavior Bool,
     _trainRadioSafeConnection         :: Behavior RadioSafeConnection,
     _trainCommunicationSessionPending :: Behavior Bool,
     _trainModDriverIDAllowed          :: Behavior Bool,
-    _trainDriverIDIsValid             :: Behavior Bool,
-    _trainDataIsValid                 :: Behavior Bool,
-    _trainLevelIsValid                :: Behavior Bool,
-    _trainRunningNumberIsValid        :: Behavior Bool
+    _trainDriverID                    :: Behavior DriverId,
+    _trainData                        :: Behavior TrainData,
+    _trainRunningNumber               :: Behavior RunningNumber
     }
 
 makeLenses ''TrainBehavior
+
+
+
+behaviorTrainDataIsValid ::
+  Getter TrainBehavior (Behavior (OnBoardData a)) ->
+  Getter TrainBehavior (Behavior Bool)
+behaviorTrainDataIsValid g = to fromTB
+  where fromTB tb = isValidData <$> tb ^. g
+        isValidData (ValidData _) = True
+        isValidData _ = False
+
+
+behaviorTrainDataValue ::
+  Getter TrainBehavior (Behavior (OnBoardData a)) ->
+  Getter TrainBehavior (Behavior (Maybe a))
+behaviorTrainDataValue g = to fromTB
+  where fromTB tb = isValidData <$> tb ^. g
+        isValidData (ValidData a) = pure a
+        isValidData (InvalidData a) = pure a
+        isValidData _ = Nothing
+
+trainDriverIDIsValid :: Getter TrainBehavior (Behavior Bool)
+trainDriverIDIsValid = behaviorTrainDataIsValid trainDriverID
+
+trainLevelIsValid :: Getter TrainBehavior (Behavior Bool)
+trainLevelIsValid = behaviorTrainDataIsValid trainLevel
+
+trainRunningNumberIsValid :: Getter TrainBehavior (Behavior Bool)
+trainRunningNumberIsValid = behaviorTrainDataIsValid trainRunningNumber
+
+trainDataIsValid :: Getter TrainBehavior (Behavior Bool)
+trainDataIsValid = behaviorTrainDataIsValid trainData
 
 
 trainHasCommunicationSession :: Getter TrainBehavior (Behavior Bool)
@@ -89,10 +167,14 @@ trainInModes :: [ETCSMode] -> Getter TrainBehavior (Behavior Bool)
 trainInModes ms = to $ fmap (`elem` ms) . view trainMode
 
 trainInLevel :: ETCSLevel -> Getter TrainBehavior (Behavior Bool)
-trainInLevel m = to $ fmap (m ==) . view trainLevel
+trainInLevel m = to $ fmap _isLevel . view (behaviorTrainDataValue trainLevel)
+  where _isLevel Nothing  = False
+        _isLevel (Just l) = m == l
 
 trainInLevels :: [ETCSLevel] -> Getter TrainBehavior (Behavior Bool)
-trainInLevels ms = to $ fmap (`elem` ms) . view trainLevel
+trainInLevels ms = to $ fmap _inLevels . view (behaviorTrainDataValue trainLevel)
+  where _inLevels Nothing  = False
+        _inLevels (Just l) = l `elem` ms
 
 
 

@@ -3,6 +3,7 @@
 module Main ( main ) where
 
 import           Control.Concurrent
+import           Control.Lens                         hiding ((*~))
 import           Control.Monad
 import           ETCS.DMI
 import           ETCS.DMI.Types
@@ -18,7 +19,6 @@ import           Reactive.Banana.Frameworks
 
 
 
-
 kmh :: (Fractional a) => Unit DVelocity a
 kmh = kilo meter / hour
 
@@ -28,12 +28,11 @@ trainb =
   TrainBehavior {
     _trainVelocity = pure (0 *~ kmh),
     _trainMode = pure SB,
-    _trainLevel = pure Level0,
-    _trainDriverIDIsValid = pure False,
-    _trainDataIsValid = pure False,
-    _trainLevelIsValid = pure False,
-    _trainRunningNumberIsValid = pure False,
-    _trainHasPendingEmergencyStop = pure False,
+    _trainLevel = pure (_InvalidData # Level0),
+    _trainDriverID = pure (_InvalidData # mempty),
+    _trainData = pure (_InvalidData # TrainData),
+    _trainRunningNumber = pure (_InvalidData # 0),
+    _trainEmergencyStop = pure False,
     _trainIsNonLeading = pure False,
     _trainModDriverIDAllowed = pure True,
     _trainRadioSafeConnection = pure NoConnection,

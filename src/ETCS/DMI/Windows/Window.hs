@@ -59,7 +59,7 @@ instance IsWidget WindowTitle where
           threadDelay 1000000
           em <- isEmptyMVar mvar
           unless em $ fireE >> animationAction
-        handleAnimate a = do
+        handleAnimate a =
           if a then forkIO animationAction >>= putMVar mvar
             else tryTakeMVar mvar >>= maybe (return ()) killThread
     registerCleanupIO $ handleAnimate False

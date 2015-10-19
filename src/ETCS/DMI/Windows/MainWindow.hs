@@ -74,7 +74,7 @@ startButtonEnabled en = to $ \i ->
         bsAnd [ i ^. trainIsAtStandstill, i ^. trainInMode PT
               , i ^. trainDataIsValid
               , bOr bLevel1 $
-                bAnd bLevel23 (fmap not $ i ^. trainHasPendingEmergencyStop)
+                bAnd bLevel23 (fmap not $ i ^. trainEmergencyStop)
               ]
       bStartEnabled3 = bAnd bLevel23 $ i ^. trainInMode SR
       bLevel1  = i ^. trainInLevel Level1
