@@ -8,6 +8,7 @@ module ETCS.DMI.Windows.MainWindow
        ) where
 
 import           Control.Lens
+import           Data.Text                    (Text)
 import           ETCS.DMI.Helpers
 import           ETCS.DMI.Types
 import           ETCS.DMI.Widgets.Button
@@ -51,16 +52,71 @@ instance IsWidget MainWindow where
            , mkEmptyButton
            , mkButton UpButton (pure $ pure "Level")
              (i ^. levelButtonEnabled en)
-           , mkButton UpButton (pure $ pure "Train running Number") en
-           , mkButton DelayButton (pure $ pure "Shunting") en
-           , mkButton DelayButton (pure $ pure "Non-Leading") en
-           , mkButton DelayButton (pure $ pure "Maintain Shunting") en
+           , mkButton UpButton (pure $ pure "Train running Number")
+             (i ^. runningNumberEnabled en)
+           , mkButton DelayButton (i ^. shuntingButtonLabel)
+             (i ^. shuntingButtonEnabled en)
+           , mkButton DelayButton (pure $ pure "Non-Leading")
+             (i ^. nonLeadingEnabled en)
+           , mkButton DelayButton (pure $ pure "Maintain Shunting")
+             (i ^. maintainShuntingEnabled en)
        ]
       return (MainWindow . fromWidgetInstance $  w, widgetRoot w)
 
 instance IsEventWidget MainWindow where
   type WidgetEventType MainWindow = Either () Int
   widgetEvent = widgetEvent . mainWindow
+
+
+maintainShuntingEnabled :: Behavior Bool -> Getter TrainBehavior (Behavior Bool)
+maintainShuntingEnabled en = to $ \i ->
+  bsAnd [en, i ^. trainInMode SH, i ^. trainPassiveShuntingInput ]
+
+nonLeadingEnabled :: Behavior Bool -> Getter TrainBehavior (Behavior Bool)
+nonLeadingEnabled en = to $ \i ->
+  bsAnd [ en, i ^. trainIsAtStandstill, i ^. trainDriverIDIsValid
+        , i ^. trainLevelIsValid
+        , i ^. trainInModes [SB, SH, FS, LS, SR, OS]
+        , i ^. trainNonLeadingInput
+        ]
+
+runningNumberEnabled :: Behavior Bool -> Getter TrainBehavior (Behavior Bool)
+runningNumberEnabled en = to $ \i ->
+  let rne1 = bsAnd [ i ^. trainIsAtStandstill, i ^. trainInMode SB
+                   , i ^. trainDriverIDIsValid, i ^. trainLevelIsValid
+                   ]
+  in bAnd en $ bOr rne1 $ i ^. trainInModes [ FS, LS, SR, OS, NL, UN, SN ]
+
+
+shuntingButtonLabel :: Getter TrainBehavior (Maybe (Behavior Text))
+shuntingButtonLabel =
+  to $ \i ->
+  pure $ (\sh -> if sh then "Exit Shunting" else "Shunting") <$> i ^. trainInMode SH
+
+
+shuntingButtonEnabled :: Behavior Bool -> Getter TrainBehavior (Behavior Bool)
+shuntingButtonEnabled en = to $ \i ->
+  let bShunting1 =
+        bsAnd [ i ^. trainIsAtStandstill, i ^. trainDriverIDIsValid
+              , i ^. trainInModes [SB, FS, LS, SR, OS, UN, SN]
+              , i ^. trainLevelIsValid
+              , (i ^. trainInLevels [Level0, Level1, NTC]) `bOr`
+                ((i ^. trainInLevels [ Level2, Level3 ]) `bAnd`
+                 (i ^. trainHasCommunicationSession)
+                )
+              ]
+      bShunting2 =
+        bsAnd [ i ^. trainIsAtStandstill, i ^. trainInMode PT
+              , ( (i ^. trainInLevel Level1) `bOr`
+                  ((i ^. trainInLevels [ Level2, Level3 ]) `bAnd`
+                   (i ^. trainHasCommunicationSession) `bAnd`
+                   (fmap not $ i ^. trainEmergencyStop)
+                  )
+                )
+              ]
+      bExitShunting =
+        (i ^. trainIsAtStandstill) `bAnd` (i ^. trainInMode SH)
+  in en `bAnd` (bShunting1 `bOr` bShunting2 `bOr` bExitShunting)
 
 
 startButtonEnabled :: Behavior Bool -> Getter TrainBehavior (Behavior Bool)

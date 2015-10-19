@@ -6,10 +6,10 @@ module ETCS.DMI.Types (
   DriverId, TrainLevel, RBCId, RBCPhoneNumber, RBCData, TrainDataValue,
   RunningNumberValue, RunningNumber, TrainPositionValue, TrainPosition,
   OnBoardData, _ValidData, _InvalidData, _UnknownData,
-  TrainBehavior(..), TrainDataValue(..),
+  TrainBehavior(..), TrainDataValue(..), trainPassiveShuntingInput,
   trainIsAtStandstill, trainMode, trainLevel, trainDriverIDIsValid,
   trainDataIsValid, trainLevelIsValid, trainRunningNumberIsValid,
-  trainEmergencyStop, trainHasCommunicationSession,
+  trainEmergencyStop, trainHasCommunicationSession, trainNonLeadingInput,
   trainIsNonLeading, trainIsPassiveShunting, trainModDriverIDAllowed,
   trainRadioSafeConnection, trainCommunicationSessionPending, trainVelocity,
   trainInLevel, trainInLevels, trainInMode, trainInModes
@@ -51,6 +51,8 @@ makePrisms ''ETCSLevel
 
 data RadioSafeConnection = ConnectionUp | NoConnection | ConnectionLost
                deriving (Eq, Show, Ord, Enum, Bounded)
+
+makePrisms ''RadioSafeConnection
 
 
 -- | Describes onboard data validity. Data is either '_UnknownData',
@@ -110,6 +112,8 @@ data TrainPosition = OnBoardData TrainPositionValue
 data TrainBehavior =
   TrainBehavior {
     _trainVelocity                    :: Behavior (Velocity Double),
+    _trainNonLeadingInput             :: Behavior Bool,
+    _trainPassiveShuntingInput        :: Behavior Bool,
     _trainMode                        :: Behavior ETCSMode,
     _trainLevel                       :: Behavior TrainLevel,
     _trainEmergencyStop               :: Behavior Bool,

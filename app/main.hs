@@ -28,6 +28,7 @@ trainb =
   TrainBehavior {
     _trainVelocity = pure (0 *~ kmh),
     _trainMode = pure SB,
+    _trainNonLeadingInput = pure False,
     _trainLevel = pure (_UnknownData # ()),
     _trainDriverID = pure (_UnknownData # ()),
     _trainData = pure (_UnknownData # ()),
@@ -36,7 +37,8 @@ trainb =
     _trainIsNonLeading = pure False,
     _trainModDriverIDAllowed = pure True,
     _trainRadioSafeConnection = pure NoConnection,
-    _trainCommunicationSessionPending = pure False
+    _trainCommunicationSessionPending = pure False,
+    _trainPassiveShuntingInput = pure False
     }
 
 
