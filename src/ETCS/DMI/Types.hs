@@ -53,7 +53,9 @@ data RadioSafeConnection = ConnectionUp | NoConnection | ConnectionLost
                deriving (Eq, Show, Ord, Enum, Bounded)
 
 
-
+-- | Describes onboard data validity. Data is either '_UnknownData',
+--   '_InvalidData' or '_ValidData'. It is a 'Functor' as well as an
+--   'Applicative' where 'pure' returns a '_InvalidData' of given 'a'.
 data OnBoardData a
   = ValidData a   -- ^ The stored value is known to be correct.
   | InvalidData a -- ^ The stored value may be wrong.
@@ -75,20 +77,29 @@ instance Applicative OnBoardData where
 
 makePrisms ''OnBoardData
 
-
+-- The driver id
 type DriverId = OnBoardData Text
 
+-- The trains 'ETCSLevel'
 type TrainLevel = OnBoardData ETCSLevel
 
+-- A RBC identifier
 type RBCId = Text
+
+-- The phone number of a RBC
 type RBCPhoneNumber = Text
+
+-- | 'Either' a 'RBCId', or a 'RBCPhoneNumber'
 type RBCData = OnBoardData (Either RBCId RBCPhoneNumber)
+
+
 
 data TrainDataValue = TrainData
 
 makeLenses ''TrainDataValue
 
 type TrainData = OnBoardData TrainDataValue
+
 
 type RunningNumberValue = Int
 type RunningNumber = OnBoardData RunningNumberValue
@@ -145,7 +156,6 @@ trainRunningNumberIsValid = behaviorTrainDataIsValid trainRunningNumber
 trainDataIsValid :: Getter TrainBehavior (Behavior Bool)
 trainDataIsValid = behaviorTrainDataIsValid trainData
 
-
 trainHasCommunicationSession :: Getter TrainBehavior (Behavior Bool)
 trainHasCommunicationSession = to fromTB
   where fromTB tb = (== ConnectionUp ) <$> tb ^. trainRadioSafeConnection
@@ -157,8 +167,6 @@ trainIsPassiveShunting = to fromTB
 trainIsAtStandstill :: Getter TrainBehavior (Behavior Bool)
 trainIsAtStandstill = to fromTB
   where fromTB tb = (== (0 *~ kmh)) <$> tb ^. trainVelocity
-
-
 
 trainInMode :: ETCSMode -> Getter TrainBehavior (Behavior Bool)
 trainInMode m = to $ fmap (m ==) . view trainMode
@@ -175,6 +183,3 @@ trainInLevels :: [ETCSLevel] -> Getter TrainBehavior (Behavior Bool)
 trainInLevels ms = to $ fmap _inLevels . view (behaviorTrainDataValue trainLevel)
   where _inLevels Nothing  = False
         _inLevels (Just l) = l `elem` ms
-
-
-
