@@ -99,6 +99,8 @@ data TrainCategory =
 makePrisms ''TrainCategory
 
 
+
+
 data LoadingGauge
   = LoadingGauge1 | LoadingGaugeA | LoadingGaugeB | LoadingGaugeC
   | LoadingGaugeOutOfGC
@@ -117,7 +119,7 @@ data TrainDataRecord =
     _trainCategory         :: TrainCategory,
     _trainLength           :: Length Int,
     _trainBreakPercentage  :: Dimensionless Int,
-    _trainMaxSpeed         :: Velocity Int,
+    _trainMaxSpeed         :: Velocity Double,
     _trainAxleLoadCategory :: AxleLoadCategory,
     _trainAirTight         :: Bool,
     _trainLoadingGauge     :: LoadingGauge
@@ -137,14 +139,14 @@ data TrainBehavior =
   TrainBehavior {
     _trainVelocity                    :: Behavior (Velocity Double),
     _trainNonLeadingInput             :: Behavior Bool,
-    _trainPassiveShuntingInput        :: Behavior Bool,
-    _trainMode                        :: Behavior ETCSMode,
-    _trainLevel                       :: Behavior TrainLevelData,
     _trainEmergencyStop               :: Behavior Bool,
     _trainIsNonLeading                :: Behavior Bool,
+    _trainPassiveShuntingInput        :: Behavior Bool,
+    _trainMode                        :: Behavior ETCSMode,
     _trainRadioSafeConnection         :: Behavior RadioSafeConnection,
     _trainCommunicationSessionPending :: Behavior Bool,
     _trainModDriverIDAllowed          :: Behavior Bool,
+    _trainLevel                       :: Behavior TrainLevelData,
     _trainDriverID                    :: Behavior DriverIdData,
     _trainData                        :: Behavior TrainData,
     _trainRunningNumber               :: Behavior RunningNumberData

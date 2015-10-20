@@ -20,7 +20,9 @@ import           Reactive.Banana.DOM
 import           Reactive.Banana.DOM.Widget
 
 
-newtype MainWindow = MainWindow { mainWindow :: MenuWindow }
+newtype MainWindow = MainWindow {
+  mainWindowEvent :: Event (WidgetEventType MainWindow)
+  }
 
 
 mkMainWindow :: TrainBehavior -> Behavior Bool -> Behavior Bool -> Behavior Bool ->
@@ -42,6 +44,7 @@ instance IsWidget MainWindow where
             _mainWindowHourGlassVisible wi
         mainWinC = mkWindow (pure "Main") titleIcon (_mainWindowVisible wi)
         en = not <$> _mainWindowButtonsDisabled wi
+        buttonE e = fmap fromButtonEither (i ^. trainMode) <@> e
     in do
       w <- mkSubWidget parent . mainWinC  . mkButtonGroup $
            [ mkButton UpButton (pure $ pure "Start")
@@ -62,11 +65,34 @@ instance IsWidget MainWindow where
            , mkButton DelayButton (pure $ pure "Maintain Shunting")
              (i ^. maintainShuntingEnabled en)
        ]
-      return (MainWindow . fromWidgetInstance $  w, widgetRoot w)
+      return ( MainWindow . buttonE . widgetEvent . fromWidgetInstance $  w
+             , widgetRoot w
+             )
 
 instance IsEventWidget MainWindow where
-  type WidgetEventType MainWindow = Either () Int
-  widgetEvent = widgetEvent . mainWindow
+  type WidgetEventType MainWindow = Either () MainWindowButton
+  widgetEvent = mainWindowEvent
+
+data MainWindowButton
+ = ButtonStart | ButtonDriverId | ButtonTrainData | ButtonLevel
+ | ButtonTrainRunningNumber | ButtonShunting | ButtonExitShunting
+ | ButtonNonLeading | ButtonMaintainShunting
+ deriving (Eq, Ord, Enum, Bounded, Show)
+
+fromButtonEither :: ETCSMode -> Either () Int -> Either () MainWindowButton
+fromButtonEither m = fmap (fromButtonI m)
+
+fromButtonI :: ETCSMode -> Int -> MainWindowButton
+fromButtonI _ 0 = ButtonStart
+fromButtonI _ 1 = ButtonDriverId
+fromButtonI _ 2 = ButtonTrainData
+fromButtonI _ 3 = error "empty button must never trigger event"
+fromButtonI _ 4 = ButtonLevel
+fromButtonI _ 5 = ButtonTrainRunningNumber
+fromButtonI m 6 = if m == SH then ButtonExitShunting else ButtonShunting
+fromButtonI _ 7 = ButtonNonLeading
+fromButtonI _ 8 = ButtonMaintainShunting
+fromButtonI _ i = error $ "undefined MainWindowButton: " ++ show i
 
 
 maintainShuntingEnabled :: Behavior Bool -> Getter TrainBehavior (Behavior Bool)
