@@ -83,14 +83,7 @@ instance DataValue BreakPercentage where
   fromKeyboardEvent _ r e = fmap T.pack <$> mkKeyboardBuffer 16 r e
   fromText t = BreakPercentage $ (read . T.unpack $ t) *~ one
 
-data TrainCategoryType =
-  PASS1 | PASS2 | PASS3 |
-  TILT1 | TILT2 | TILT3 | TILT4 | TILT5 | TILT6 | TILT7 |
-  FP1 | FP2 | FP3 | FP4 |
-  FG1 | FG2 | FG3 | FG4
-  deriving (Eq, Ord, Enum, Bounded, Show, Read)
-
-
+{-
 newtype TrainCategory = TrainCategory (Maybe TrainCategoryType)
 
 instance DataValue TrainCategory where
@@ -106,3 +99,4 @@ instance DataValue TrainCategory where
 
 
 
+-}

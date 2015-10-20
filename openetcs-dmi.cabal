@@ -18,6 +18,7 @@ cabal-version:       >=1.10
 library
   exposed-modules:     ETCS.DMI,
                        ETCS.DMI.Types,
+                       ETCS.DMI.TrainBehavior
                        ETCS.DMI.Widgets.Button,
                        ETCS.DMI.Widgets.ButtonGroup,
                        ETCS.DMI.Widgets.Keyboard,

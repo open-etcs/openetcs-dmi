@@ -10,6 +10,7 @@ module ETCS.DMI.Windows.MainWindow
 import           Control.Lens
 import           Data.Text                    (Text)
 import           ETCS.DMI.Helpers
+import           ETCS.DMI.TrainBehavior
 import           ETCS.DMI.Types
 import           ETCS.DMI.Widgets.Button
 import           ETCS.DMI.Widgets.ButtonGroup

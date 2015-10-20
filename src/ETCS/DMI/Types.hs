@@ -1,25 +1,12 @@
 {-# LANGUAGE Rank2Types      #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module ETCS.DMI.Types (
-  ETCSMode (..), ETCSLevel (..), RadioSafeConnection(..),
-  DriverId, TrainLevel, RBCId, RBCPhoneNumber, RBCData, TrainDataValue,
-  RunningNumberValue, RunningNumber, TrainPositionValue, TrainPosition,
-  OnBoardData, _ValidData, _InvalidData, _UnknownData,
-  TrainBehavior(..), TrainDataValue(..), trainPassiveShuntingInput,
-  trainIsAtStandstill, trainMode, trainLevel, trainDriverIDIsValid,
-  trainDataIsValid, trainLevelIsValid, trainRunningNumberIsValid,
-  trainEmergencyStop, trainHasCommunicationSession, trainNonLeadingInput,
-  trainIsNonLeading, trainIsPassiveShunting, trainModDriverIDAllowed,
-  trainRadioSafeConnection, trainCommunicationSessionPending, trainVelocity,
-  trainInLevel, trainInLevels, trainInMode, trainInModes
-  ) where
+module ETCS.DMI.Types where
 
 import           Control.Lens                         hiding ((*~))
 import           Data.Text                            (Text)
-import           ETCS.DMI.Helpers
 import           Numeric.Units.Dimensional.TF.Prelude
-import           Prelude                              ()
+--import           Prelude                              ()
 import           Reactive.Banana
 
 data ETCSMode
@@ -77,6 +64,7 @@ instance Applicative OnBoardData where
   UnknownData <*> _ = UnknownData
   _ <*> UnknownData = UnknownData
 
+
 makePrisms ''OnBoardData
 
 -- The driver id
@@ -95,12 +83,45 @@ type RBCPhoneNumber = Text
 type RBCData = OnBoardData (Either RBCId RBCPhoneNumber)
 
 
+data TrainCategory =
+  PASS1 | PASS2 | PASS3 |
+  TILT1 | TILT2 | TILT3 | TILT4 | TILT5 | TILT6 | TILT7 |
+  FP1 | FP2 | FP3 | FP4 |
+  FG1 | FG2 | FG3 | FG4
+  deriving (Eq, Ord, Enum, Bounded, Show)
 
-data TrainDataValue = TrainData
+makePrisms ''TrainCategory
 
-makeLenses ''TrainDataValue
+data LoadingGauge
+  = LoadingGauge1 | LoadingGaugeA | LoadingGaugeB | LoadingGaugeC
+  | LoadingGaugeOutOfGC
+  deriving (Eq, Ord, Enum, Bounded, Show)
 
-type TrainData = OnBoardData TrainDataValue
+data AxleLoadCategory
+  = AxleLoadA
+  | AxleLoadB1 | AxleLoadB2
+  | AxleLoadC2 | AxleLoadC3 | AxleLoadC4
+  | AxleLoadD2 | AxleLoadD3 | AxleLoadD4 | AxleLoadD4XL
+  | AxleLoadE4 | AxleLoadE5
+  deriving (Eq, Ord, Enum, Bounded, Show)
+
+data TrainDataRecord =
+  TrainData {
+    _trainCategory         :: TrainCategory,
+    _trainLength           :: Length Int,
+    _trainBreakPercentage  :: Dimensionless Int,
+    _trainMaxSpeed         :: Velocity Int,
+    _trainAxleLoadCategory :: AxleLoadCategory,
+    _trainAirTight         :: Bool,
+    _trainLoadingGauge     :: LoadingGauge
+    } deriving (Eq, Show)
+
+
+
+makeLenses ''TrainDataRecord
+
+
+type TrainData = OnBoardData TrainDataRecord
 
 
 type RunningNumberValue = Int
@@ -126,64 +147,3 @@ data TrainBehavior =
     _trainRunningNumber               :: Behavior RunningNumber
     }
 
-makeLenses ''TrainBehavior
-
-
-
-behaviorTrainDataIsValid ::
-  Getter TrainBehavior (Behavior (OnBoardData a)) ->
-  Getter TrainBehavior (Behavior Bool)
-behaviorTrainDataIsValid g = to fromTB
-  where fromTB tb = isValidData <$> tb ^. g
-        isValidData (ValidData _) = True
-        isValidData _ = False
-
-
-behaviorTrainDataValue ::
-  Getter TrainBehavior (Behavior (OnBoardData a)) ->
-  Getter TrainBehavior (Behavior (Maybe a))
-behaviorTrainDataValue g = to fromTB
-  where fromTB tb = isValidData <$> tb ^. g
-        isValidData (ValidData a) = pure a
-        isValidData (InvalidData a) = pure a
-        isValidData _ = Nothing
-
-trainDriverIDIsValid :: Getter TrainBehavior (Behavior Bool)
-trainDriverIDIsValid = behaviorTrainDataIsValid trainDriverID
-
-trainLevelIsValid :: Getter TrainBehavior (Behavior Bool)
-trainLevelIsValid = behaviorTrainDataIsValid trainLevel
-
-trainRunningNumberIsValid :: Getter TrainBehavior (Behavior Bool)
-trainRunningNumberIsValid = behaviorTrainDataIsValid trainRunningNumber
-
-trainDataIsValid :: Getter TrainBehavior (Behavior Bool)
-trainDataIsValid = behaviorTrainDataIsValid trainData
-
-trainHasCommunicationSession :: Getter TrainBehavior (Behavior Bool)
-trainHasCommunicationSession = to fromTB
-  where fromTB tb = (== ConnectionUp ) <$> tb ^. trainRadioSafeConnection
-
-trainIsPassiveShunting :: Getter TrainBehavior (Behavior Bool)
-trainIsPassiveShunting = to fromTB
-  where fromTB tb = (== PS) <$> tb ^. trainMode
-
-trainIsAtStandstill :: Getter TrainBehavior (Behavior Bool)
-trainIsAtStandstill = to fromTB
-  where fromTB tb = (== (0 *~ kmh)) <$> tb ^. trainVelocity
-
-trainInMode :: ETCSMode -> Getter TrainBehavior (Behavior Bool)
-trainInMode m = to $ fmap (m ==) . view trainMode
-
-trainInModes :: [ETCSMode] -> Getter TrainBehavior (Behavior Bool)
-trainInModes ms = to $ fmap (`elem` ms) . view trainMode
-
-trainInLevel :: ETCSLevel -> Getter TrainBehavior (Behavior Bool)
-trainInLevel m = to $ fmap _isLevel . view (behaviorTrainDataValue trainLevel)
-  where _isLevel Nothing  = False
-        _isLevel (Just l) = m == l
-
-trainInLevels :: [ETCSLevel] -> Getter TrainBehavior (Behavior Bool)
-trainInLevels ms = to $ fmap _inLevels . view (behaviorTrainDataValue trainLevel)
-  where _inLevels Nothing  = False
-        _inLevels (Just l) = l `elem` ms
