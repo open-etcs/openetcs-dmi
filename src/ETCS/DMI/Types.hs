@@ -6,7 +6,6 @@ module ETCS.DMI.Types where
 import           Control.Lens                         hiding ((*~))
 import           Data.Text                            (Text)
 import           Numeric.Units.Dimensional.TF.Prelude
---import           Prelude                              ()
 import           Reactive.Banana
 
 data ETCSMode
@@ -68,10 +67,11 @@ instance Applicative OnBoardData where
 makePrisms ''OnBoardData
 
 -- The driver id
-type DriverId = OnBoardData Text
+type DriverId = Text
+type DriverIdData = OnBoardData DriverId
 
 -- The trains 'ETCSLevel'
-type TrainLevel = OnBoardData ETCSLevel
+type TrainLevelData = OnBoardData ETCSLevel
 
 -- A RBC identifier
 type RBCId = Text
@@ -79,9 +79,15 @@ type RBCId = Text
 -- The phone number of a RBC
 type RBCPhoneNumber = Text
 
--- | 'Either' a 'RBCId', or a 'RBCPhoneNumber'
-type RBCData = OnBoardData (Either RBCId RBCPhoneNumber)
+data RBCRecord =
+  RBCRecord {
+  _rbcId          :: RBCId,
+  _rbcPhoneNumber :: RBCPhoneNumber
+}
 
+makeLenses ''RBCRecord
+
+type RBCData = OnBoardData RBCRecord
 
 data TrainCategory =
   PASS1 | PASS2 | PASS3 |
@@ -91,6 +97,7 @@ data TrainCategory =
   deriving (Eq, Ord, Enum, Bounded, Show)
 
 makePrisms ''TrainCategory
+
 
 data LoadingGauge
   = LoadingGauge1 | LoadingGaugeA | LoadingGaugeB | LoadingGaugeC
@@ -116,19 +123,15 @@ data TrainDataRecord =
     _trainLoadingGauge     :: LoadingGauge
     } deriving (Eq, Show)
 
-
-
 makeLenses ''TrainDataRecord
-
 
 type TrainData = OnBoardData TrainDataRecord
 
+type RunningNumber = Int
+type RunningNumberData = OnBoardData RunningNumber
 
-type RunningNumberValue = Int
-type RunningNumber = OnBoardData RunningNumberValue
-
-type TrainPositionValue = Length Double
-data TrainPosition = OnBoardData TrainPositionValue
+type TrainPosition = Length Double
+data TrainPositionData = OnBoardData TrainPosition
 
 data TrainBehavior =
   TrainBehavior {
@@ -136,14 +139,14 @@ data TrainBehavior =
     _trainNonLeadingInput             :: Behavior Bool,
     _trainPassiveShuntingInput        :: Behavior Bool,
     _trainMode                        :: Behavior ETCSMode,
-    _trainLevel                       :: Behavior TrainLevel,
+    _trainLevel                       :: Behavior TrainLevelData,
     _trainEmergencyStop               :: Behavior Bool,
     _trainIsNonLeading                :: Behavior Bool,
     _trainRadioSafeConnection         :: Behavior RadioSafeConnection,
     _trainCommunicationSessionPending :: Behavior Bool,
     _trainModDriverIDAllowed          :: Behavior Bool,
-    _trainDriverID                    :: Behavior DriverId,
+    _trainDriverID                    :: Behavior DriverIdData,
     _trainData                        :: Behavior TrainData,
-    _trainRunningNumber               :: Behavior RunningNumber
+    _trainRunningNumber               :: Behavior RunningNumberData
     }
 
