@@ -25,15 +25,13 @@ newtype MainWindow = MainWindow {
   }
 
 
-mkMainWindow :: TrainBehavior -> Behavior Bool -> Behavior Bool -> Behavior Bool ->
+mkMainWindow :: TrainBehavior -> Behavior Bool ->
                 WidgetInput MainWindow
 mkMainWindow = MkMainWindow
 
 instance IsWidget MainWindow where
   data WidgetInput MainWindow = MkMainWindow {
     _mainWindowTrainBehavior :: TrainBehavior,
-    _mainWindowButtonsDisabled :: Behavior Bool,
-    _mainWindowHourGlassVisible :: Behavior Bool,
     _mainWindowVisible :: Behavior Bool
   }
 
@@ -41,10 +39,13 @@ instance IsWidget MainWindow where
     let i = _mainWindowTrainBehavior wi
         titleIcon =
           (\g -> if g then pure "ST_05" else Nothing) <$>
-            _mainWindowHourGlassVisible wi
+            isConnectedOrPendingInSB
         mainWinC = mkWindow (pure "Main") titleIcon (_mainWindowVisible wi)
-        en = not <$> _mainWindowButtonsDisabled wi
         buttonE e = fmap fromButtonEither (i ^. trainMode) <@> e
+        isConnectedOrPendingInSB = bAnd (i ^. trainInMode SB) $
+          (i ^. trainHasCommunicationSession) `bOr`
+          (i ^. trainCommunicationSessionPending)
+        en = not <$> isConnectedOrPendingInSB
     in do
       w <- mkSubWidget parent . mainWinC  . mkButtonGroup $
            [ mkButton UpButton (pure $ pure "Start")

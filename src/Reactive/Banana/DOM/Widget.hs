@@ -67,7 +67,7 @@ mkWidget :: (Typeable w, IsWidget w, IsNode parent) =>
 mkWidget parent i = do
   (r, cs) <- runWriterT $ mkWidgetInstance parent i
   let widgetClass = mkWidgetClassName . show . typeOf . view _1 $ r
-  liftIOLater . setAttribute (r ^. _2) "data-widget" $ widgetClass
+  liftIOLater . setAttribute (r ^. _2) ("data-widget" :: String) $ widgetClass
   return $ _WidgetInstance # (r ^. _1, sequence_ cs, r ^. _2)
 
   where mkWidgetClassName = takeWhile (not . (==) ' ')
@@ -80,7 +80,7 @@ removeWidget w = do
    pM <- getParentNode r
    case pM of
      Nothing -> return ()
-     Just p -> removeChild p (pure r) >> return ()
+     Just p -> void $ removeChild p (pure r)
 
 -- | Creates a sub widget in the 'ReactiveDom' 'Monad'.
 mkSubWidget :: (Typeable w, IsWidget w, IsNode parent) =>
