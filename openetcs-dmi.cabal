@@ -34,7 +34,6 @@ library
   other-modules:       ETCS.DMI.Helpers
 
   
-  -- other-extensions:    
   build-depends:       base >=4.8 && <4.9,
                        mtl,
                        text,
@@ -43,7 +42,14 @@ library
                        dimensional-tf >= 0.3,
                        transformers,
                        reactive-banana
-                       
+
+  other-extensions:    FlexibleContexts,
+                       GeneralizedNewtypeDeriving,
+                       OverloadedStrings,
+                       Rank2Types,
+                       TemplateHaskell,
+                       TypeFamilies
+
   hs-source-dirs:      src
   default-language:    Haskell2010
   ghc-options: -Wall
