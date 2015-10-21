@@ -32,9 +32,8 @@ type HideWindowMap = Map WindowId (Bool -> IO ())
 hideAllWindowsBut :: HideWindowMap -> WindowId -> IO ()
 hideAllWindowsBut m b =
   let (as, bs) = Map.mapEitherWithKey (\k a -> if k == b then Left a else Right a) m
-  in void . sequence $
-     ( ((\aa -> aa False) . snd) <$> Map.toList bs) ++
-     ( ((\aa -> aa True)  . snd) <$> Map.toList as)
+  in sequence_ $
+     ((($ True) . snd) <$> Map.toList bs) ++ ((($ False)  . snd) <$> Map.toList as)
 
 
 
@@ -82,7 +81,7 @@ mkMainWin i container =
       return (bMainWinHidden, hideMainWin)
     mainWinW <- mkSubWidget container $
                 mkMainWindow i isConnectedOrPendingInSB isConnectedOrPendingInSB
-                (pure True) bMainWinHidden
+                (pure True) (not <$> bMainWinHidden)
     return (mainWinW, hideMainWin)
 
 
