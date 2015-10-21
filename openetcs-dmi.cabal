@@ -28,6 +28,7 @@ library
                        ETCS.DMI.Windows.MainWindow,
                        ETCS.DMI.Windows.DataEntryWindow,
                        ETCS.DMI.Windows.Window,
+                       ETCS.DMI.StartupSequence,
                        Reactive.Banana.DOM,
                        Reactive.Banana.DOM.Widget
                        

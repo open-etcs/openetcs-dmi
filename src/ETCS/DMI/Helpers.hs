@@ -2,6 +2,7 @@ module ETCS.DMI.Helpers
        ( _createDivElement, _createButtonElement, _createSpanElement
        , _createSVGElement, _createSVGUseElement
        , _removeFromParentIfExists, _getOwnerDocument
+       , _setCSSHidden
        , bAnd, bOr, bsAnd, bsOr
        , kmh
        ) where
@@ -9,8 +10,10 @@ module ETCS.DMI.Helpers
 
 import           Control.Monad
 import           Control.Monad.IO.Class
+import           GHCJS.DOM.CSSStyleDeclaration        (setProperty)
 import           GHCJS.DOM.Document                   (Document, createElement,
                                                        createElementNS)
+import           GHCJS.DOM.Element                    (getStyle)
 import           GHCJS.DOM.Node                       (getOwnerDocument,
                                                        getParentNode,
                                                        isEqualNode, removeChild)
@@ -29,6 +32,14 @@ import           GHCJS.DOM.Types                      (Element,
 import           Numeric.Units.Dimensional.TF.Prelude
 import qualified Prelude                              as Prelude
 
+
+
+_setCSSHidden e h = do
+  st' <- getStyle e
+  flip (maybe (fail "unable to get stlye")) st' $ \st ->
+    let v :: String
+        v = if h then "hidden" else "visible"
+    in setProperty st ("visibility" :: String) (pure v) (mempty :: String)
 
 
 kmh :: (Fractional a) => Unit DVelocity a

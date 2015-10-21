@@ -6,6 +6,7 @@ import           Control.Concurrent
 import           Control.Lens                         hiding ((*~))
 import           Control.Monad
 import           ETCS.DMI
+import           ETCS.DMI.StartupSequence
 import           ETCS.DMI.Types
 import           GHCJS.DOM                            (enableInspector,
                                                        runWebGUI,
@@ -49,12 +50,11 @@ main = runWebGUI $ \ webView -> do
     Just dmiMain <- getElementById doc ("dmiMain" :: String)
 
     network <- compile $ do
-      windowMain <- mkWidget dmiMain $
-                    mkMainWindow trainb (pure True)
+      windowMain <- mkWidget dmiMain $ mkStartupSequence trainb
 
-      let (eClose, eValue) = split . widgetEvent . fromWidgetInstance $ windowMain
-      _ <- execute $ fmap (const $ removeWidget windowMain) eClose
-      reactimate $ fmap print eValue
+--      let (eClose, eValue) = split . widgetEvent . fromWidgetInstance $ windowMain
+--      _ <- execute $ fmap (const $ removeWidget windowMain) eClose
+--      reactimate $ fmap print eValue
 
 
 {-
