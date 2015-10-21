@@ -3,7 +3,7 @@
 {-# LANGUAGE TypeFamilies      #-}
 
 module ETCS.DMI.Windows.MainWindow
-       ( mkMainWindow
+       ( MainWindow, mkMainWindow, MainWindowButton(..)
        , module ETCS.DMI.Windows.Window
        ) where
 

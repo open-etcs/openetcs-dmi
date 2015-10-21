@@ -21,8 +21,8 @@ import           GHCJS.DOM.Types                      (Element,
                                                        HTMLButtonElement,
                                                        HTMLDivElement,
                                                        HTMLSpanElement,
-                                                       IsDocument, IsNode,
-                                                       SVGElement,
+                                                       IsDocument, IsElement,
+                                                       IsNode, SVGElement,
                                                        SVGUseElement,
                                                        castToHTMLButtonElement,
                                                        castToHTMLDivElement,
@@ -33,7 +33,7 @@ import           Numeric.Units.Dimensional.TF.Prelude
 import qualified Prelude                              as Prelude
 
 
-
+_setCSSHidden :: (MonadIO m, IsElement e) => e -> Bool -> m ()
 _setCSSHidden e h = do
   st' <- getStyle e
   flip (maybe (fail "unable to get stlye")) st' $ \st ->
