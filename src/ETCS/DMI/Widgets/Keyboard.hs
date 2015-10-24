@@ -89,8 +89,7 @@ instance IsWidget AlphaNumKeyboard where
   mkWidgetInstance parent i =
     let keyboard =
           MkKeyboard False (_keyboardAlphaNumVisible i)
-          (fmap pure $ TextLabel <$> [ "1", "2 abc", "3 def", "4 ghi", "5 jkl", "6 mno"
-                                     , "7 pqrs" ,"8 tuv", "9 wxyz", "Del", "0", "." ])
+          (fmap pure alphaNumKeys)
           mapKeysAlphaNumKeyboard
     in do
       kbdContainer <- _getOwnerDocument parent >>= _createDivElement
@@ -99,7 +98,28 @@ instance IsWidget AlphaNumKeyboard where
       return (kbd, castToElement kbdContainer)
 
 
-
+alphaNumKeys :: [ ButtonLabelTitle ]
+alphaNumKeys =
+  [ TextLabel "1"
+  , InnerHtmlLabel
+    "<span>2</span> <span style=\"font-size: 10px;\">abc</span>" "2 abc"
+  , InnerHtmlLabel
+    "<span>3</span> <span style=\"font-size: 10px;\">abc</span>" "3 def"
+  , InnerHtmlLabel
+    "<span>4</span> <span style=\"font-size: 10px;\">abc</span>" "4 ghi"
+  , InnerHtmlLabel
+    "<span>5</span> <span style=\"font-size: 10px;\">abc</span>" "5 jkl"
+  , InnerHtmlLabel
+    "<span>6</span> <span style=\"font-size: 10px;\">abc</span>" "6 mno"
+  , InnerHtmlLabel
+    "<span>7</span> <span style=\"font-size: 10px;\">abc</span>" "7 pqrs"
+  , InnerHtmlLabel
+    "<span>8</span> <span style=\"font-size: 10px;\">abc</span>" "8 tuv"
+  , InnerHtmlLabel
+    "<span>9</span> <span style=\"font-size: 10px;\">abc</span>" "9 wxyz"
+  , TextLabel "Del", TextLabel "0"
+  , InnerHtmlLabel "<span style=\"font-weight: bold\">.</span>" "."
+  ]
 
 mapKeysAlphaNumKeyboard :: Int -> Maybe Int
 mapKeysAlphaNumKeyboard i
@@ -115,7 +135,9 @@ numKeyboard :: (IsNode self) =>
 numKeyboard c dot v parent _ =
     let numericKeyboard =
           MkKeyboard dot v
-          (fmap pure $ TextLabel <$> [ "1", "2", "3", "4", "5", "6", "7" ,"8", "9", "Del", "0", "." ])
+          (fmap pure $
+           (TextLabel <$> [ "1", "2", "3", "4", "5", "6", "7" ,"8", "9", "Del", "0"])
+           ++ [ InnerHtmlLabel "<span style=\"font-weight: bold\">.</span>" "."])
           mapKeysNumericKeyboard
     in do
       kbdContainer <- _getOwnerDocument parent >>= _createDivElement
