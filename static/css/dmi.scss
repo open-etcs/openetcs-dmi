@@ -176,6 +176,8 @@ div[data-widget="Button"][data-state="ButtonPressed"] {
 div[data-widget="Button"][data-state="ButtonDisabled"] {
 
   color: $ColorDarkGrey;
+  fill: $ColorDarkGrey;
+  stroke: $ColorDarkGrey;
   cursor: not-allowed;
   @include borderTL($borderWidth, solid, $ColorBlack);
   @include borderBR($borderWidth, solid, $ColorShadow);
@@ -229,6 +231,7 @@ div[data-widget="Keyboard"], div[data-widget="DedicatedKeyboard"] {
     font-size: 16px;
     float: left;
     @include absoluteWidthHeight($keyboardButtonWidth - $doubleBorder, $keyboardButtonHeight - $doubleBorder);
+    
   }
 }
     
@@ -261,6 +264,9 @@ div.MenuWindow {
                                   , $buttonHeight - $doubleBorder);
       float: left;
 
+      svg {
+        @include absoluteWidthHeight(32px, 32px);
+      }
     }
 
     .EmptyButton {      
@@ -272,11 +278,15 @@ div.MenuWindow {
   }
 
   .MenuClose {
-    @include absoluteWidthHeight(82px - $doubleBorder, $buttonHeight - $doubleBorder);
     position: absolute;
     top: 400px;
     
-    div[data-widget="Button"] { width: 100%; height: 100%; font-size: 24px }      
+    div[data-widget="Button"] {
+      @include absoluteWidthHeight(82px - $doubleBorder, $buttonHeight - $doubleBorder);
+       svg {
+         @include absoluteWidthHeight(32px, 32px);
+       }
+    }
   }
 
 }

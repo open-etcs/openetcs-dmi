@@ -42,7 +42,7 @@ instance IsWidget MainWindow where
   mkWidgetInstance parent wi =
     let i = _mainWindowTrainBehavior wi
         titleIcon =
-          (\g -> if g then pure "ST_05" else Nothing) <$>
+          (\g -> if g then pure "ST05" else Nothing) <$>
             _mainWindowHourGlass wi
         mainWinC = mkWindow (pure "Main") titleIcon (_mainWindowVisible wi)
                    (_mainWindowHideCloseButton wi)

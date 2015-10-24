@@ -120,7 +120,7 @@ instance (Typeable a, IsEventWidget a) => IsWidget (Window a) where
 
     -- the close button
     closeButton <- mkSubWidget closeContainer $
-                   mkButton UpButton (pure (TextLabel "x"))
+                   mkButton UpButton (pure (SpriteLabel "NA11" "[Close]"))
                    (not <$> _windowHideCloseButton i) ()
 
     let setCloseHidden = _setCSSHidden (widgetRoot closeButton)
