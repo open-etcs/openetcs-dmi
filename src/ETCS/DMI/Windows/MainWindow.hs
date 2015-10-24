@@ -50,22 +50,22 @@ instance IsWidget MainWindow where
         en = not <$> _mainWindowButtonsDisabled wi
     in do
       w <- mkSubWidget parent . mainWinC  . mkButtonGroup $
-           [ mkButton UpButton (pure $ pure "Start")
+           [ mkButton UpButton (pure $ TextLabel "Start")
              (i ^. startButtonEnabled en)
-           , mkButton UpButton (pure $ pure "Driver ID")
+           , mkButton UpButton (pure $ TextLabel "Driver ID")
              (i ^. driverIDButtonEnabled en)
-           , mkButton UpButton (pure $ pure "Train Data")
+           , mkButton UpButton (pure $ TextLabel "Train Data")
              (i ^. trainDataButtonEnabled en)
            , mkEmptyButton
-           , mkButton UpButton (pure $ pure "Level")
+           , mkButton UpButton (pure $ TextLabel "Level")
              (i ^. levelButtonEnabled en)
-           , mkButton UpButton (pure $ pure "Train running Number")
+           , mkButton UpButton (pure $ TextLabel "Train running Number")
              (i ^. runningNumberEnabled en)
            , mkButton DelayButton (i ^. shuntingButtonLabel)
              (i ^. shuntingButtonEnabled en)
-           , mkButton DelayButton (pure $ pure "Non-Leading")
+           , mkButton DelayButton (pure $ TextLabel "Non-Leading")
              (i ^. nonLeadingEnabled en)
-           , mkButton DelayButton (pure $ pure "Maintain Shunting")
+           , mkButton DelayButton (pure $ TextLabel "Maintain Shunting")
              (i ^. maintainShuntingEnabled en)
        ]
       return ( MainWindow . buttonE . widgetEvent . fromWidgetInstance $  w
@@ -118,10 +118,10 @@ runningNumberEnabled en = to $ \i ->
   in bAnd en $ bOr rne1 $ i ^. trainInModes [ FS, LS, SR, OS, NL, UN, SN ]
 
 
-shuntingButtonLabel :: Getter TrainBehavior (Maybe (Behavior Text))
+shuntingButtonLabel :: Getter TrainBehavior (Behavior ButtonLabelTitle)
 shuntingButtonLabel =
   to $ \i ->
-  pure $ (\sh -> if sh then "Exit Shunting" else "Shunting") <$> i ^. trainInMode SH
+    (\sh -> TextLabel $ if sh then "Exit Shunting" else "Shunting") <$> i ^. trainInMode SH
 
 
 shuntingButtonEnabled :: Behavior Bool -> Getter TrainBehavior (Behavior Bool)

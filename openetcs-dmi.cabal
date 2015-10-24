@@ -26,6 +26,7 @@ library
                        ETCS.DMI.Widgets.Sprites,
                        ETCS.DMI.Windows.MenuWindows,
                        ETCS.DMI.Windows.MainWindow,
+                       ETCS.DMI.Windows.DriverIdWindow,
                        ETCS.DMI.Windows.DataEntryWindow,
                        ETCS.DMI.Windows.Window,
                        ETCS.DMI.StartupSequence,

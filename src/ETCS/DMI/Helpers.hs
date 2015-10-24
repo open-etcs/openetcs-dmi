@@ -4,7 +4,7 @@ module ETCS.DMI.Helpers
        , _removeFromParentIfExists, _getOwnerDocument
        , _setCSSHidden
        , bAnd, bOr, bsAnd, bsOr
-       , kmh
+       , kmh, newBehavior
        ) where
 
 
@@ -31,15 +31,22 @@ import           GHCJS.DOM.Types                      (Element,
                                                        castToSVGUseElement)
 import           Numeric.Units.Dimensional.TF.Prelude
 import qualified Prelude                              as Prelude
+import           Reactive.Banana
+import           Reactive.Banana.Frameworks
 
+
+newBehavior :: a -> MomentIO (Behavior a, a -> IO ())
+newBehavior s0 = do
+  (e, fe) <- newEvent
+  (,) <$> stepper s0 e <*> pure fe
 
 _setCSSHidden :: (MonadIO m, IsElement e) => e -> Bool -> m ()
 _setCSSHidden e h = do
   st' <- getStyle e
   flip (maybe (fail "unable to get stlye")) st' $ \st ->
     let v :: String
-        v = if h then "hidden" else "visible"
-    in setProperty st ("visibility" :: String) (pure v) (mempty :: String)
+        v = if h then "none" else "initial"
+    in setProperty st ("display" :: String) (pure v) (mempty :: String)
 
 
 kmh :: (Fractional a) => Unit DVelocity a
@@ -69,7 +76,6 @@ _createButtonElement doc = _createElement doc "button" castToHTMLButtonElement
 
 _createSpanElement :: (MonadIO m, IsDocument self) => self -> m HTMLSpanElement
 _createSpanElement doc = _createElement doc "span" castToHTMLSpanElement
-
 
 
 svgNS :: String

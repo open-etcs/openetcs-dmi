@@ -375,6 +375,51 @@ div[data-widget="InputField"] {
 }
 
 
+div[data-widget="AlphaNumKeyboard"] {
+  div[data-widget="Keyboard"] {
+    div[data-widget="Button"] {
+      div {
+        font-size: 16px;
+        span::first-letter { font-size: 16px; } }
+    }
+  }
+}
+
+  
+div[data-widget="DriverIdWindow"] {
+
+  div[data-widget="DriverIdSubWidget"] {
+    display: flex;
+    flex-direction: column;
+    
+    div[data-widget="AlphaNumKeyboard"] {
+      order: 1;
+      margin-top: 50px;
+    }
+      
+    div[data-widget="InputField"] {
+      order: 0;
+      margin-top: 50px;
+    }      
+  }
+
+    
+  .MenuClose {
+    @include absoluteWidthHeight(82px - $doubleBorder, $buttonHeight - $doubleBorder);
+    position: absolute;
+    top: 400px;
+    
+    div[data-widget="Button"] { width: 100%; height: 100%; font-size: 24px }      
+  }
+
+}
+
+
+
+
+
+
+
 #dmiMain {
   $w: $C_width + $G_width + $F_width;
   $h: $D_height + $G_height;

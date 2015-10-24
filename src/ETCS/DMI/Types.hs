@@ -64,6 +64,17 @@ instance Applicative OnBoardData where
   _ <*> UnknownData = UnknownData
 
 
+onBoardIsValid :: OnBoardData a -> Bool
+onBoardIsValid (ValidData _) = True
+onBoardIsValid _ = False
+
+onBoardDataWithDefault :: a -> OnBoardData a -> a
+onBoardDataWithDefault _ (ValidData a)   = a
+onBoardDataWithDefault _ (InvalidData a) = a
+onBoardDataWithDefault a  UnknownData    = a
+
+
+
 makePrisms ''OnBoardData
 
 -- The driver id

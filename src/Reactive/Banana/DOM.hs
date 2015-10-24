@@ -4,13 +4,16 @@ module Reactive.Banana.DOM
          WidgetInstance, mkWidget, removeWidget,
          fromWidgetInstance,
          -- * Mouse Events
-         registerMouseClick, registerMouseDown, registerMouseUp, registerMouseOut
+         registerMouseClick, registerMouseDown, registerMouseUp, registerMouseOut,
+         -- * Utils
+         deleteChildNodes
        ) where
 
 import           Control.Monad.Writer
 import           GHCJS.DOM.EventTarget         (addEventListener,
                                                 removeEventListener)
 import           GHCJS.DOM.EventTargetClosures (eventListenerNew)
+import           GHCJS.DOM.Node                (getFirstChild, removeChild)
 import           GHCJS.DOM.Types               (IsEvent, IsNode, MouseEvent)
 import           Reactive.Banana
 import           Reactive.Banana.DOM.Widget
@@ -43,6 +46,13 @@ registerEvent h e t = do
   lift $ fromAddHandler ah
 
 
+
+deleteChildNodes :: (MonadIO m, IsNode n) => n -> m ()
+deleteChildNodes p = do
+  c <- getFirstChild p
+  case c of
+    Nothing -> return ()
+    Just n -> removeChild p (pure n) >> deleteChildNodes p
 
 
 
