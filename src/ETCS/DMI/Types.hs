@@ -109,7 +109,7 @@ data TrainCategory =
 
 makePrisms ''TrainCategory
 
-data UIColor = Grey | Yellow | Orange | Red | White | Black
+data UIColor = Grey | Yellow | Orange | Red | White | Black | DarkGrey | MediumGrey | DarkBlue
   deriving (Eq, Ord, Enum, Bounded, Show)
 
 uiColorCSS :: UIColor -> String
@@ -119,7 +119,9 @@ uiColorCSS Orange = "rgb(234, 145, 0)"
 uiColorCSS Red = "rgb(191, 0, 2)"
 uiColorCSS White = "rgb(255,255,255)"
 uiColorCSS Black = "rgb(0,0,0)"
-
+uiColorCSS DarkGrey = "rgb(85,85,85)"
+uiColorCSS MediumGrey = "rgb(150,150,150)"
+uiColorCSS DarkBlue = "rgb(3, 17, 34)"
 
 data SpeedDialType =
   SpeedDial140 | SpeedDial180 | SpeedDial250 | SpeedDial400

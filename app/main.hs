@@ -28,7 +28,7 @@ trainb :: TrainBehavior
 trainb =
   TrainBehavior {
     _trainVelocity = pure (73 *~ kmh),
-    _trainMode = pure SB,
+    _trainMode = pure FS,
     _trainNonLeadingInput = pure False,
     _trainLevel = pure (_UnknownData # ()),
     _trainDriverID = pure (_UnknownData # ()),

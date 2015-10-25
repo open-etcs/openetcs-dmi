@@ -8,9 +8,12 @@ module ETCS.DMI.Widgets.SpeedDial (SpeedDial, mkSpeedDial)  where
 import           Control.Lens                         hiding ((*~))
 import           Control.Monad
 import           Control.Monad.Writer
+import           Data.Maybe                           (fromMaybe)
 import           ETCS.DMI.Helpers
 import           ETCS.DMI.TrainBehavior
 import           ETCS.DMI.Types
+import           GHCJS.DOM.CSSStyleDeclaration        (setProperty)
+import           GHCJS.DOM.Element                    (getStyle)
 import           GHCJS.DOM.Element                    (setAttribute)
 import           GHCJS.DOM.Node                       (appendChild,
                                                        setTextContent)
@@ -50,11 +53,12 @@ instance IsWidget SpeedDial where
     void $ mkSubWidget svg $ MkSpeedIndicatorLines (_speedDialTrainBehavior i)
     void $ mkSubWidget svg $ MkSpeedPointer (_speedDialTrainBehavior i) pointerColor
     void $ mkSubWidget svg $ MkDigitalSpeed (_speedDialTrainBehavior i) pointerIsRed
-
-    drawCircular svg SpeedDial400 (160 *~ kmh)
+    void $ mkSubWidget svg $ MkCircularSpeedGauge (_speedDialTrainBehavior i)
+      (pure $ 160 *~ kmh) (pure Nothing) (pure $ 40 *~ kmh) (pure $ 170 *~ kmh) (pure TSM) (pure IndS)
 
     void $ appendChild parent (pure container)
     return (SpeedDial, castToElement container)
+
 
 
 
@@ -63,76 +67,199 @@ data CircularSpeedGauge = CircularSpeedGauge
 instance IsWidget CircularSpeedGauge where
   data WidgetInput CircularSpeedGauge =
     MkCircularSpeedGauge {
-      _csmInSuperVision :: InSuperVision,
-      _csmVelocity :: Behavior (Velocity Double)
+      _csgTrainBehavior :: TrainBehavior,
+      _csgVperm    :: Behavior (Velocity Double),
+      _csgVrelease :: Behavior (Maybe (Velocity Double)),
+      _csgVtarget  :: Behavior (Velocity Double),
+      _csgVsbi     :: Behavior (Velocity Double),
+      _csgSupervisionStatus :: Behavior SuperVisionStatus,
+      _csgSuperVisionInformation :: Behavior StatusInformation
     }
 
   mkWidgetInstance parent i = do
     doc <- _getOwnerDocument parent
     container <- _createSVGGElement doc
 
-    let status = supervisionInformationStatus
-                 (_csmInSuperVision i) (_csmVelocity i)
+    c0 <- mkSubWidget container $ MkBasicCircular (pure 140) (pure 9)
+          (pure $ (-149) *~ degree)
+          (pure $ (-144) *~ degree)
+          (pure DarkGrey)
 
+    let color23 = csgColorMapping <$> _csgSupervisionStatus i <*> _csgSuperVisionInformation i
+
+    let colorC2 = fst <$> color23
+        colorC3M = snd <$> color23
+        colorC3 = fromMaybe DarkGrey <$> colorC3M
+        c3Hidden = (== Nothing) <$> colorC3M
+
+    let colorC1 = pure DarkGrey
+    c1 <- mkSubWidget container $ MkCircular (_csgTrainBehavior i) (pure 140) (pure 9)
+          (pure $ 0 *~ kmh) (_csgVtarget i) colorC1
+    c2 <- mkSubWidget container $ MkCircular (_csgTrainBehavior i) (pure 140) (pure 9)
+          (_csgVtarget i) (_csgVperm i) colorC2
+    b <- mkSubWidget container $ MkBasicSpeedHook
+         (_csgTrainBehavior i) (_csgVperm i) colorC2
+    c3 <- mkSubWidget container $ MkCircular (_csgTrainBehavior i) (pure 140) (pure 20)
+          (_csgVperm i) (_csgVsbi i) colorC3
+
+    let setC3Hidden = _setCSSHidden (widgetRoot c3)
+    lift $ valueBLater c3Hidden >>= liftIOLater . setC3Hidden
+    lift $ changes c3Hidden >>= reactimate' . fmap (fmap setC3Hidden)
+
+    let setHidden = _setCSSHidden container
+        bIsHidden = not <$> _csgTrainBehavior i ^. trainInMode FS
+    lift $ valueBLater bIsHidden >>= liftIOLater . setHidden
+    lift $ changes bIsHidden >>= reactimate' . fmap (fmap setHidden)
+
+
+    void $ appendChild parent (pure container)
     return (CircularSpeedGauge, castToElement container)
 
 
 
-drawBasicSpeedHook :: (MonadIO m, IsNode n) =>
-            n -> SpeedDialType -> Velocity Double -> m SVGPathElement
-drawBasicSpeedHook parent d v = do
-  doc <- _getOwnerDocument parent
-  p <- _createSVGPathElement doc
+csgColorMapping :: SuperVisionStatus -> StatusInformation -> (UIColor, Maybe UIColor)
+csgColorMapping CSM NoS = (DarkGrey, Nothing)
+csgColorMapping CSM OvS = (DarkGrey, Just Orange)
+csgColorMapping CSM WaS = (DarkGrey, Just Orange)
+csgColorMapping CSM IntS = (DarkGrey, Just Red)
 
-  let a = speedDialDegree d v /~ degree
-  setAttribute p "d" $ mconcat
-    ["M140,0 L140,20 L134,20 L134,0"]
-  setAttribute p "transform" . mconcat $
-    [ "rotate(", show a, ", 140, 140)" ]
+csgColorMapping PIM NoS = (White, Nothing)
+csgColorMapping PIM OvS = (White, Just Orange)
+csgColorMapping PIM WaS = (White, Just Orange)
+csgColorMapping PIM IntS = (White, Just Red)
 
-  void $ appendChild parent (pure p)
-  return p
+csgColorMapping TSM NoS  = (White, Nothing)
+csgColorMapping TSM IndS = (Yellow, Nothing)
+csgColorMapping TSM OvS  = (Yellow, Just Orange)
+csgColorMapping TSM WaS  = (Yellow, Just Orange)
+csgColorMapping TSM IntS = (Yellow, Just Red)
+
+csgColorMapping TSM IndS = (Yellow, Nothing)
+csgColorMapping TSM IntS = (Yellow, Nothing)
+csgColorMapping _ _ = (DarkBlue ,Nothing)
+
+data BasicSpeedHook = BasicSpeedHook
+
+instance IsWidget BasicSpeedHook where
+  data WidgetInput BasicSpeedHook =
+    MkBasicSpeedHook {
+      _bshTrainBehavior :: TrainBehavior,
+      _bshVelocity :: Behavior (Velocity Double),
+      _bshColor :: Behavior UIColor
+    }
+  mkWidgetInstance parent i = do
+    doc <- _getOwnerDocument parent
+    p <- _createSVGPathElement doc
+    setAttribute p "d" $ mconcat
+      ["M140,0 L140,20 L134,20 L134,0"]
+
+    -- speed binding
+    let bV = speedDialDegree
+             <$> _bshTrainBehavior i ^. trainSpeedDial <*> _bshVelocity i
+        setV a = setAttribute p "transform" . mconcat $
+                 [ "rotate(", show (a /~ degree), ", 140, 140)" ]
+    lift $ valueBLater bV >>= liftIOLater . setV
+    lift $ changes bV >>= reactimate' . fmap (fmap setV)
+
+    -- color binding
+    let setColor = setUiColor p
+        bC = _bshColor i
+    lift $ valueBLater bC >>= liftIOLater . setColor
+    lift $ changes bC >>= reactimate' . fmap (fmap setColor)
+
+    void $ appendChild parent (pure p)
+    return (BasicSpeedHook, castToElement p)
 
 
-drawCircular parent d v =
-  let a = speedDialDegree d v
-  in do
-    void $ drawCircular' parent (9 *~ one) ((-144) *~ degree) a
-    void $ drawBasicSpeedHook parent d v
 
-drawCircular' :: (MonadIO m, IsNode n) =>
-                n -> Dimensionless Double ->
-                PlaneAngle Double -> PlaneAngle Double -> m SVGPathElement
-drawCircular' parent r a b =
-  let ox = 140 *~ one
-      ix = ox - r
+data Circular = Circular
+
+instance IsWidget Circular where
+  data WidgetInput Circular =
+    MkCircular {
+      _cirTrainBehavior :: TrainBehavior,
+      _cirOuter :: Behavior Double,
+      _cirWidth :: Behavior Double,
+      _cirStart :: Behavior (Velocity Double),
+      _cirEnd   :: Behavior (Velocity Double),
+      _cirColor :: Behavior UIColor
+      }
+
+  mkWidgetInstance parent i = do
+    doc <- _getOwnerDocument parent
+    container <- _createSVGGElement doc
+
+    let s = speedDialDegree <$> _cirTrainBehavior i ^. trainSpeedDial <*> _cirStart i
+        e = speedDialDegree <$> _cirTrainBehavior i ^. trainSpeedDial <*> _cirEnd i
+    void $ mkSubWidget container $ MkBasicCircular (_cirOuter i) (_cirWidth i)
+      s e (_cirColor i)
+
+    void $ appendChild parent (pure container)
+    return (Circular, castToElement container)
+
+
+
+
+
+data BasicCircular = BasicCircular
+
+instance IsWidget BasicCircular where
+  data WidgetInput BasicCircular =
+    MkBasicCircular {
+      _bcirOuter :: Behavior Double,
+      _bcirWidth :: Behavior Double,
+      _bcirStart :: Behavior (PlaneAngle Double),
+      _bcirEnd   :: Behavior (PlaneAngle Double),
+      _bcirColor :: Behavior UIColor
+      }
+
+  mkWidgetInstance parent i = do
+    doc <- _getOwnerDocument parent
+    p <- _createSVGPathElement doc
+
+    let bD = circularDef <$> _bcirOuter i <*> _bcirWidth i <*> _bcirStart i <*> _bcirEnd i
+        setDef = setAttribute p "d"
+    lift $ valueBLater bD >>= liftIOLater . setDef
+    lift $ changes bD >>= reactimate' . fmap (fmap setDef)
+
+    -- color binding
+    let setColor = setUiColor p
+        bC = _bcirColor i
+    lift $ valueBLater bC >>= liftIOLater . setColor
+    lift $ changes bC >>= reactimate' . fmap (fmap setColor)
+
+    void $ appendChild parent (pure p)
+    return (BasicCircular, castToElement p)
+
+
+
+circularDef :: Double -> Double -> PlaneAngle Double -> PlaneAngle Double -> String
+circularDef outer width a b =
+  let ox = outer *~ one
+      ix = ox - (width *~ one)
       ri = ix /~ one
       ro = ox /~ one
       a' = a * ((-1) *~ one)
       b' = b * ((-1) *~ one)
-      dix0 = sin a' * ix
-      dox0 = sin a' * ox
-      diy0 = cos a' * ix
-      doy0 = cos a' * ox
-      dix1 = sin b' * ix
-      dox1 = sin b' * ox
-      diy1 = cos b' * ix
-      doy1 = cos b' * ox
-
-  in do
-    doc <- _getOwnerDocument parent
-    p <- _createSVGPathElement doc
-    setAttribute p "d" $ mconcat
-      [  "M", show (ox - dix0), ",", show (ox - diy0)
-      , " L", show (ox - dox0), ",", show (ox - doy0)
-      , " A ", show ro, " ", show ro, " 0 0 1", show (ox - dox1), ",", show (ox - doy1)
-      , " L", show (ox - dix1), ",", show (ox - diy1)
-      , " A ", show ri, " ", show ri, " 0 0 0", show (ox - dix0), ",", show (ox - diy0)
-      ]
-
-    void $ appendChild parent (pure p)
-    return p
-
+      sina = sin a'
+      cosa = cos a'
+      sinb = sin b'
+      cosb = cos b'
+      dix0 = sina * ix
+      dox0 = sina * ox
+      diy0 = cosa * ix
+      doy0 = cosa * ox
+      dix1 = sinb * ix
+      dox1 = sinb * ox
+      diy1 = cosb * ix
+      doy1 = cosb * ox
+  in mconcat
+     [  "M", show (ox - dix0), ",", show (ox - diy0)
+     , " L", show (ox - dox0), ",", show (ox - doy0)
+     , " A ", show ro, " ", show ro, " 0 0 1", show (ox - dox1), ",", show (ox - doy1)
+     , " L", show (ox - dix1), ",", show (ox - diy1)
+     , " A ", show ri, " ", show ri, " 0 0 0", show (ox - dix0), ",", show (ox - diy0)
+     ]
 
 type PermittedSpeed    = Behavior (Velocity Double)
 type IndicationSpeed   = Behavior (Velocity Double)
@@ -312,7 +439,7 @@ instance IsWidget DigitalSpeed where
 
 
     let setFontColor isRed =
-          setAttribute container "style" . uiColorStyle $
+          setUiColor container $
           if isRed then White else Black
 
     lift $ valueBLater (_digitalSpeedIsRed i) >>=
@@ -375,7 +502,7 @@ instance IsWidget SpeedPointer where
     doc <- _getOwnerDocument parent
     container <- _createSVGGElement doc
 
-    let setUIColor c = setAttribute container "style" . uiColorStyle $ c
+    let setUIColor = setUiColor container
     lift $ valueBLater (_speedPointerColor i) >>=
       liftIOLater . setUIColor
     lift $ changes (_speedPointerColor i)     >>=
@@ -438,7 +565,18 @@ speedDialDegree' d v =
   in (a * v) - (144 *~ degree)
 
 
+{-
 uiColorStyle :: UIColor -> String
 uiColorStyle c' =
   let c = uiColorCSS c'
   in mconcat [ "color: ", c, "; stroke: ", c, "; fill: ", c, ";" ]
+-}
+
+
+setUiColor :: (MonadIO m, IsElement e) => e -> UIColor -> m ()
+setUiColor e c' = do
+  st' <- getStyle e
+  flip (maybe (fail "unable to get stlye")) st' $ \st -> do
+    setProperty st ("color" :: String) (pure $ uiColorCSS c') (mempty :: String)
+    setProperty st ("stroke" :: String) (pure $ uiColorCSS c') (mempty :: String)
+    setProperty st ("fill" :: String) (pure $ uiColorCSS c') (mempty :: String)
