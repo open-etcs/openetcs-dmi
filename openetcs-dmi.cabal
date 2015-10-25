@@ -24,6 +24,7 @@ library
                        ETCS.DMI.Widgets.Keyboard,
                        ETCS.DMI.Widgets.InputField,
                        ETCS.DMI.Widgets.Sprites,
+                       ETCS.DMI.Widgets.SpeedDial,
                        ETCS.DMI.Windows.MenuWindows,
                        ETCS.DMI.Windows.MainWindow,
                        ETCS.DMI.Windows.DriverIdWindow,

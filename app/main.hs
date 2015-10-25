@@ -8,6 +8,7 @@ import           Control.Monad
 import           ETCS.DMI
 import           ETCS.DMI.StartupSequence
 import           ETCS.DMI.Types
+import           ETCS.DMI.Widgets.SpeedDial
 import           GHCJS.DOM                            (enableInspector,
                                                        runWebGUI,
                                                        webViewGetDomDocument)
@@ -19,7 +20,6 @@ import           Reactive.Banana.DOM
 import           Reactive.Banana.Frameworks
 
 
-
 kmh :: (Fractional a) => Unit DVelocity a
 kmh = kilo meter / hour
 
@@ -27,7 +27,7 @@ kmh = kilo meter / hour
 trainb :: TrainBehavior
 trainb =
   TrainBehavior {
-    _trainVelocity = pure (0 *~ kmh),
+    _trainVelocity = pure (73 *~ kmh),
     _trainMode = pure SB,
     _trainNonLeadingInput = pure False,
     _trainLevel = pure (_UnknownData # ()),
@@ -39,7 +39,8 @@ trainb =
     _trainModDriverIDAllowed = pure True,
     _trainRadioSafeConnection = pure NoConnection,
     _trainCommunicationSessionPending = pure False,
-    _trainPassiveShuntingInput = pure False
+    _trainPassiveShuntingInput = pure False,
+    _trainSpeedDial = pure SpeedDial400
     }
 
 
@@ -50,8 +51,9 @@ main = runWebGUI $ \ webView -> do
     Just dmiMain <- getElementById doc ("dmiMain" :: String)
 
     network <- compile $ do
-      windowMain <- mkWidget dmiMain $ mkStartupSequence trainb
 
+      sd <- mkWidget dmiMain $ mkSpeedDial trainb
+      windowMain <- mkWidget dmiMain $ mkStartupSequence trainb
 --      let (eClose, eValue) = split . widgetEvent . fromWidgetInstance $ windowMain
 --      _ <- execute $ fmap (const $ removeWidget windowMain) eClose
 --      reactimate $ fmap print eValue

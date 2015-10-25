@@ -109,8 +109,21 @@ data TrainCategory =
 
 makePrisms ''TrainCategory
 
+data UIColor = Grey | Yellow | Orange | Red | White | Black
+  deriving (Eq, Ord, Enum, Bounded, Show)
+
+uiColorCSS :: UIColor -> String
+uiColorCSS Grey = "rgb(195, 195, 195)"
+uiColorCSS Yellow = "rgb(223, 223, 0)"
+uiColorCSS Orange = "rgb(234, 145, 0)"
+uiColorCSS Red = "rgb(191, 0, 2)"
+uiColorCSS White = "rgb(255,255,255)"
+uiColorCSS Black = "rgb(0,0,0)"
 
 
+data SpeedDialType =
+  SpeedDial140 | SpeedDial180 | SpeedDial250 | SpeedDial400
+  deriving (Eq, Ord, Enum, Bounded, Show)
 
 data LoadingGauge
   = LoadingGauge1 | LoadingGaugeA | LoadingGaugeB | LoadingGaugeC
@@ -157,9 +170,27 @@ data TrainBehavior =
     _trainRadioSafeConnection         :: Behavior RadioSafeConnection,
     _trainCommunicationSessionPending :: Behavior Bool,
     _trainModDriverIDAllowed          :: Behavior Bool,
+    _trainSpeedDial                   :: Behavior SpeedDialType,
     _trainLevel                       :: Behavior TrainLevelData,
     _trainDriverID                    :: Behavior DriverIdData,
     _trainData                        :: Behavior TrainData,
     _trainRunningNumber               :: Behavior RunningNumberData
     }
 
+
+
+data SuperVisionStatus
+  = CSM -- | Ceiling Speed Monitoring (CSM)
+  | PIM -- | Pre-Indication Monitoring (PIM)
+  | TSM -- | Target Speed Monitoring (TSM)
+  | RSM -- | Release Speed Monitoring (RSM)
+  deriving (Eq, Ord, Enum, Bounded, Show)
+
+
+data StatusInformation
+  = NoS  -- | Normal Status information (NoS)
+  | IndS -- | Indication Status infromation (IndS)
+  | OvS  -- | Over-speed Status information (OvS)
+  | WaS  -- | Warning Status information (WaS)
+  | IntS -- | Intervention Status information (IntS)
+  deriving (Eq, Ord, Enum, Bounded, Show)

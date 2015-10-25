@@ -1,6 +1,9 @@
 module ETCS.DMI.Helpers
        ( _createDivElement, _createButtonElement, _createSpanElement
-       , _createSVGElement, _createSVGUseElement
+       , _createSVGElement, _createSVGUseElement, _createSVGGElement
+       , _createSVGCircleElement, _createSVGPolygonElement
+       , _createSVGTextElement, _createSVGLineElement
+       , _createSVGPathElement
        , _removeFromParentIfExists, _getOwnerDocument
        , _setCSSHidden
        , bAnd, bOr, bsAnd, bsOr
@@ -11,24 +14,13 @@ module ETCS.DMI.Helpers
 import           Control.Monad
 import           Control.Monad.IO.Class
 import           GHCJS.DOM.CSSStyleDeclaration        (setProperty)
-import           GHCJS.DOM.Document                   (Document, createElement,
+import           GHCJS.DOM.Document                   (createElement,
                                                        createElementNS)
 import           GHCJS.DOM.Element                    (getStyle)
 import           GHCJS.DOM.Node                       (getOwnerDocument,
                                                        getParentNode,
                                                        isEqualNode, removeChild)
-import           GHCJS.DOM.Types                      (Element,
-                                                       HTMLButtonElement,
-                                                       HTMLDivElement,
-                                                       HTMLSpanElement,
-                                                       IsDocument, IsElement,
-                                                       IsNode, SVGElement,
-                                                       SVGUseElement,
-                                                       castToHTMLButtonElement,
-                                                       castToHTMLDivElement,
-                                                       castToHTMLSpanElement,
-                                                       castToSVGElement,
-                                                       castToSVGUseElement)
+import           GHCJS.DOM.Types
 import           Numeric.Units.Dimensional.TF.Prelude
 import qualified Prelude                              as Prelude
 import           Reactive.Banana
@@ -86,6 +78,26 @@ _createSVGElement doc = _createElementNS doc svgNS "svg" castToSVGElement
 
 _createSVGUseElement :: (MonadIO m, IsDocument self) => self -> m SVGUseElement
 _createSVGUseElement doc = _createElementNS doc svgNS "use" castToSVGUseElement
+
+_createSVGGElement :: (MonadIO m, IsDocument self) => self -> m SVGGElement
+_createSVGGElement doc = _createElementNS doc svgNS "g" castToSVGGElement
+
+_createSVGCircleElement :: (MonadIO m, IsDocument self) => self -> m SVGCircleElement
+_createSVGCircleElement doc = _createElementNS doc svgNS "circle" castToSVGCircleElement
+
+_createSVGPolygonElement :: (MonadIO m, IsDocument self) => self -> m SVGPolygonElement
+_createSVGPolygonElement doc = _createElementNS doc svgNS "polygon" castToSVGPolygonElement
+
+_createSVGTextElement :: (MonadIO m, IsDocument self) => self -> m SVGTextElement
+_createSVGTextElement doc = _createElementNS doc svgNS "text" castToSVGTextElement
+
+_createSVGLineElement :: (MonadIO m, IsDocument self) => self -> m SVGLineElement
+_createSVGLineElement doc = _createElementNS doc svgNS "line" castToSVGLineElement
+
+_createSVGPathElement :: (MonadIO m, IsDocument self) => self -> m SVGPathElement
+_createSVGPathElement doc = _createElementNS doc svgNS "path" castToSVGPathElement
+
+
 
 _createElement :: (MonadIO m, IsDocument self) => self -> String -> (Element -> t) -> m t
 _createElement doc e c =
