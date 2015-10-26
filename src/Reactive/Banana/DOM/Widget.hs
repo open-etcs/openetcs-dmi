@@ -7,7 +7,7 @@
 module Reactive.Banana.DOM.Widget
        ( ReactiveDom, CleanupHandler, IsWidget(..), IsEventWidget(..), WidgetInstance,
          mkWidget, removeWidget, fromWidgetInstance,
-         widgetRoot, mkSubWidget,  registerCleanupIO
+         widgetRoot, mkSubWidget,  registerCleanupIO, handleBehavior
        ) where
 
 
@@ -90,4 +90,8 @@ mkSubWidget parent i = do
  tell . pure . widgetCleanup $ w
  return w
 
-
+-- | register an handler for changes on a 'Behavior'
+handleBehavior :: Behavior a -> Handler a -> ReactiveDom ()
+handleBehavior a h = lift $ do
+  valueBLater a >>= liftIOLater . h
+  changes a >>= reactimate' . fmap (fmap h)

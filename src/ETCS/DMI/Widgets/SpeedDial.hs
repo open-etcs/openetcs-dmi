@@ -25,7 +25,6 @@ import qualified Prelude                              as P
 import           Reactive.Banana
 import           Reactive.Banana.DOM
 import           Reactive.Banana.DOM.Widget
-import           Reactive.Banana.Frameworks
 
 data SpeedDial = SpeedDial
 
@@ -69,88 +68,72 @@ instance IsWidget CircularSpeedGauge where
       _csgSuperVisionInformation :: Behavior StatusInformation
     }
 
-  mkWidgetInstance parent i = do
-    doc <- _getOwnerDocument parent
-    container <- _createSVGGElement doc
-
-    c0 <- mkSubWidget container $ MkBasicCircular (pure 140) (pure 9)
-          (pure $ (-149) *~ degree)
-          (pure $ (-144) *~ degree)
-          (pure DarkGrey)
-
-    let colorC1 = pure DarkGrey
-        hasVrelease = isJust <$> (_csgTrainBehavior i ^. trainSDMVrelease)
+  mkWidgetInstance parent i =
+    let tb = _csgTrainBehavior i
+        hasVrelease = isJust <$> (tb ^. trainSDMVrelease)
         justgt (Just vr) vp = vr > vp
         justgt _ _ = False
-        vrGTvp = justgt <$> (_csgTrainBehavior i ^. trainSDMVrelease) <*> (_csgTrainBehavior i ^. trainSDMVperm)
-        c12outer = (\a -> if a then 134 else 140) <$> vrGTvp
-        c12width = (\a -> if a then 3 else 9) <$> vrGTvp
-        bshWidth = (\a -> if a then 14 else 20) <$> vrGTvp
-
-    c1 <- mkSubWidget container $ MkCircular (_csgTrainBehavior i) c12outer c12width
-          (pure $ 0 *~ kmh) (_csgTrainBehavior i ^. trainSDMVtarget) colorC1
-
-    let color23 = csgColorMapping <$>
-                  (_csgTrainBehavior i ^. trainSDMstatus) <*> _csgSuperVisionInformation i
+        vrGTvp = justgt <$> (tb ^. trainSDMVrelease) <*> (tb ^. trainSDMVperm)
+        onVrGTVp b c = (\a -> if a then b else c) <$> vrGTvp
+        c12outer = onVrGTVp 134 140
+        c12width = onVrGTVp 3 9
+        bshWidth = onVrGTVp 14 20
+        color23 = csgColorMapping <$> (tb ^. trainSDMstatus)
+                  <*> _csgSuperVisionInformation i
         colorC2 = fst <$> color23
         colorC3M = snd <$> color23
         colorC3 = fromMaybe DarkGrey <$> colorC3M
-
         c3Hidden = (== Nothing) <$> colorC3M
-
-    c2 <- mkSubWidget container $ MkCircular (_csgTrainBehavior i) c12outer c12width
-          (_csgTrainBehavior i ^. trainSDMVtarget) (_csgTrainBehavior i ^. trainSDMVperm) colorC2
-
-    c3 <- mkSubWidget container $ MkCircular (_csgTrainBehavior i) (pure 140) (pure 20)
-          (_csgTrainBehavior i ^. trainSDMVperm) (_csgTrainBehavior i ^. trainSDMVsbi) colorC3
-
-    b <- mkSubWidget container $ MkBasicSpeedHook
-         (_csgTrainBehavior i) (_csgTrainBehavior i ^. trainSDMVperm) colorC2 bshWidth
-
-
-    let r01end' (Just rl) pe = if rl > pe then pe else rl
+        r01end' (Just rl) pe = if rl > pe then pe else rl
         r01end' Nothing _ = 0 *~ kmh
-        r01end = r01end' <$> (_csgTrainBehavior i ^. trainSDMVrelease) <*> (_csgTrainBehavior i ^. trainSDMVperm)
+        r01end = r01end' <$> (tb ^. trainSDMVrelease) <*> (tb ^. trainSDMVperm)
         r01Hidden = not <$> hasVrelease
         r2end' (Just rl) pe = if rl > pe then rl else pe
         r2end' Nothing pe = pe
-        r2end = r2end' <$> (_csgTrainBehavior i ^. trainSDMVrelease) <*> (_csgTrainBehavior i ^. trainSDMVperm)
-        r2Hidden = (==) <$> r2end <*> (_csgTrainBehavior i ^. trainSDMVperm)
+        r2end = r2end' <$> (tb ^. trainSDMVrelease) <*> (tb ^. trainSDMVperm)
+        r2Hidden = (==) <$> r2end <*> (tb ^. trainSDMVperm)
+    in do
+     doc <- _getOwnerDocument parent
+     container <- _createSVGGElement doc
 
-    r0  <- mkSubWidget container $
-           MkCircular (_csgTrainBehavior i) (pure 140)
-           (pure 5) (pure $ 0 *~ kmh) r01end (pure MediumGrey)
+     void $ mkSubWidget container $ MkBasicCircular (pure 140) (pure 9)
+       (pure $ (-149) *~ degree)
+       (pure $ (-144) *~ degree)
+       (pure DarkGrey)
+     handleBehavior (not <$> tb ^. trainInMode FS) $ _setCSSHidden container
 
-    r1  <- mkSubWidget container $
-           MkCircular (_csgTrainBehavior i) (pure 136)
-           (pure 1) (pure $ 0 *~ kmh) r01end (pure DarkBlue)
+     void $ mkSubWidget container $ MkCircular tb c12outer c12width
+       (pure $ 0 *~ kmh) (tb ^. trainSDMVtarget) (pure DarkGrey)
 
-    r2  <- mkSubWidget container $
-           MkCircular (_csgTrainBehavior i) (pure 140)
-           (pure 9) (_csgTrainBehavior i ^. trainSDMVperm) r2end (pure MediumGrey)
+     void $ mkSubWidget container $ MkCircular tb c12outer c12width
+       (tb ^. trainSDMVtarget) (tb ^. trainSDMVperm) colorC2
 
-    let setR01Hidden a = do
-          _setCSSHidden (widgetRoot r0) a
-          _setCSSHidden (widgetRoot r1) a
-    lift $ valueBLater r01Hidden >>= liftIOLater . setR01Hidden
-    lift $ changes r01Hidden >>= reactimate' . fmap (fmap setR01Hidden)
+     c3 <- mkSubWidget container $ MkCircular tb (pure 140) (pure 20)
+           (tb ^. trainSDMVperm) (tb ^. trainSDMVsbi) colorC3
 
-    let setR2Hidden = _setCSSHidden (widgetRoot r2)
-    lift $ valueBLater r2Hidden >>= liftIOLater . setR2Hidden
-    lift $ changes r2Hidden >>= reactimate' . fmap (fmap setR2Hidden)
+     handleBehavior c3Hidden $ _setCSSHidden (widgetRoot c3)
 
-    let setC3Hidden = _setCSSHidden (widgetRoot c3)
-    lift $ valueBLater c3Hidden >>= liftIOLater . setC3Hidden
-    lift $ changes c3Hidden >>= reactimate' . fmap (fmap setC3Hidden)
+     void $ mkSubWidget container $ MkBasicSpeedHook
+       tb (tb ^. trainSDMVperm) colorC2 bshWidth
 
-    let setHidden = _setCSSHidden container
-        bIsHidden = not <$> _csgTrainBehavior i ^. trainInMode FS
-    lift $ valueBLater bIsHidden >>= liftIOLater . setHidden
-    lift $ changes bIsHidden >>= reactimate' . fmap (fmap setHidden)
+     r0  <- mkSubWidget container $
+            MkCircular tb (pure 140)
+            (pure 5) (pure $ 0 *~ kmh) r01end (pure MediumGrey)
+     r1  <- mkSubWidget container $
+            MkCircular tb (pure 136)
+            (pure 1) (pure $ 0 *~ kmh) r01end (pure DarkBlue)
+     r2  <- mkSubWidget container $
+            MkCircular tb (pure 140)
+            (pure 9) (tb ^. trainSDMVperm) r2end (pure MediumGrey)
 
+     handleBehavior r01Hidden $ \a -> do
+       _setCSSHidden (widgetRoot r0) a
+       _setCSSHidden (widgetRoot r1) a
 
-    void $ appendChild parent (pure container)
-    return (CircularSpeedGauge, castToElement container)
+     handleBehavior r2Hidden $ _setCSSHidden (widgetRoot r2)
+
+     void $ appendChild parent (pure container)
+     return (CircularSpeedGauge, castToElement container)
 
 
 
@@ -194,24 +177,17 @@ instance IsWidget BasicSpeedHook where
     let bshDef w =
           let a = (P.-) 20 w
           in mconcat ["M140,", show a,  " L140,20 L134,20 L134,", show a]
-        bDef = bshDef <$> _bshWidth i
-        setDef = setAttribute p "d"
-    lift $ valueBLater bDef >>= liftIOLater . setDef
-    lift $ changes bDef >>= reactimate' . fmap (fmap setDef)
+    handleBehavior (bshDef <$> _bshWidth i) $ setAttribute p "d"
 
     -- speed binding
     let bV = speedDialDegree
              <$> _bshTrainBehavior i ^. trainSpeedDial <*> _bshVelocity i
-        setV a = setAttribute p "transform" . mconcat $
-                 [ "rotate(", show (a /~ degree), ", 140, 140)" ]
-    lift $ valueBLater bV >>= liftIOLater . setV
-    lift $ changes bV >>= reactimate' . fmap (fmap setV)
+    handleBehavior bV $ \a ->
+      setAttribute p "transform" . mconcat $
+        [ "rotate(", show (a /~ degree), ", 140, 140)" ]
 
     -- color binding
-    let setColor = setUiColor p
-        bC = _bshColor i
-    lift $ valueBLater bC >>= liftIOLater . setColor
-    lift $ changes bC >>= reactimate' . fmap (fmap setColor)
+    handleBehavior (_bshColor i) $ setUiColor p
 
     void $ appendChild parent (pure p)
     return (BasicSpeedHook, castToElement p)
@@ -263,17 +239,11 @@ instance IsWidget BasicCircular where
     doc <- _getOwnerDocument parent
     p <- _createSVGPathElement doc
 
-    let bD = circularDef <$> _bcirOuter i <*> _bcirWidth i <*>
-             _bcirStart i <*> _bcirEnd i
-        setDef = setAttribute p "d"
-    lift $ valueBLater bD >>= liftIOLater . setDef
-    lift $ changes bD >>= reactimate' . fmap (fmap setDef)
+    let bD = circularDef <$> _bcirOuter i <*> _bcirWidth i <*> _bcirStart i <*> _bcirEnd i
+    handleBehavior bD $ setAttribute p "d"
 
     -- color binding
-    let setColor = setUiColor p
-        bC = _bcirColor i
-    lift $ valueBLater bC >>= liftIOLater . setColor
-    lift $ changes bC >>= reactimate' . fmap (fmap setColor)
+    handleBehavior (_bcirColor i) $ setUiColor p
 
     void $ appendChild parent (pure p)
     return (BasicCircular, castToElement p)
@@ -281,11 +251,10 @@ instance IsWidget BasicCircular where
 
 circularDef :: Double -> Double -> PlaneAngle Double -> PlaneAngle Double -> String
 circularDef outer width a b =
-  let ox = outer *~ one
-      ix = ox - (width *~ one)
-
-      ri = ix /~ one
-      ro = ox /~ one
+  let cox = outer *~ one
+      cix = cox - (width *~ one)
+      ri = cix /~ one
+      ro = cox /~ one
       a' = a * ((-1) *~ one)
       b' = b * ((-1) *~ one)
       sina = sin a'
@@ -293,10 +262,10 @@ circularDef outer width a b =
       sinb = sin b'
       cosb = cos b'
       _140 = 140 *~ one
-      (ix0, iy0) = (_140 - sina * ix, _140 - cosa * ix)
-      (ox0, oy0) = (_140 - sina * ox, _140 - cosa * ox)
-      (ix1, iy1) = (_140 - sinb * ix, _140 - cosb * ix)
-      (ox1, oy1) = (_140 - sinb * ox, _140 - cosb * ox)
+      (ix0, iy0) = (_140 - sina * cix, _140 - cosa * cix)
+      (ox0, oy0) = (_140 - sina * cox, _140 - cosa * cox)
+      (ix1, iy1) = (_140 - sinb * cix, _140 - cosb * cix)
+      (ox1, oy1) = (_140 - sinb * cox, _140 - cosb * cox)
 
   in mconcat
      [  "M", show ix0, ",", show iy0
@@ -374,16 +343,12 @@ instance IsWidget SpeedIndicatorLines where
     doc <- _getOwnerDocument parent
     container <- _createSVGGElement doc
 
-    let drawIndicators d = do
-          deleteChildNodes container
-          mkShortSpeedIndicatorLines doc container d
-          mkLongSpeedIndicatorLines doc container d
-          mkSpeedIndicatorNumbers doc container d
-
     let bSD = _speedIndicatorLinesTrainBehavior i ^. trainSpeedDial
-    lift $ valueBLater bSD >>= liftIOLater . drawIndicators
-    lift $ changes bSD >>= reactimate' . fmap (fmap drawIndicators)
-
+    handleBehavior bSD $ \d -> do
+      deleteChildNodes container
+      mkShortSpeedIndicatorLines doc container d
+      mkLongSpeedIndicatorLines doc container d
+      mkSpeedIndicatorNumbers doc container d
 
     void $ appendChild parent (pure container)
     return (SpeedIndicatorLines, castToElement container)
@@ -483,15 +448,8 @@ instance IsWidget DigitalSpeed where
     d2 <- _createSVGTextElement doc
 
 
-    let setFontColor isRed =
-          setUiColor container $
-          if isRed then White else Black
-
-    lift $ valueBLater (_digitalSpeedIsRed i) >>=
-      liftIOLater . setFontColor
-    lift $ changes (_digitalSpeedIsRed i)     >>=
-      reactimate' . fmap (fmap setFontColor)
-
+    handleBehavior (_digitalSpeedIsRed i) $ \isRed ->
+      setUiColor container $ if isRed then White else Black
 
     let delta_x :: Double -> Double
         delta_x j = (P.-) 160 . (P.*) j . (P./) 50 $ 3
@@ -507,12 +465,10 @@ instance IsWidget DigitalSpeed where
         b1 = (\(_,b,_) -> b) <$> bVels
         b2 = (\(c,_,_) -> c) <$> bVels
 
-    lift $ valueBLater b0 >>= liftIOLater . setTextContent d0 . pure
-    lift $ changes b0 >>= reactimate' . fmap (fmap $ setTextContent d0 . pure)
-    lift $ valueBLater b1 >>= liftIOLater . setTextContent d1 . pure
-    lift $ changes b1 >>= reactimate' . fmap (fmap $ setTextContent d1 . pure)
-    lift $ valueBLater b2 >>= liftIOLater . setTextContent d2 . pure
-    lift $ changes b2 >>= reactimate' . fmap (fmap $ setTextContent d2 . pure)
+    handleBehavior b0 $ setTextContent d0 . pure
+    handleBehavior b1 $ setTextContent d1 . pure
+    handleBehavior b2 $ setTextContent d2 . pure
+
 
     void $ appendChild container (pure d0)
     void $ appendChild container (pure d1)
@@ -547,12 +503,7 @@ instance IsWidget SpeedPointer where
     doc <- _getOwnerDocument parent
     container <- _createSVGGElement doc
 
-    let setUIColor = setUiColor container
-    lift $ valueBLater (_speedPointerColor i) >>=
-      liftIOLater . setUIColor
-    lift $ changes (_speedPointerColor i)     >>=
-      reactimate' . fmap (fmap $ setUIColor)
-
+    handleBehavior (_speedPointerColor i) $ setUiColor container
 
     p <- _createSVGPolygonElement doc
     c <- _createSVGCircleElement doc
@@ -564,9 +515,9 @@ instance IsWidget SpeedPointer where
     setAttribute p "points"
       "0,24 15,24 23,20 80,20 80,29 23,29 15,26 0,26"
     void $ appendChild container (pure p)
+
     let bPointer = _speedPointerTrainBehavior i ^. speedPointerBehavior
-    lift $ valueBLater bPointer >>= liftIOLater . setSpeedPointer container
-    lift $ changes bPointer >>= reactimate' . fmap (fmap $ setSpeedPointer container)
+    handleBehavior bPointer $ setSpeedPointer container
 
     void $ appendChild parent (pure container)
     return (SpeedPointer, castToElement container)

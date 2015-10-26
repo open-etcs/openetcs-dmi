@@ -40,7 +40,7 @@ trainb =
     _trainRadioSafeConnection = pure NoConnection,
     _trainCommunicationSessionPending = pure False,
     _trainPassiveShuntingInput = pure False,
-    _trainSpeedDial = pure SpeedDial400,
+    _trainSpeedDial = pure SpeedDial140,
     _trainSDMData = sdmd
     }
 
