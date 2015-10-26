@@ -10,6 +10,7 @@ import           Control.Monad
 import           Control.Monad.Writer
 import           Data.Maybe                           (fromMaybe, isJust)
 import           ETCS.DMI.Helpers
+import           ETCS.DMI.SDMData
 import           ETCS.DMI.TrainBehavior
 import           ETCS.DMI.Types
 import           GHCJS.DOM.CSSStyleDeclaration        (setProperty)
@@ -18,8 +19,7 @@ import           GHCJS.DOM.Element                    (setAttribute)
 import           GHCJS.DOM.Node                       (appendChild,
                                                        setTextContent)
 import           GHCJS.DOM.Types                      (IsDocument, IsElement,
-                                                       IsNode, SVGPathElement,
-                                                       castToElement)
+                                                       IsNode, castToElement)
 import           Numeric.Units.Dimensional.TF.Prelude
 import qualified Prelude                              as P
 import           Reactive.Banana
@@ -54,8 +54,6 @@ instance IsWidget SpeedDial where
     void $ mkSubWidget svg $ MkSpeedPointer (_speedDialTrainBehavior i) pointerColor
     void $ mkSubWidget svg $ MkDigitalSpeed (_speedDialTrainBehavior i) pointerIsRed
     void $ mkSubWidget svg $ MkCircularSpeedGauge (_speedDialTrainBehavior i)
-      (pure $ 60 *~ kmh) (pure Nothing) --  . Just $ 25 *~ kmh)
-      (pure $ 0 *~ kmh) (pure $ 170 *~ kmh)
       (pure CSM) (pure NoS)
 
     void $ appendChild parent (pure container)
@@ -68,10 +66,6 @@ instance IsWidget CircularSpeedGauge where
   data WidgetInput CircularSpeedGauge =
     MkCircularSpeedGauge {
       _csgTrainBehavior :: TrainBehavior,
-      _csgVperm    :: Behavior (Velocity Double),
-      _csgVrelease :: Behavior (Maybe (Velocity Double)),
-      _csgVtarget  :: Behavior (Velocity Double),
-      _csgVsbi     :: Behavior (Velocity Double),
       _csgSupervisionStatus :: Behavior SuperVisionStatus,
       _csgSuperVisionInformation :: Behavior StatusInformation
     }
@@ -86,16 +80,16 @@ instance IsWidget CircularSpeedGauge where
           (pure DarkGrey)
 
     let colorC1 = pure DarkGrey
-        hasVrelease = isJust <$> _csgVrelease i
+        hasVrelease = isJust <$> (_csgTrainBehavior i ^. trainSDMVrelease)
         justgt (Just vr) vp = vr > vp
         justgt _ _ = False
-        vrGTvp = justgt <$> _csgVrelease i <*> _csgVperm i
+        vrGTvp = justgt <$> (_csgTrainBehavior i ^. trainSDMVrelease) <*> (_csgTrainBehavior i ^. trainSDMVperm)
         c12outer = (\a -> if a then 134 else 140) <$> vrGTvp
         c12width = (\a -> if a then 3 else 9) <$> vrGTvp
         bshWidth = (\a -> if a then 14 else 20) <$> vrGTvp
 
     c1 <- mkSubWidget container $ MkCircular (_csgTrainBehavior i) c12outer c12width
-          (pure $ 0 *~ kmh) (_csgVtarget i) colorC1
+          (pure $ 0 *~ kmh) (_csgTrainBehavior i ^. trainSDMVtarget) colorC1
 
     let color23 = csgColorMapping <$>
                   _csgSupervisionStatus i <*> _csgSuperVisionInformation i
@@ -106,23 +100,23 @@ instance IsWidget CircularSpeedGauge where
         c3Hidden = (== Nothing) <$> colorC3M
 
     c2 <- mkSubWidget container $ MkCircular (_csgTrainBehavior i) c12outer c12width
-          (_csgVtarget i) (_csgVperm i) colorC2
+          (_csgTrainBehavior i ^. trainSDMVtarget) (_csgTrainBehavior i ^. trainSDMVperm) colorC2
 
     c3 <- mkSubWidget container $ MkCircular (_csgTrainBehavior i) (pure 140) (pure 20)
-          (_csgVperm i) (_csgVsbi i) colorC3
+          (_csgTrainBehavior i ^. trainSDMVperm) (_csgTrainBehavior i ^. trainSDMVsbi) colorC3
 
     b <- mkSubWidget container $ MkBasicSpeedHook
-         (_csgTrainBehavior i) (_csgVperm i) colorC2 bshWidth
+         (_csgTrainBehavior i) (_csgTrainBehavior i ^. trainSDMVperm) colorC2 bshWidth
 
 
     let r01end' (Just rl) pe = if rl > pe then pe else rl
         r01end' Nothing _ = 0 *~ kmh
-        r01end = r01end' <$> _csgVrelease i <*> _csgVperm i
+        r01end = r01end' <$> (_csgTrainBehavior i ^. trainSDMVrelease) <*> (_csgTrainBehavior i ^. trainSDMVperm)
         r01Hidden = not <$> hasVrelease
         r2end' (Just rl) pe = if rl > pe then rl else pe
         r2end' Nothing pe = pe
-        r2end = r2end' <$> _csgVrelease i <*> _csgVperm i
-        r2Hidden = (==) <$> r2end <*> _csgVperm i
+        r2end = r2end' <$> (_csgTrainBehavior i ^. trainSDMVrelease) <*> (_csgTrainBehavior i ^. trainSDMVperm)
+        r2Hidden = (==) <$> r2end <*> (_csgTrainBehavior i ^. trainSDMVperm)
 
     r0  <- mkSubWidget container $
            MkCircular (_csgTrainBehavior i) (pure 140)
@@ -134,7 +128,7 @@ instance IsWidget CircularSpeedGauge where
 
     r2  <- mkSubWidget container $
            MkCircular (_csgTrainBehavior i) (pure 140)
-           (pure 9) (_csgVperm i) r2end (pure MediumGrey)
+           (pure 9) (_csgTrainBehavior i ^. trainSDMVperm) r2end (pure MediumGrey)
 
     let setR01Hidden a = do
           _setCSSHidden (widgetRoot r0) a
@@ -496,7 +490,7 @@ instance IsWidget DigitalSpeed where
     lift $ valueBLater (_digitalSpeedIsRed i) >>=
       liftIOLater . setFontColor
     lift $ changes (_digitalSpeedIsRed i)     >>=
-      reactimate' . fmap (fmap $ setFontColor)
+      reactimate' . fmap (fmap setFontColor)
 
 
     let delta_x :: Double -> Double
@@ -600,7 +594,6 @@ speedDialMaxV SpeedDial250 = 250 *~ kmh
 speedDialMaxV SpeedDial400 = 400 *~ kmh
 
 
-
 speedDialDegree :: SpeedDialType -> Velocity Double -> Dimensionless Double
 speedDialDegree d v
   | v < (0 *~ kmh) = speedDialDegree d (0 *~ kmh)
@@ -614,15 +607,6 @@ speedDialDegree' SpeedDial400 v
 speedDialDegree' d v =
   let a = (288 *~ degree) / speedDialMaxV d
   in (a * v) - (144 *~ degree)
-
-
-{-
-uiColorStyle :: UIColor -> String
-uiColorStyle c' =
-  let c = uiColorCSS c'
-  in mconcat [ "color: ", c, "; stroke: ", c, "; fill: ", c, ";" ]
--}
-
 
 setUiColor :: (MonadIO m, IsElement e) => e -> UIColor -> m ()
 setUiColor e c' = do

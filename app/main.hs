@@ -40,8 +40,17 @@ trainb =
     _trainRadioSafeConnection = pure NoConnection,
     _trainCommunicationSessionPending = pure False,
     _trainPassiveShuntingInput = pure False,
-    _trainSpeedDial = pure SpeedDial400
+    _trainSpeedDial = pure SpeedDial400,
+    _trainSDMData = sdmd
     }
+
+sdmd :: SDMData
+sdmd = SDMData {
+  _sdmVperm    = pure $ 20 *~ kmh,
+  _sdmVrelease = pure . Just $ 40 *~ kmh,
+  _sdmVtarget  = pure $ 0 *~ kmh,
+  _sdmVsbi     = pure $ 100 *~ kmh
+}
 
 
 main :: IO ()

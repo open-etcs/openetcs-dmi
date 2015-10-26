@@ -176,10 +176,18 @@ data TrainBehavior =
     _trainLevel                       :: Behavior TrainLevelData,
     _trainDriverID                    :: Behavior DriverIdData,
     _trainData                        :: Behavior TrainData,
-    _trainRunningNumber               :: Behavior RunningNumberData
+    _trainRunningNumber               :: Behavior RunningNumberData,
+    _trainSDMData                     :: SDMData
     }
 
 
+data SDMData =
+  SDMData {
+      _sdmVperm    :: Behavior (Velocity Double),
+      _sdmVrelease :: Behavior (Maybe (Velocity Double)),
+      _sdmVtarget  :: Behavior (Velocity Double),
+      _sdmVsbi     :: Behavior (Velocity Double)
+      }
 
 data SuperVisionStatus
   = CSM -- | Ceiling Speed Monitoring (CSM)
