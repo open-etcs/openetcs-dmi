@@ -54,14 +54,12 @@ instance IsWidget SpeedDial where
     void $ mkSubWidget svg $ MkSpeedPointer (_speedDialTrainBehavior i) pointerColor
     void $ mkSubWidget svg $ MkDigitalSpeed (_speedDialTrainBehavior i) pointerIsRed
     void $ mkSubWidget svg $ MkCircularSpeedGauge (_speedDialTrainBehavior i)
-      (pure $ 20 *~ kmh) (pure . Just $ 25 *~ kmh)
+      (pure $ 60 *~ kmh) (pure Nothing) --  . Just $ 25 *~ kmh)
       (pure $ 0 *~ kmh) (pure $ 170 *~ kmh)
-      (pure CSM) (pure OvS)
+      (pure CSM) (pure NoS)
 
     void $ appendChild parent (pure container)
     return (SpeedDial, castToElement container)
-
-
 
 
 data CircularSpeedGauge = CircularSpeedGauge
@@ -88,7 +86,6 @@ instance IsWidget CircularSpeedGauge where
           (pure DarkGrey)
 
     let colorC1 = pure DarkGrey
---        colorR  = pure MediumGrey
         hasVrelease = isJust <$> _csgVrelease i
         justgt (Just vr) vp = vr > vp
         justgt _ _ = False
@@ -96,11 +93,6 @@ instance IsWidget CircularSpeedGauge where
         c12outer = (\a -> if a then 134 else 140) <$> vrGTvp
         c12width = (\a -> if a then 3 else 9) <$> vrGTvp
         bshWidth = (\a -> if a then 14 else 20) <$> vrGTvp
-
---        router = pure 140
---        rwidth = pure 9
---    r <- mkSubWidget container $ MkCircular (_csgTrainBehavior i) router rwidth
---         (pure $ 0 *~ kmh) (fromMaybe (0 *~ kmh) <$> _csgVrelease i) colorR
 
     c1 <- mkSubWidget container $ MkCircular (_csgTrainBehavior i) c12outer c12width
           (pure $ 0 *~ kmh) (_csgVtarget i) colorC1
@@ -121,6 +113,38 @@ instance IsWidget CircularSpeedGauge where
 
     b <- mkSubWidget container $ MkBasicSpeedHook
          (_csgTrainBehavior i) (_csgVperm i) colorC2 bshWidth
+
+
+    let r01end' (Just rl) pe = if rl > pe then pe else rl
+        r01end' Nothing _ = 0 *~ kmh
+        r01end = r01end' <$> _csgVrelease i <*> _csgVperm i
+        r01Hidden = not <$> hasVrelease
+        r2end' (Just rl) pe = if rl > pe then rl else pe
+        r2end' Nothing pe = pe
+        r2end = r2end' <$> _csgVrelease i <*> _csgVperm i
+        r2Hidden = (==) <$> r2end <*> _csgVperm i
+
+    r0  <- mkSubWidget container $
+           MkCircular (_csgTrainBehavior i) (pure 140)
+           (pure 5) (pure $ 0 *~ kmh) r01end (pure MediumGrey)
+
+    r1  <- mkSubWidget container $
+           MkCircular (_csgTrainBehavior i) (pure 136)
+           (pure 1) (pure $ 0 *~ kmh) r01end (pure DarkBlue)
+
+    r2  <- mkSubWidget container $
+           MkCircular (_csgTrainBehavior i) (pure 140)
+           (pure 9) (_csgVperm i) r2end (pure MediumGrey)
+
+    let setR01Hidden a = do
+          _setCSSHidden (widgetRoot r0) a
+          _setCSSHidden (widgetRoot r1) a
+    lift $ valueBLater r01Hidden >>= liftIOLater . setR01Hidden
+    lift $ changes r01Hidden >>= reactimate' . fmap (fmap setR01Hidden)
+
+    let setR2Hidden = _setCSSHidden (widgetRoot r2)
+    lift $ valueBLater r2Hidden >>= liftIOLater . setR2Hidden
+    lift $ changes r2Hidden >>= reactimate' . fmap (fmap setR2Hidden)
 
     let setC3Hidden = _setCSSHidden (widgetRoot c3)
     lift $ valueBLater c3Hidden >>= liftIOLater . setC3Hidden
