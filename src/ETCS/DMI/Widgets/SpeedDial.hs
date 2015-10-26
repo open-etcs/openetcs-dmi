@@ -8,7 +8,7 @@ module ETCS.DMI.Widgets.SpeedDial (SpeedDial, mkSpeedDial)  where
 import           Control.Lens                         hiding ((*~))
 import           Control.Monad
 import           Control.Monad.Writer
-import           Data.Maybe                           (fromMaybe)
+import           Data.Maybe                           (fromMaybe, isJust)
 import           ETCS.DMI.Helpers
 import           ETCS.DMI.TrainBehavior
 import           ETCS.DMI.Types
@@ -54,7 +54,9 @@ instance IsWidget SpeedDial where
     void $ mkSubWidget svg $ MkSpeedPointer (_speedDialTrainBehavior i) pointerColor
     void $ mkSubWidget svg $ MkDigitalSpeed (_speedDialTrainBehavior i) pointerIsRed
     void $ mkSubWidget svg $ MkCircularSpeedGauge (_speedDialTrainBehavior i)
-      (pure $ 160 *~ kmh) (pure Nothing) (pure $ 40 *~ kmh) (pure $ 170 *~ kmh) (pure TSM) (pure IndS)
+      (pure $ 20 *~ kmh) (pure . Just $ 25 *~ kmh)
+      (pure $ 0 *~ kmh) (pure $ 170 *~ kmh)
+      (pure CSM) (pure NoS)
 
     void $ appendChild parent (pure container)
     return (SpeedDial, castToElement container)
@@ -85,22 +87,40 @@ instance IsWidget CircularSpeedGauge where
           (pure $ (-144) *~ degree)
           (pure DarkGrey)
 
-    let color23 = csgColorMapping <$> _csgSupervisionStatus i <*> _csgSuperVisionInformation i
+    let colorC1 = pure DarkGrey
+--        colorR  = pure MediumGrey
+        hasVrelease = isJust <$> _csgVrelease i
+        justgt (Just vr) vp = vr > vp
+        justgt _ _ = False
+        vrGTvp = justgt <$> _csgVrelease i <*> _csgVperm i
+        c12outer = (\a -> if a then 134 else 140) <$> vrGTvp
+        c12width = (\a -> if a then 3 else 9) <$> vrGTvp
+        bshWidth = (\a -> if a then 14 else 20) <$> vrGTvp
 
-    let colorC2 = fst <$> color23
+--        router = pure 140
+--        rwidth = pure 9
+--    r <- mkSubWidget container $ MkCircular (_csgTrainBehavior i) router rwidth
+--         (pure $ 0 *~ kmh) (fromMaybe (0 *~ kmh) <$> _csgVrelease i) colorR
+
+    c1 <- mkSubWidget container $ MkCircular (_csgTrainBehavior i) c12outer c12width
+          (pure $ 0 *~ kmh) (_csgVtarget i) colorC1
+
+    let color23 = csgColorMapping <$>
+                  _csgSupervisionStatus i <*> _csgSuperVisionInformation i
+        colorC2 = fst <$> color23
         colorC3M = snd <$> color23
         colorC3 = fromMaybe DarkGrey <$> colorC3M
+
         c3Hidden = (== Nothing) <$> colorC3M
 
-    let colorC1 = pure DarkGrey
-    c1 <- mkSubWidget container $ MkCircular (_csgTrainBehavior i) (pure 140) (pure 9)
-          (pure $ 0 *~ kmh) (_csgVtarget i) colorC1
-    c2 <- mkSubWidget container $ MkCircular (_csgTrainBehavior i) (pure 140) (pure 9)
+    c2 <- mkSubWidget container $ MkCircular (_csgTrainBehavior i) c12outer c12width
           (_csgVtarget i) (_csgVperm i) colorC2
-    b <- mkSubWidget container $ MkBasicSpeedHook
-         (_csgTrainBehavior i) (_csgVperm i) colorC2
+
     c3 <- mkSubWidget container $ MkCircular (_csgTrainBehavior i) (pure 140) (pure 20)
           (_csgVperm i) (_csgVsbi i) colorC3
+
+    b <- mkSubWidget container $ MkBasicSpeedHook
+         (_csgTrainBehavior i) (_csgVperm i) colorC2 bshWidth
 
     let setC3Hidden = _setCSSHidden (widgetRoot c3)
     lift $ valueBLater c3Hidden >>= liftIOLater . setC3Hidden
@@ -145,13 +165,21 @@ instance IsWidget BasicSpeedHook where
     MkBasicSpeedHook {
       _bshTrainBehavior :: TrainBehavior,
       _bshVelocity :: Behavior (Velocity Double),
-      _bshColor :: Behavior UIColor
+      _bshColor :: Behavior UIColor,
+      _bshWidth :: Behavior Double
     }
   mkWidgetInstance parent i = do
     doc <- _getOwnerDocument parent
     p <- _createSVGPathElement doc
-    setAttribute p "d" $ mconcat
-      ["M140,0 L140,20 L134,20 L134,0"]
+
+    -- definition binding
+    let bshDef w =
+          let a = (P.-) 20 w
+          in mconcat ["M140,", show a,  " L140,20 L134,20 L134,", show a]
+        bDef = bshDef <$> _bshWidth i
+        setDef = setAttribute p "d"
+    lift $ valueBLater bDef >>= liftIOLater . setDef
+    lift $ changes bDef >>= reactimate' . fmap (fmap setDef)
 
     -- speed binding
     let bV = speedDialDegree
@@ -217,7 +245,8 @@ instance IsWidget BasicCircular where
     doc <- _getOwnerDocument parent
     p <- _createSVGPathElement doc
 
-    let bD = circularDef <$> _bcirOuter i <*> _bcirWidth i <*> _bcirStart i <*> _bcirEnd i
+    let bD = circularDef <$> _bcirOuter i <*> _bcirWidth i <*>
+             _bcirStart i <*> _bcirEnd i
         setDef = setAttribute p "d"
     lift $ valueBLater bD >>= liftIOLater . setDef
     lift $ changes bD >>= reactimate' . fmap (fmap setDef)
@@ -232,11 +261,11 @@ instance IsWidget BasicCircular where
     return (BasicCircular, castToElement p)
 
 
-
 circularDef :: Double -> Double -> PlaneAngle Double -> PlaneAngle Double -> String
 circularDef outer width a b =
   let ox = outer *~ one
       ix = ox - (width *~ one)
+
       ri = ix /~ one
       ro = ox /~ one
       a' = a * ((-1) *~ one)
@@ -245,20 +274,17 @@ circularDef outer width a b =
       cosa = cos a'
       sinb = sin b'
       cosb = cos b'
-      dix0 = sina * ix
-      dox0 = sina * ox
-      diy0 = cosa * ix
-      doy0 = cosa * ox
-      dix1 = sinb * ix
-      dox1 = sinb * ox
-      diy1 = cosb * ix
-      doy1 = cosb * ox
+      (ix0, iy0) = (ox - sina * ix, ox - cosa * ix)
+      (ox0, oy0) = (ox - sina * ox, ox - cosa * ox)
+      (ix1, iy1) = (ox - sinb * ix, ox - cosb * ix)
+      (ox1, oy1) = (ox - sinb * ox, ox - cosb * ox)
+
   in mconcat
-     [  "M", show (ox - dix0), ",", show (ox - diy0)
-     , " L", show (ox - dox0), ",", show (ox - doy0)
-     , " A ", show ro, " ", show ro, " 0 0 1", show (ox - dox1), ",", show (ox - doy1)
-     , " L", show (ox - dix1), ",", show (ox - diy1)
-     , " A ", show ri, " ", show ri, " 0 0 0", show (ox - dix0), ",", show (ox - diy0)
+     [  "M", show ix0, ",", show iy0
+     , " L", show ox0, ",", show oy0
+     , " A ", show ro, " ", show ro, " 0 0 1", show ox1, ",", show oy1
+     , " L", show ix1, ",", show iy1
+     , " A ", show ri, " ", show ri, " 0 0 0", show ix0, ",", show iy0
      ]
 
 type PermittedSpeed    = Behavior (Velocity Double)
