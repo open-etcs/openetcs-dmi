@@ -26,3 +26,6 @@ trainSDMVtarget = to $ view sdmVtarget . view trainSDMData
 
 trainSDMVsbi :: Getter TrainBehavior (Behavior (Velocity Double))
 trainSDMVsbi = to $ view sdmVsbi . view trainSDMData
+
+trainSDMstatus :: Getter TrainBehavior (Behavior SuperVisionStatus)
+trainSDMstatus = to $ view sdmStatus . view trainSDMData

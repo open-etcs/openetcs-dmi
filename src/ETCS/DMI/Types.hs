@@ -186,7 +186,8 @@ data SDMData =
       _sdmVperm    :: Behavior (Velocity Double),
       _sdmVrelease :: Behavior (Maybe (Velocity Double)),
       _sdmVtarget  :: Behavior (Velocity Double),
-      _sdmVsbi     :: Behavior (Velocity Double)
+      _sdmVsbi     :: Behavior (Velocity Double),
+      _sdmStatus   :: Behavior SuperVisionStatus
       }
 
 data SuperVisionStatus

@@ -49,7 +49,8 @@ sdmd = SDMData {
   _sdmVperm    = pure $ 20 *~ kmh,
   _sdmVrelease = pure . Just $ 40 *~ kmh,
   _sdmVtarget  = pure $ 0 *~ kmh,
-  _sdmVsbi     = pure $ 100 *~ kmh
+  _sdmVsbi     = pure $ 100 *~ kmh,
+  _sdmStatus   = pure CSM
 }
 
 

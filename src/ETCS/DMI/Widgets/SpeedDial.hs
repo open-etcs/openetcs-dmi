@@ -50,11 +50,11 @@ instance IsWidget SpeedDial where
     let pointerColor = pure Grey
     let pointerIsRed = (== Red) <$> pointerColor
 
-    void $ mkSubWidget svg $ MkSpeedIndicatorLines (_speedDialTrainBehavior i)
-    void $ mkSubWidget svg $ MkSpeedPointer (_speedDialTrainBehavior i) pointerColor
-    void $ mkSubWidget svg $ MkDigitalSpeed (_speedDialTrainBehavior i) pointerIsRed
-    void $ mkSubWidget svg $ MkCircularSpeedGauge (_speedDialTrainBehavior i)
-      (pure CSM) (pure NoS)
+    let tb = _speedDialTrainBehavior i
+    void $ mkSubWidget svg $ MkSpeedIndicatorLines tb
+    void $ mkSubWidget svg $ MkSpeedPointer tb pointerColor
+    void $ mkSubWidget svg $ MkDigitalSpeed tb pointerIsRed
+    void $ mkSubWidget svg $ MkCircularSpeedGauge tb (pure NoS)
 
     void $ appendChild parent (pure container)
     return (SpeedDial, castToElement container)
@@ -66,7 +66,6 @@ instance IsWidget CircularSpeedGauge where
   data WidgetInput CircularSpeedGauge =
     MkCircularSpeedGauge {
       _csgTrainBehavior :: TrainBehavior,
-      _csgSupervisionStatus :: Behavior SuperVisionStatus,
       _csgSuperVisionInformation :: Behavior StatusInformation
     }
 
@@ -92,7 +91,7 @@ instance IsWidget CircularSpeedGauge where
           (pure $ 0 *~ kmh) (_csgTrainBehavior i ^. trainSDMVtarget) colorC1
 
     let color23 = csgColorMapping <$>
-                  _csgSupervisionStatus i <*> _csgSuperVisionInformation i
+                  (_csgTrainBehavior i ^. trainSDMstatus) <*> _csgSuperVisionInformation i
         colorC2 = fst <$> color23
         colorC3M = snd <$> color23
         colorC3 = fromMaybe DarkGrey <$> colorC3M
@@ -172,8 +171,9 @@ csgColorMapping TSM OvS  = (Yellow, Just Orange)
 csgColorMapping TSM WaS  = (Yellow, Just Orange)
 csgColorMapping TSM IntS = (Yellow, Just Red)
 
-csgColorMapping TSM IndS = (Yellow, Nothing)
-csgColorMapping TSM IntS = (Yellow, Nothing)
+csgColorMapping RSM IndS = (Yellow, Nothing)
+csgColorMapping RSM IntS = (Yellow, Nothing)
+
 csgColorMapping _ _ = (DarkBlue ,Nothing)
 
 data BasicSpeedHook = BasicSpeedHook
