@@ -56,7 +56,7 @@ instance IsWidget SpeedDial where
     void $ mkSubWidget svg $ MkCircularSpeedGauge (_speedDialTrainBehavior i)
       (pure $ 20 *~ kmh) (pure . Just $ 25 *~ kmh)
       (pure $ 0 *~ kmh) (pure $ 170 *~ kmh)
-      (pure CSM) (pure NoS)
+      (pure CSM) (pure OvS)
 
     void $ appendChild parent (pure container)
     return (SpeedDial, castToElement container)
@@ -274,10 +274,11 @@ circularDef outer width a b =
       cosa = cos a'
       sinb = sin b'
       cosb = cos b'
-      (ix0, iy0) = (ox - sina * ix, ox - cosa * ix)
-      (ox0, oy0) = (ox - sina * ox, ox - cosa * ox)
-      (ix1, iy1) = (ox - sinb * ix, ox - cosb * ix)
-      (ox1, oy1) = (ox - sinb * ox, ox - cosb * ox)
+      _140 = 140 *~ one
+      (ix0, iy0) = (_140 - sina * ix, _140 - cosa * ix)
+      (ox0, oy0) = (_140 - sina * ox, _140 - cosa * ox)
+      (ix1, iy1) = (_140 - sinb * ix, _140 - cosb * ix)
+      (ox1, oy1) = (_140 - sinb * ox, _140 - cosb * ox)
 
   in mconcat
      [  "M", show ix0, ",", show iy0
