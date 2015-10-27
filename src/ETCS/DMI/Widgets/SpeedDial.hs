@@ -53,7 +53,8 @@ instance IsWidget SpeedDial where
     void $ mkSubWidget svg $ MkSpeedIndicatorLines tb
     void $ mkSubWidget svg $ MkSpeedPointer tb pointerColor
     void $ mkSubWidget svg $ MkDigitalSpeed tb pointerIsRed
-    void $ mkSubWidget svg $ MkCircularSpeedGauge tb (pure NoS)
+    infs <- lift . informationStatus $ tb
+    void $ mkSubWidget svg $ MkCircularSpeedGauge tb infs
 
     void $ appendChild parent (pure container)
     return (SpeedDial, castToElement container)
@@ -274,61 +275,6 @@ circularDef outer width a b =
      , " L", show ix1, ",", show iy1
      , " A ", show ri, " ", show ri, " 0 0 0", show ix0, ",", show iy0
      ]
-
-type PermittedSpeed    = Behavior (Velocity Double)
-type IndicationSpeed   = Behavior (Velocity Double)
-type TargetSpeed       = Behavior (Velocity Double)
-type ReleaseSpeed      = Behavior (Velocity Double)
-type WarningSpeed      = Behavior (Velocity Double)
-type InterventionSpeed = Behavior (Velocity Double)
-
-data InSuperVision where
-  InCSM :: PermittedSpeed -> WarningSpeed -> InterventionSpeed -> InSuperVision
-  InPIM :: PermittedSpeed -> WarningSpeed -> InterventionSpeed -> InSuperVision
-  InTSM :: IndicationSpeed -> TargetSpeed ->
-           PermittedSpeed -> WarningSpeed -> InterventionSpeed -> InSuperVision
-  InRSM :: ReleaseSpeed -> Behavior Bool -> InSuperVision
-
-
-
-supervisionInformationStatus ::
-  InSuperVision -> Behavior (Velocity Double) -> Behavior StatusInformation
-supervisionInformationStatus (InCSM p w int) v =
-    let inNoS  = (<=) <$> v <*> p
-        inOvS  = not  <$> inNoS
-        inWaS  = (>)  <$> v <*> w
-        inIntS = (>)  <$> v <*> int
-        status' _ _ _ True = IntS
-        status' _ _ True _ = WaS
-        status' _ True _ _ = OvS
-        status' _ _ _ _ = NoS
-    in status' <$> inNoS <*> inOvS <*> inWaS <*> inIntS
-supervisionInformationStatus (InPIM p w int) v =
-  supervisionInformationStatus (InCSM p w int) v
-supervisionInformationStatus (InTSM i target p w int) v =
-  let inNoS  = (<=) <$> v <*> i
-      inIndS = (\inNos' target' v' -> not inNos' && (v' >= target'))
-               <$> inNoS <*> target <*> v
-      inOvS  = (>) <$> v <*> p
-      inWaS  = (>) <$> v <*> w
-      inIntS = (>) <$> v <*> int
-      status' _ _ _ _ True = IntS
-      status' _ _ _ True _ = WaS
-      status' _ _ True _ _ = OvS
-      status' _ True _ _ _ = IndS
-      status' _ _ _ _ _    = NoS
-  in status' <$> inNoS <*> inIndS <*> inOvS <*> inWaS <*> inIntS
-supervisionInformationStatus (InRSM release isBreaking) v =
-  let inIndS  = (<=) <$> v <*> release
-      inIntS  = (\inIndS' isBreaking' -> not inIndS' && isBreaking')
-                <$> inIndS <*> isBreaking
-  in (\a -> if a then IntS else IndS) <$> inIntS
-
-
-
-
-
-
 
 
 data SpeedIndicatorLines = SpeedIndicatorLines

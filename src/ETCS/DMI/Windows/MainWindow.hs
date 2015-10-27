@@ -140,7 +140,7 @@ shuntingButtonEnabled en = to $ \i ->
               , ( (i ^. trainInLevel Level1) `bOr`
                   ((i ^. trainInLevels [ Level2, Level3 ]) `bAnd`
                    (i ^. trainHasCommunicationSession) `bAnd`
-                   (fmap not $ i ^. trainEmergencyStop)
+                   (fmap not $ i ^. trainEmergencyBreakActive)
                   )
                 )
               ]
@@ -160,7 +160,7 @@ startButtonEnabled en = to $ \i ->
         bsAnd [ i ^. trainIsAtStandstill, i ^. trainInMode PT
               , i ^. trainDataIsValid
               , bOr bLevel1 $
-                bAnd bLevel23 (fmap not $ i ^. trainEmergencyStop)
+                bAnd bLevel23 (fmap not $ i ^. trainEmergencyBreakActive)
               ]
       bStartEnabled3 = bAnd bLevel23 $ i ^. trainInMode SR
       bLevel1  = i ^. trainInLevel Level1

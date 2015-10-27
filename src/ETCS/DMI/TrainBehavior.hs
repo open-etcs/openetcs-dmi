@@ -71,3 +71,7 @@ trainInLevels :: [ETCSLevel] -> Getter TrainBehavior (Behavior Bool)
 trainInLevels ms = to $ fmap _inLevels . view (behaviorTrainDataValue trainLevel)
   where _inLevels Nothing  = False
         _inLevels (Just l) = l `elem` ms
+
+trainBreaksActive :: Getter TrainBehavior (Behavior Bool)
+trainBreaksActive =
+  to $ \td -> ((td ^. trainServiceBreakActive) `bOr` (td ^. trainEmergencyBreakActive))

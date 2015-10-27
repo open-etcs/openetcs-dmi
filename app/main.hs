@@ -16,7 +16,6 @@ import           GHCJS.DOM.Document                   (getElementById)
 import           Numeric.Units.Dimensional.TF.Prelude
 import           Prelude                              ()
 import           Reactive.Banana
-import           Reactive.Banana.DOM
 import           Reactive.Banana.Frameworks
 
 
@@ -24,9 +23,10 @@ kmh :: (Fractional a) => Unit DVelocity a
 kmh = kilo meter / hour
 
 
+
+
 trainb :: TrainBehavior
-trainb =
-  TrainBehavior {
+trainb = TrainBehavior {
     _trainVelocity = pure (73 *~ kmh),
     _trainMode = pure FS,
     _trainNonLeadingInput = pure False,
@@ -34,22 +34,25 @@ trainb =
     _trainDriverID = pure (_UnknownData # ()),
     _trainData = pure (_UnknownData # ()),
     _trainRunningNumber = pure (_UnknownData # ()),
-    _trainEmergencyStop = pure False,
+    _trainEmergencyBreakActive = pure False,
+    _trainServiceBreakActive = pure False,
     _trainIsNonLeading = pure False,
     _trainModDriverIDAllowed = pure True,
     _trainRadioSafeConnection = pure NoConnection,
     _trainCommunicationSessionPending = pure False,
     _trainPassiveShuntingInput = pure False,
-    _trainSpeedDial = pure SpeedDial140,
+    _trainSpeedDial = pure SpeedDial400,
     _trainSDMData = sdmd
     }
 
 sdmd :: SDMData
 sdmd = SDMData {
-  _sdmVperm    = pure $ 20 *~ kmh,
-  _sdmVrelease = pure . Just $ 40 *~ kmh,
+  _sdmVperm    = pure $ 160 *~ kmh,
+  _sdmVrelease = pure $ Nothing,
   _sdmVtarget  = pure $ 0 *~ kmh,
-  _sdmVsbi     = pure $ 100 *~ kmh,
+  _sdmVwarn    = pure $ 165 *~ kmh,
+  _sdmVsbi     = pure $ 170 *~ kmh,
+  _sdmVindication = pure $ 85 *~ kmh,
   _sdmStatus   = pure CSM
 }
 

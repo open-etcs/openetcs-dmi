@@ -7,11 +7,13 @@
 module Reactive.Banana.DOM.Widget
        ( ReactiveDom, CleanupHandler, IsWidget(..), IsEventWidget(..), WidgetInstance,
          mkWidget, removeWidget, fromWidgetInstance,
-         widgetRoot, mkSubWidget,  registerCleanupIO, handleBehavior
+         widgetRoot, mkSubWidget,  registerCleanupIO, handleBehavior,
+         rsFlipFlop, newBehavior
        ) where
 
 
 import           Control.Lens
+import           Control.Monad
 import           Control.Monad.Writer
 import           Data.Typeable
 import           GHCJS.DOM.Element          (Element, setAttribute)
@@ -19,7 +21,6 @@ import           GHCJS.DOM.Node             (getParentNode, removeChild)
 import           GHCJS.DOM.Types            (IsNode)
 import           Reactive.Banana
 import           Reactive.Banana.Frameworks
-
 
 --- | The 'Monad' in which 'WidgetInstance' creation is enacted. Use 'registerCleanupIO'
 ---   to register cleanup handles. Use 'mkSubWidget' to create sub 'WidgetInstance's
@@ -90,8 +91,27 @@ mkSubWidget parent i = do
  tell . pure . widgetCleanup $ w
  return w
 
+
+newBehavior :: a -> MomentIO (Behavior a, a -> IO ())
+newBehavior s0 = do
+  (e, fe) <- newEvent
+  (,) <$> stepper s0 e <*> pure fe
+
+
 -- | register an handler for changes on a 'Behavior'
 handleBehavior :: Behavior a -> Handler a -> ReactiveDom ()
-handleBehavior a h = lift $ do
+handleBehavior a = lift . handleBehavior' a
+
+handleBehavior' :: Behavior a -> Handler a -> MomentIO ()
+handleBehavior' a h = do
   valueBLater a >>= liftIOLater . h
   changes a >>= reactimate' . fmap (fmap h)
+
+
+
+rsFlipFlop :: Behavior Bool -> Behavior Bool -> MomentIO (Behavior Bool)
+rsFlipFlop s r = do
+  (b, fire) <- newBehavior False
+  handleBehavior' s $ \a -> when a $ fire True
+  handleBehavior' r $ \a -> when a $ fire False
+  return b

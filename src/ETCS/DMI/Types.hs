@@ -165,7 +165,8 @@ data TrainBehavior =
   TrainBehavior {
     _trainVelocity                    :: Behavior (Velocity Double),
     _trainNonLeadingInput             :: Behavior Bool,
-    _trainEmergencyStop               :: Behavior Bool,
+    _trainEmergencyBreakActive        :: Behavior Bool,
+    _trainServiceBreakActive          :: Behavior Bool,
     _trainIsNonLeading                :: Behavior Bool,
     _trainPassiveShuntingInput        :: Behavior Bool,
     _trainMode                        :: Behavior ETCSMode,
@@ -183,11 +184,13 @@ data TrainBehavior =
 
 data SDMData =
   SDMData {
-      _sdmVperm    :: Behavior (Velocity Double),
-      _sdmVrelease :: Behavior (Maybe (Velocity Double)),
-      _sdmVtarget  :: Behavior (Velocity Double),
-      _sdmVsbi     :: Behavior (Velocity Double),
-      _sdmStatus   :: Behavior SuperVisionStatus
+      _sdmVperm       :: Behavior (Velocity Double),
+      _sdmVrelease    :: Behavior (Maybe (Velocity Double)),
+      _sdmVtarget     :: Behavior (Velocity Double),
+      _sdmVsbi        :: Behavior (Velocity Double),
+      _sdmVwarn       :: Behavior (Velocity Double),
+      _sdmVindication :: Behavior (Velocity Double),
+      _sdmStatus      :: Behavior SuperVisionStatus
       }
 
 data SuperVisionStatus

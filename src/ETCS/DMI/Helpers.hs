@@ -7,7 +7,7 @@ module ETCS.DMI.Helpers
        , _removeFromParentIfExists, _getOwnerDocument
        , _setCSSHidden
        , bAnd, bOr, bsAnd, bsOr
-       , kmh, newBehavior
+       , kmh
        ) where
 
 
@@ -27,10 +27,6 @@ import           Reactive.Banana
 import           Reactive.Banana.Frameworks
 
 
-newBehavior :: a -> MomentIO (Behavior a, a -> IO ())
-newBehavior s0 = do
-  (e, fe) <- newEvent
-  (,) <$> stepper s0 e <*> pure fe
 
 _setCSSHidden :: (MonadIO m, IsElement e) => e -> Bool -> m ()
 _setCSSHidden e h = do
