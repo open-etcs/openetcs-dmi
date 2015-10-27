@@ -46,18 +46,61 @@ instance IsWidget SpeedDial where
     setAttribute svg "viewBox" "0 0 280 300"
     void $ appendChild container (pure svg)
 
-    let pointerColor = pure Grey
-    let pointerIsRed = (== Red) <$> pointerColor
-
     let tb = _speedDialTrainBehavior i
-    void $ mkSubWidget svg $ MkSpeedIndicatorLines tb
-    void $ mkSubWidget svg $ MkSpeedPointer tb pointerColor
-    void $ mkSubWidget svg $ MkDigitalSpeed tb pointerIsRed
     infs <- lift . informationStatus $ tb
+
+    let pColor = pointerColor tb infs
+    let pIsRed = (== Red) <$> pColor
+
+    void $ mkSubWidget svg $ MkSpeedIndicatorLines tb
+    void $ mkSubWidget svg $ MkSpeedPointer tb pColor
+    void $ mkSubWidget svg $ MkDigitalSpeed tb pIsRed
+
     void $ mkSubWidget svg $ MkCircularSpeedGauge tb infs
 
     void $ appendChild parent (pure container)
     return (SpeedDial, castToElement container)
+
+
+
+pointerColor :: TrainBehavior -> Behavior StatusInformation -> Behavior UIColor
+pointerColor tb infs =
+  let m = tb ^. trainMode
+      st = tb ^. trainSDMstatus
+      v = tb ^. trainVelocity
+      vperm = tb ^. trainSDMVperm
+      vrelease = tb ^. trainSDMVrelease
+      vtarget = tb ^. trainSDMVtarget
+  in pointerColor' <$> m <*> st <*> infs <*> v <*> vperm <*> vrelease <*> vtarget
+  where pointerColor' _ _ OvS _ _ _ _ = Orange
+        pointerColor' _ _ WaS _ _ _ _ = Orange
+        pointerColor' FS s i v p r t = pointerColor' OS s i v p r t
+        pointerColor' _ CSM IntS v p _ _ =
+          if 0 *~ kmh <= v && v <= p then Grey else Red
+        pointerColor' OS PIM NoS v _ _ t  =
+          if 0 *~ kmh >= v && v < t then Grey else White
+        pointerColor' OS PIM IntS v p _ t =
+          if 0 *~ kmh >= v && v < t then Grey
+          else if t <= v && v <= p then White else Red
+        pointerColor' OS TSM NoS v _ _ t  =
+          if 0 *~ kmh >= v && v < t then Grey else White
+        pointerColor' OS TSM IndS _ _ _ _ = Yellow
+        pointerColor' OS TSM IntS v p _ t =
+          if 0 *~ kmh >= v && v < t then Grey
+          else if t <= v && v <= p then Yellow else Red
+        pointerColor' _ RSM IndS _ _ _ _ = Yellow
+        pointerColor' _ RSM IntS v _ (Just r) _ =
+          if 0 *~ kmh >= v && v <= r then Yellow else Red
+        pointerColor' LS CSM s v p r t = pointerColor' OS CSM s v p r t
+        pointerColor' LS PIM IntS v p _ _ = if v <= p then Grey else Red
+        pointerColor' LS TSM IntS v p _ _ = if v <= p then Grey else Red
+        pointerColor' SR s i v p r t = pointerColor' UN s i v p r t
+        pointerColor' UN PIM i v p r t = pointerColor' FS PIM i v p r t
+        pointerColor' UN TSM i v p r t = pointerColor' FS TSM i v p r t
+        pointerColor' SH s i v p r t = pointerColor' FS s i v p r t
+        pointerColor' TR _ _ _ _ _ _  = Red
+        pointerColor' _ _ _ _ _ _ _ = Grey
+
 
 
 data CircularSpeedGauge = CircularSpeedGauge
@@ -425,7 +468,7 @@ instance IsWidget DigitalSpeed where
 
 iDigits :: (Integral i, Show i) => i -> (String,String,String)
 iDigits i =
-  case show $ i `P.mod` 100 of
+  case show $ i `P.mod` 1000 of
     [c,b,a] -> ([c],[b],[a])
     [b,a] -> ("",[b],[a])
     [a] -> ("","",[a])

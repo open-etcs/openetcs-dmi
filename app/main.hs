@@ -23,11 +23,9 @@ kmh :: (Fractional a) => Unit DVelocity a
 kmh = kilo meter / hour
 
 
-
-
 trainb :: TrainBehavior
 trainb = TrainBehavior {
-    _trainVelocity = pure (73 *~ kmh),
+    _trainVelocity = pure (162 *~ kmh),
     _trainMode = pure FS,
     _trainNonLeadingInput = pure False,
     _trainLevel = pure (_UnknownData # ()),
@@ -49,11 +47,11 @@ sdmd :: SDMData
 sdmd = SDMData {
   _sdmVperm    = pure $ 160 *~ kmh,
   _sdmVrelease = pure $ Nothing,
-  _sdmVtarget  = pure $ 0 *~ kmh,
+  _sdmVtarget  = pure $ 80 *~ kmh,
   _sdmVwarn    = pure $ 165 *~ kmh,
   _sdmVsbi     = pure $ 170 *~ kmh,
   _sdmVindication = pure $ 85 *~ kmh,
-  _sdmStatus   = pure CSM
+  _sdmStatus   = pure TSM
 }
 
 
