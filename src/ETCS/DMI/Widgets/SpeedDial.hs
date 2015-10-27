@@ -55,7 +55,7 @@ instance IsWidget SpeedDial where
     void $ mkSubWidget svg $ MkSpeedIndicatorLines tb
     void $ mkSubWidget svg $ MkSpeedPointer tb pColor
     void $ mkSubWidget svg $ MkDigitalSpeed tb pIsRed
-
+    void $ mkSubWidget svg $ MkBasicSpeedHooks tb
     void $ mkSubWidget svg $ MkCircularSpeedGauge tb infs
 
     void $ appendChild parent (pure container)
@@ -78,19 +78,21 @@ pointerColor tb infs =
         pointerColor' _ CSM IntS v p _ _ =
           if 0 *~ kmh <= v && v <= p then Grey else Red
         pointerColor' OS PIM NoS v _ _ t  =
-          if 0 *~ kmh >= v && v < t then Grey else White
-        pointerColor' OS PIM IntS v p _ t =
-          if 0 *~ kmh >= v && v < t then Grey
-          else if t <= v && v <= p then White else Red
+          if 0 *~ kmh <= v && v < t then Grey else White
+        pointerColor' OS PIM IntS v p _ t
+          | 0 *~ kmh <= v && v < t = Grey
+          | t <= v && v <= p = White
+          | otherwise = Red
         pointerColor' OS TSM NoS v _ _ t  =
-          if 0 *~ kmh >= v && v < t then Grey else White
+          if 0 *~ kmh <= v && v < t then Grey else White
         pointerColor' OS TSM IndS _ _ _ _ = Yellow
-        pointerColor' OS TSM IntS v p _ t =
-          if 0 *~ kmh >= v && v < t then Grey
-          else if t <= v && v <= p then Yellow else Red
+        pointerColor' OS TSM IntS v p _ t
+          | 0 *~ kmh <= v && v < t = Grey
+          | t <= v && v <= p = Yellow
+          | otherwise = Red
         pointerColor' _ RSM IndS _ _ _ _ = Yellow
         pointerColor' _ RSM IntS v _ (Just r) _ =
-          if 0 *~ kmh >= v && v <= r then Yellow else Red
+          if 0 *~ kmh <= v && v <= r then Yellow else Red
         pointerColor' LS CSM s v p r t = pointerColor' OS CSM s v p r t
         pointerColor' LS PIM IntS v p _ _ = if v <= p then Grey else Red
         pointerColor' LS TSM IntS v p _ _ = if v <= p then Grey else Red
@@ -202,6 +204,43 @@ csgColorMapping RSM IndS = (Yellow, Nothing)
 csgColorMapping RSM IntS = (Yellow, Nothing)
 
 csgColorMapping _ _ = (DarkBlue ,Nothing)
+
+
+data BasicSpeedHooks = BasicSpeedHooks
+
+instance IsWidget BasicSpeedHooks where
+  data WidgetInput BasicSpeedHooks =
+    MkBasicSpeedHooks {
+      _bshsTrainBehavior :: TrainBehavior
+      }
+
+  mkWidgetInstance parent i = do
+    doc <- _getOwnerDocument parent
+    container <- _createSVGGElement doc
+    let
+      td = _bshsTrainBehavior i
+      mkbsh v c =
+          mkSubWidget container $
+          MkBasicSpeedHook { _bshTrainBehavior = td
+                           , _bshVelocity = v
+                           , _bshColor = c
+                           , _bshWidth = pure 20
+                           }
+    vperm   <- mkbsh (td ^. trainSDMVperm) (pure White)
+    vtarget <- mkbsh (td ^. trainSDMVtarget) (pure MediumGrey)
+
+    let visi_perm =
+          (td ^. trainInModes [OS, SR]) `bOr`
+          (((== CSM) <$> td ^. trainSDMstatus) `bAnd` (td ^. trainInModes [SH, RV]))
+    let visi_target =
+          (td ^. trainInModes [OS, SR]) `bAnd` (((/=) CSM) <$> td ^. trainSDMstatus)
+
+    handleBehavior visi_perm $ _setCSSHidden (widgetRoot vperm) . not
+    handleBehavior visi_target $ _setCSSHidden (widgetRoot vtarget) . not
+
+    void $ appendChild parent (pure container)
+    return (BasicSpeedHooks, castToElement container)
+
 
 data BasicSpeedHook = BasicSpeedHook
 

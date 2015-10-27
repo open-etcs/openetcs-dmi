@@ -25,7 +25,7 @@ kmh = kilo meter / hour
 
 trainb :: TrainBehavior
 trainb = TrainBehavior {
-    _trainVelocity = pure (162 *~ kmh),
+    _trainVelocity = pure (132 *~ kmh),
     _trainMode = pure FS,
     _trainNonLeadingInput = pure False,
     _trainLevel = pure (_UnknownData # ()),
