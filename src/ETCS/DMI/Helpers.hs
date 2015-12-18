@@ -1,32 +1,43 @@
-module ETCS.DMI.Helpers
-       ( _createDivElement, _createButtonElement, _createSpanElement
-       , _createSVGElement, _createSVGUseElement, _createSVGGElement
-       , _createSVGCircleElement, _createSVGPolygonElement
-       , _createSVGTextElement, _createSVGLineElement
-       , _createSVGPathElement
-       , _removeFromParentIfExists, _getOwnerDocument
-       , _setCSSHidden
-       , bAnd, bOr, bsAnd, bsOr
-       , kmh
-       ) where
+{-# LANGUAGE DataKinds #-}
 
 
-import           Control.Monad
-import           Control.Monad.IO.Class
-import           GHCJS.DOM.CSSStyleDeclaration        (setProperty)
-import           GHCJS.DOM.Document                   (createElement,
-                                                       createElementNS)
-import           GHCJS.DOM.Element                    (getStyle)
-import           GHCJS.DOM.Node                       (getOwnerDocument,
-                                                       getParentNode,
-                                                       isEqualNode, removeChild)
-import           GHCJS.DOM.Types
-import           Numeric.Units.Dimensional.TF.Prelude
-import qualified Prelude                              as Prelude
-import           Reactive.Banana
-import           Reactive.Banana.Frameworks
+
+module ETCS.DMI.Helpers where
 
 
+import Control.Monad.Fix
+import Numeric.Units.Dimensional.Prelude
+import qualified Prelude
+import Reflex
+
+
+
+bsAnd, bsOr :: (Applicative f, Traversable t) => t (f Bool) -> f Bool
+bsAnd = fmap Prelude.and . sequenceA
+bsOr  = fmap Prelude.or . sequenceA
+
+bAnd, bOr :: Applicative f => f Bool -> f Bool -> f Bool
+bAnd a b = (&&) <$> a <*> b
+bOr  a b = (||) <$> a <*> b
+
+
+kmh :: Fractional a => Unit 'NonMetric DVelocity a
+kmh = kilo meter / hour
+
+srFlipFlop ::
+  (Reflex t, MonadSample t m, MonadHold t m, MonadFix m) =>
+  Dynamic t Bool -> Dynamic t Bool -> m (Dynamic t Bool)
+srFlipFlop sD rD =
+  let sE = ffilter id $ updated sD
+      rE = ffilter id $ updated rD
+      cE = leftmost [True <$ sE, False <$ rE]
+  in do
+    s <- sample . current $ sD
+    srD <- holdDyn s cE
+    return $ nubDyn srD
+
+
+{-
 
 _setCSSHidden :: (MonadIO m, IsElement e) => e -> Bool -> m ()
 _setCSSHidden e h = do
@@ -109,3 +120,4 @@ _getOwnerDocument n = do
   getOwnerDocument n >>=
     maybe (fail "unable to determine OwnerDocument") return
 
+-}

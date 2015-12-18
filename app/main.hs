@@ -1,24 +1,77 @@
+{-# LANGUAGE CPP               #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Main ( main ) where
 
-import           Control.Concurrent
-import           Control.Lens                         hiding ((*~))
+#if __GHCJS__
+
+import           Control.Lens                      hiding ((*~))
 import           Control.Monad
 import           ETCS.DMI
+import           ETCS.DMI.Widgets.SpeedDial
+import           Numeric.Units.Dimensional.Prelude
+import           Prelude                           ()
+import           Reflex.Dom
+
+trainb :: (Reflex t) => TrainBehavior t
+trainb = TrainBehavior {
+    _trainVelocity = constDyn (132 *~ kmh),
+    _trainMode = constDyn FS,
+    _trainNonLeadingInput = constDyn False,
+    _trainLevel = constDyn (_UnknownData # ()),
+    _trainDriverID = constDyn (_UnknownData # ()),
+    _trainData = constDyn (_UnknownData # ()),
+    _trainRunningNumber = constDyn (_UnknownData # ()),
+    _trainEmergencyBreakActive = constDyn False,
+    _trainServiceBreakActive = constDyn False,
+    _trainIsNonLeading = constDyn False,
+    _trainModDriverIDAllowed = constDyn True,
+    _trainRadioSafeConnection = constDyn NoConnection,
+    _trainCommunicationSessionPending = constDyn False,
+    _trainPassiveShuntingInput = constDyn False,
+    _trainSpeedDial = constDyn SpeedDial400,
+    _trainSdmData = sdmd
+    }
+
+sdmd :: (Reflex t) => SdmData t
+sdmd = SdmData {
+  _sdmVperm    = constDyn $ 160 *~ kmh,
+  _sdmVrelease = constDyn $ Nothing,
+  _sdmVtarget  = constDyn $ 80 *~ kmh,
+  _sdmVwarn    = constDyn $ 165 *~ kmh,
+  _sdmVsbi     = constDyn $ 170 *~ kmh,
+  _sdmVindication = constDyn $ 85 *~ kmh,
+  _sdmStatus   = constDyn TSM
+}
+
+
+main :: IO ()
+main = mainWidget $ do
+    sd <- speedDial trainb
+    return ()
+
+
+#else
+
+main :: IO ()
+main = return ()
+
+#endif
+
+
+{-
+import           ETCS.DMI
 import           ETCS.DMI.StartupSequence
-import           ETCS.DMI.Types
 import           ETCS.DMI.Widgets.SpeedDial
 import           GHCJS.DOM                            (enableInspector,
                                                        runWebGUI,
                                                        webViewGetDomDocument)
 import           GHCJS.DOM.Document                   (getElementById)
-import           Numeric.Units.Dimensional.TF.Prelude
-import           Prelude                              ()
-import           Reactive.Banana
-import           Reactive.Banana.Frameworks
+-}
 
 
+
+{-
 kmh :: (Fractional a) => Unit DVelocity a
 kmh = kilo meter / hour
 
@@ -85,3 +138,4 @@ main = runWebGUI $ \ webView -> do
       threadDelay 10000000
 
 
+-}

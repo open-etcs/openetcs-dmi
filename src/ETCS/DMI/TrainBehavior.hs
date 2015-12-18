@@ -4,15 +4,19 @@
 module ETCS.DMI.TrainBehavior  where
 
 
-import           Control.Lens                         hiding ((*~))
-import           ETCS.DMI.Helpers
+import           Control.Lens                      hiding ((*~))
 import           ETCS.DMI.Types
-import           Numeric.Units.Dimensional.TF.Prelude
-import           Prelude                              ()
-import           Reactive.Banana
+import           Numeric.Units.Dimensional.Prelude
+import qualified Prelude                           as Prelude
+import           Reflex
 
 
-makeLenses ''TrainBehavior
+trainBreaksActive :: (Reflex t, MonadHold t m) => TrainBehavior t -> m (Dynamic t Bool)
+trainBreaksActive td =
+  combineDyn (||) (td ^. trainServiceBreakActive) (td ^. trainEmergencyBreakActive)
+
+
+{-
 
 behaviorTrainDataIsValid ::
   Getter TrainBehavior (Behavior (OnBoardData a)) ->
@@ -75,3 +79,5 @@ trainInLevels ms = to $ fmap _inLevels . view (behaviorTrainDataValue trainLevel
 trainBreaksActive :: Getter TrainBehavior (Behavior Bool)
 trainBreaksActive =
   to $ \td -> ((td ^. trainServiceBreakActive) `bOr` (td ^. trainEmergencyBreakActive))
+
+-}

@@ -1,111 +1,139 @@
 {-# LANGUAGE Rank2Types      #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module ETCS.DMI.SDMData where
+
+module ETCS.DMI.SDMData (informationStatus) where
 
 
-import           Control.Lens                         hiding ((*~))
+import           Control.Lens                      hiding ((*~))
 import           ETCS.DMI.TrainBehavior
 import           ETCS.DMI.Types
-import           Numeric.Units.Dimensional.TF.Prelude
-import           Prelude                              ()
-import           Reactive.Banana
-import           Reactive.Banana.DOM.Widget
-import           Reactive.Banana.Frameworks
+import           ETCS.DMI.Helpers
+import           Numeric.Units.Dimensional.Prelude
+import           Prelude                           ()
+import           Reflex
+import           Control.Monad.Fix
 
 
-makeLenses ''SDMData
 
-
-trainSDMVrelease :: Getter TrainBehavior (Behavior (Maybe (Velocity Double)))
-trainSDMVrelease = trainSDMData . sdmVrelease
-
-trainSDMVperm :: Getter TrainBehavior (Behavior (Velocity Double))
-trainSDMVperm = trainSDMData . sdmVperm
-
-trainSDMVtarget :: Getter TrainBehavior (Behavior (Velocity Double))
-trainSDMVtarget = trainSDMData . sdmVtarget
-
-trainSDMVsbi :: Getter TrainBehavior (Behavior (Velocity Double))
-trainSDMVsbi = trainSDMData .  sdmVsbi
-
-trainSDMVwarn :: Getter TrainBehavior (Behavior (Velocity Double))
-trainSDMVwarn = trainSDMData . sdmVwarn
-
-trainSDMVindication :: Getter TrainBehavior (Behavior (Velocity Double))
-trainSDMVindication =  trainSDMData .sdmVindication
-
-trainSDMstatus :: Getter TrainBehavior (Behavior SuperVisionStatus)
-trainSDMstatus = trainSDMData . sdmStatus
-
-
-informationStatus :: TrainBehavior -> MomentIO (Behavior StatusInformation)
+informationStatus :: (Reflex t, MonadSample t m, MonadHold t m, MonadFix m) =>
+                     TrainBehavior t -> m (Dynamic t StatusInformation)
 informationStatus td = do
   csm <- csmInformationStatus td
   pim <- pimInformationStatus td
   tsm <- tsmInformationStatus td
   rsm <- rsmInformationStatus td
-  return $ switchMode <$> td ^. trainSDMstatus <*> csm <*> pim <*> tsm <*> rsm
+  let status = td ^. sdmStatus
+      statusInfB = switchMode <$> current status <*> current csm <*> current pim <*> current tsm <*> current rsm
+      statusInfE = attach statusInfB $
+                   leftmost [ const () <$> updated status
+                            , const () <$> updated csm
+                            , const () <$> updated pim
+                            , const () <$> updated tsm
+                            , const () <$> updated rsm
+                            ]
+  statusInf <- sample statusInfB
+  holdDyn statusInf (fst <$> statusInfE)
   where switchMode CSM csm _ _ _ = csm
         switchMode PIM _ pim _ _ = pim
         switchMode TSM _ _ tsm _ = tsm
         switchMode RSM _ _ _ rsm = rsm
 
 
-csmInformationStatus :: TrainBehavior -> MomentIO (Behavior StatusInformation)
+
+
+csmInformationStatus :: (Reflex t, MonadSample t m, MonadHold t m, MonadFix m) =>
+                        TrainBehavior t -> m (Dynamic t StatusInformation)
 csmInformationStatus td =
-  let p = td ^. trainSDMVperm
+  let p = td ^. sdmVperm
       v = td ^. trainVelocity
-      w = td ^. trainSDMVwarn
-      sbi = td ^. trainSDMVsbi
-      nos = (<=) <$> v <*> p
-      ovs = not <$> nos
-      breaks = td ^. trainBreaksActive
+      w = td ^. sdmVwarn
+      sbi = td ^. sdmVsbi
   in do
-    was <-  rsFlipFlop ((>) <$> v <*> w) ((<=) <$> v <*> p)
-    ints <- rsFlipFlop ((>) <$> v <*> sbi) (not <$> breaks)
-    return $ status <$> nos <*> ovs <*> was <*> ints
+    nos <- combineDyn (<=) v p
+    ovs <- mapDyn not nos
+    setWas <- combineDyn (>) v w
+    resetWas <- combineDyn (<=) v p
+
+    was <-  srFlipFlop setWas resetWas
+    
+    resetInts <- trainBreaksActive td >>= mapDyn not
+    setInts <- combineDyn (>) v sbi
+    ints <- srFlipFlop setInts resetInts
+
+    let csmB = status <$> current nos <*> current ovs <*> current was <*> current ints
+        csmE = attach csmB $
+               leftmost [ updated nos, updated ovs, updated was, updated ints]
+    csm <- sample csmB
+    holdDyn csm (fst <$> csmE)
       where status _ _ _ True = IntS
             status _ _ True _ = WaS
             status _ True _ _ = OvS
             status _ _ _ _    = NoS
 
-pimInformationStatus :: TrainBehavior -> MomentIO (Behavior StatusInformation)
+
+pimInformationStatus :: (Reflex t, MonadSample t m, MonadHold t m, MonadFix m) =>
+                        TrainBehavior t -> m (Dynamic t StatusInformation)
 pimInformationStatus = csmInformationStatus
 
-tsmInformationStatus :: TrainBehavior -> MomentIO (Behavior StatusInformation)
+
+tsmInformationStatus :: (Reflex t, MonadSample t m, MonadHold t m, MonadFix m) =>
+                        TrainBehavior t -> m (Dynamic t StatusInformation)
 tsmInformationStatus td =
-  let p = td ^. trainSDMVperm
+  let p = td ^. sdmVperm
       v = td ^. trainVelocity
-      t = td ^. trainSDMVtarget
-      i = td ^. trainSDMVindication
-      w = td ^. trainSDMVwarn
-      breaks = td ^. trainBreaksActive
-      sbi = td ^. trainSDMVsbi
-      nos = (<=) <$> v <*> i
-      ovs = (>) <$> v <*> p
+      t = td ^. sdmVtarget
+      i = td ^. sdmVindication
+      w = td ^. sdmVwarn
+      sbi = td ^. sdmVsbi
   in do
-    inds <- rsFlipFlop ((>) <$> v <*> i) ((<) <$> v <*> t)
-    was <-  rsFlipFlop ((>) <$> v <*> w) ((<=) <$> v <*> p)
-    ints <- rsFlipFlop ((>) <$> v <*> sbi) (not <$> breaks)
-    return $ status <$> nos <*> inds <*> ovs <*> was <*> ints
+    breaks <- trainBreaksActive td
+    notBreaks <- mapDyn not breaks
+    nos <- combineDyn (<=) v i
+    ovs <- combineDyn (>) v p
+    
+    setInds <- combineDyn (>) v i
+    resetInds <- combineDyn (<) v t
+    inds <- srFlipFlop setInds resetInds
+
+    setWas <- combineDyn (>) v w
+    resetWas <- combineDyn (<=) v p
+    was <-  srFlipFlop setWas resetWas
+
+    setInts <- combineDyn (>) v sbi
+    ints <- srFlipFlop setInts notBreaks
+
+
+    let tsmB = status <$> current nos <*>
+               current inds <*> current ovs <*> current was <*> current ints
+        tsmE = attach tsmB $
+               leftmost [ updated nos, updated inds, updated ovs
+                        , updated was, updated ints]
+    tsm <- sample tsmB
+    holdDyn tsm (fst <$> tsmE)    
       where status _ _ _ _ True = IntS
             status _ _ _ True _ = WaS
             status _ _ True _ _ = OvS
             status _ True _ _ _ = IndS
             status _ _ _ _ _    = NoS
 
-rsmInformationStatus :: TrainBehavior -> MomentIO (Behavior StatusInformation)
+
+
+
+rsmInformationStatus :: (Reflex t, MonadSample t m, MonadHold t m, MonadFix m) =>
+                        TrainBehavior t -> m (Dynamic t StatusInformation)
 rsmInformationStatus td =
-  let r = td ^. trainSDMVrelease
+  let rM = td ^. sdmVrelease
       v = td ^. trainVelocity
-      breaks = td ^. trainBreaksActive
-      test p a (Just b) = a `p` b
-      test _ _ Nothing  = False
-      inds = test (<=) <$> v <*> r
   in do
-    ints <- rsFlipFlop (not <$> inds) (not <$> breaks)
-    return $ status <$> inds <*> ints
+    r <- mapDyn (maybe ((-1) *~ kmh) id) rM
+    breaks <- trainBreaksActive td
+    inds <- combineDyn (<=) v r
+
+    setInts <- mapDyn not inds
+    resetInts <- mapDyn not breaks    
+    ints <- srFlipFlop setInts resetInts
+
+    combineDyn status inds ints
       where status _ True = IntS
             status _ _    = IndS
-
