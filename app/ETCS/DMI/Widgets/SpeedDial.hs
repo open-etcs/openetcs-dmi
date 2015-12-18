@@ -54,10 +54,13 @@ speedDial tb = do
 buildSpeedPointer ::
   (MonadWidget t m) => TrainBehavior t -> Dynamic t UIColor -> m SVGGElement
 buildSpeedPointer tb col = do
-  g <- buildSVGGroup (Map.fromList [("class","SpeedPointer")]) $ do
+  transformV <-  speedPointerTransform tb
+  gAttrs <-
+    mapDyn (\trV -> Map.fromList $
+                    [("class","SpeedPointer"), ("transform", trV)]) transformV
+  g <- buildSVGGroup gAttrs $ do
     _ <- buildSVGPolygon pAttributes
     _ <- buildSVGCircle cAttributes
-
     return ()
   performEvent_$ (\v -> liftIO $ setUiColor g $! v) <$> updated col
   c <- sample . current $ col
@@ -67,6 +70,19 @@ buildSpeedPointer tb col = do
           cAttributes = Map.fromList [ ("cx", "105"), ("cy", "25"), ("r", "25") ]
           pAttributes = Map.fromList [ ("points", pPoints) ]
           pPoints = "0,24 15,24 23,20 80,20 80,29 23,29 15,26 0,26"
+
+
+
+
+speedPointerTransform ::
+  (Reflex t, MonadHold t m) => TrainBehavior t -> m (Dynamic t String)
+speedPointerTransform tb =
+  let degDyn = combineDyn speedDialDegree
+      spTransformValue a = mconcat
+        [ "translate(35, 115) rotate(", show $ a /~ degree, ",105,25) " ]
+  in do
+    deg <- degDyn (tb ^. trainSpeedDial) (tb ^. trainVelocity)
+    mapDyn spTransformValue deg
 
 
 setUiColor :: (MonadIO m, IsElement e) => e -> UIColor -> m ()
