@@ -1,5 +1,4 @@
-{-# LANGUAGE Rank2Types      #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE Trustworthy #-}
 
 module ETCS.DMI.TrainBehavior  where
 
@@ -7,7 +6,7 @@ module ETCS.DMI.TrainBehavior  where
 import           Control.Lens                      hiding ((*~))
 import           ETCS.DMI.Types
 import           Numeric.Units.Dimensional.Prelude
-import qualified Prelude                         
+import qualified Prelude ()
 import           Reflex
 
 

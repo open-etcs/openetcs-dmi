@@ -37,7 +37,7 @@ $(main_css): $(sass_source)
 	$(scss_bin) $? $@
 
 $(main_min_css): $(main_css)
-	$(yui_bin) $? > $@
+	$(yui_bin) -v $? > $@
 
 $(main_js): $(js_source)
 	cp $? $@

@@ -1,6 +1,5 @@
+{-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE DataKinds #-}
-
-
 
 module ETCS.DMI.Helpers where
 

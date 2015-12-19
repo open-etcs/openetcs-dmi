@@ -3,6 +3,7 @@
 {-# LANGUAGE MultiParamTypeClasses  #-}
 {-# LANGUAGE Rank2Types             #-}
 {-# LANGUAGE TemplateHaskell        #-}
+{-# LANGUAGE Trustworthy            #-}
 
 module ETCS.DMI.Types where
 

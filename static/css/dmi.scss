@@ -61,6 +61,11 @@ $F_height: $D_height + $G_height;
   user-select: none;
 }
 
+.textCenterMiddle {
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+  
 .clean { clean: all; }
 
 
@@ -75,21 +80,22 @@ body {
   overflow: hidden;
 }
 
+  
 
 svg.SpeedDial {
   @extend .notSelectable;
+
   g.SpeedIndicatorNumbers {
     text {
-      text-anchor: middle;
-      dominant-baseline: central;
+      @extend .textCenterMiddle;
+
       font-size: 16px;
     }
   }
 
   g.DigitalSpeed {
     text {
-      text-anchor: middle;
-      dominant-baseline: central;
+      @extend .textCenterMiddle;      
       font-size: 18px;
     }
   }

@@ -1,6 +1,4 @@
-{-# LANGUAGE Rank2Types      #-}
-{-# LANGUAGE TemplateHaskell #-}
-
+{-# LANGUAGE Trustworthy #-}
 
 module ETCS.DMI.SDMData (informationStatus) where
 
