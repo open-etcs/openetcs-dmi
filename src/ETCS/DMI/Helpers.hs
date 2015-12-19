@@ -11,6 +11,10 @@ import qualified Prelude
 import Reflex
 
 
+dynAnd,dynOr :: (Reflex t, MonadHold t m) =>
+                Dynamic t Bool -> Dynamic t Bool -> m (Dynamic t Bool)
+dynAnd = combineDyn (&&)
+dynOr = combineDyn (||)
 
 bsAnd, bsOr :: (Applicative f, Traversable t) => t (f Bool) -> f Bool
 bsAnd = fmap Prelude.and . sequenceA
@@ -37,15 +41,8 @@ srFlipFlop sD rD =
     return $ nubDyn srD
 
 
-{-
 
-_setCSSHidden :: (MonadIO m, IsElement e) => e -> Bool -> m ()
-_setCSSHidden e h = do
-  st' <- getStyle e
-  flip (maybe (fail "unable to get stlye")) st' $ \st ->
-    let v :: String
-        v = if h then "none" else "initial"
-    in setProperty st ("display" :: String) (pure v) (mempty :: String)
+{-
 
 
 kmh :: (Fractional a) => Unit DVelocity a

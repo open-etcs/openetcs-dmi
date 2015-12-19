@@ -7,13 +7,22 @@ module ETCS.DMI.TrainBehavior  where
 import           Control.Lens                      hiding ((*~))
 import           ETCS.DMI.Types
 import           Numeric.Units.Dimensional.Prelude
-import qualified Prelude                           as Prelude
+import qualified Prelude                         
 import           Reflex
 
 
 trainBreaksActive :: (Reflex t, MonadHold t m) => TrainBehavior t -> m (Dynamic t Bool)
 trainBreaksActive td =
   combineDyn (||) (td ^. trainServiceBreakActive) (td ^. trainEmergencyBreakActive)
+
+
+trainInMode :: (Reflex t, MonadHold t m) =>
+               ETCSMode -> TrainBehavior t -> m (Dynamic t Bool)
+trainInMode m = mapDyn (m ==) . view trainMode
+
+trainInModes :: (Reflex t, MonadHold t m) =>
+                [ETCSMode] -> TrainBehavior t -> m (Dynamic t Bool)
+trainInModes ms = mapDyn (`elem` ms) . view trainMode
 
 
 {-
@@ -60,11 +69,6 @@ trainIsAtStandstill :: Getter TrainBehavior (Behavior Bool)
 trainIsAtStandstill = to fromTB
   where fromTB tb = (== (0 *~ kmh)) <$> tb ^. trainVelocity
 
-trainInMode :: ETCSMode -> Getter TrainBehavior (Behavior Bool)
-trainInMode m = to $ fmap (m ==) . view trainMode
-
-trainInModes :: [ETCSMode] -> Getter TrainBehavior (Behavior Bool)
-trainInModes ms = to $ fmap (`elem` ms) . view trainMode
 
 trainInLevel :: ETCSLevel -> Getter TrainBehavior (Behavior Bool)
 trainInLevel m = to $ fmap _isLevel . view (behaviorTrainDataValue trainLevel)

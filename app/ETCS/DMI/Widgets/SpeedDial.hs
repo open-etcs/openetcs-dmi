@@ -31,6 +31,8 @@ speedDial tb = do
     _ <- buildSpeedIndicators tb
     _ <- buildSpeedPointer tb pColor
     _ <- buildDigitalSpeed tb pIsRed
+    _ <- buildBasicSpeedHooks tb
+    _ <- buildCircularSpeedGauge tb infs
     
     return ()
 
@@ -45,6 +47,73 @@ speedDial tb = do
                           
 
 
+--
+-- Basic Speed Hooks
+--
+buildBasicSpeedHooks ::
+  (MonadHold t m, MonadWidget t m) => TrainBehavior t -> m SVGGElement
+buildBasicSpeedHooks tb =
+  let gattrs = Map.fromList [("class","BasicSpeedHooks")]
+  in do
+    inCSM <- mapDyn (== CSM) $ tb ^. sdmStatus
+    inOSSR <- trainInModes [OS,SR] tb
+    inSHRV <- trainInModes [SH,RV] tb
+    visi_perm <- nubDyn <$> dynAnd inCSM inSHRV >>= dynOr inOSSR
+    visi_target <- nubDyn <$> mapDyn not inCSM >>= dynAnd inOSSR
+    buildSVGGroup gattrs $ do
+      vperm <- buildBasicSpeedHook tb (tb ^. sdmVperm) (constDyn White) (constDyn 20)
+      visi_perm' <- sample . current $ visi_perm
+      liftIO . setCssHidden vperm . not $ visi_perm'      
+      performEvent_ $ setCssHidden vperm . not <$> updated visi_perm
+      vtarget <- buildBasicSpeedHook tb (tb ^. sdmVtarget) (constDyn MediumGrey) (constDyn 20)
+      visi_target' <- sample . current $ visi_target
+      liftIO . setCssHidden vtarget . not $ visi_target'      
+      performEvent_ $ setCssHidden vtarget . not <$> updated visi_target
+
+
+--
+-- Basic Speed Hook
+--
+
+buildBasicSpeedHook ::
+  (MonadHold t m, MonadWidget t m) => TrainBehavior t -> Dynamic t (Velocity Double) -> Dynamic t UIColor -> Dynamic t Int -> m SVGGElement
+buildBasicSpeedHook tb v c wi =
+  let gattrs = Map.fromList [("class","BasicSpeedHook")]
+      bshDef :: Int -> String
+      bshDef w =
+        let a = (P.-) 20 w
+        in mconcat ["M140,", show a,  " L140,20 L134,20 L134,", show a]
+      transformDef a = mconcat [ "rotate(", show ((a /~ degree)), ", 140, 140)" ]
+      pathAttrs' w a =
+         Map.fromList [("d", bshDef w), ("transform", transformDef a)] 
+  in do
+    g <- buildSVGGroup gattrs $ do
+      aD <- combineDyn speedDialDegree (tb ^. trainSpeedDial) v
+      pathAttrs <- combineDyn pathAttrs' wi aD
+      path <- buildSVGPath pathAttrs
+      
+      return ()
+
+    return g           
+
+
+--
+-- Circular Speed Gauge
+--
+
+buildCircularSpeedGauge ::
+  (MonadHold t m, MonadWidget t m) =>
+  TrainBehavior t -> Dynamic t StatusInformation -> m SVGGElement
+buildCircularSpeedGauge tb infs =
+  let gattrs = Map.fromList [("class","CircularSpeedGauge")]
+  in do
+    g <- buildSVGGroup gattrs $ do
+
+      return ()
+
+    return g           
+
+    
 --
 -- Digital Speed
 --
@@ -213,13 +282,13 @@ buildSpeedIndicatorsSVG sd = do
 
 buildLongSpeedIndicatorLines :: (MonadWidget t m) => SpeedDialType -> m SVGGElement
 buildLongSpeedIndicatorLines d =
-  buildSVGGroup (mempty :: AttributeMap) $ 
+  buildSVGGroup (Map.fromList [("class","LongSpeedIndicatorLines")]) $ 
     sequence_ $ buildSpeedIndicatorLine 25 d <$> speedIndicatorsLong d
 
 
 buildShortSpeedIndicatorLines :: (MonadWidget t m) => SpeedDialType -> m SVGGElement
 buildShortSpeedIndicatorLines d =
-  buildSVGGroup (mempty :: AttributeMap) $ 
+  buildSVGGroup (Map.fromList [("class","ShortSpeedIndicatorLines")]) $ 
     sequence_ $ buildSpeedIndicatorLine 15 d <$> speedIndicatorsShort d
 
 
@@ -275,6 +344,10 @@ buildSVGPolygon :: (MonadWidget t m, Attributes m attrs) => attrs -> m SVGPolygo
 buildSVGPolygon =
   liftM castToSVGPolygonElement . buildEmptyElementNS (pure svgNS) "polygon"
 
+buildSVGPath :: (MonadWidget t m, Attributes m attrs) => attrs -> m SVGPathElement
+buildSVGPath =
+  liftM castToSVGPathElement . buildEmptyElementNS (pure svgNS) "path"
+
 
 buildSVGCircle :: (MonadWidget t m, Attributes m attrs) => attrs -> m SVGCircleElement
 buildSVGCircle =
@@ -291,6 +364,16 @@ buildSVGGroup :: (MonadWidget t m, Attributes m attrs) =>
                    attrs -> m () ->  m SVGGElement
 buildSVGGroup args =
   liftM (castToSVGGElement . fst) . buildElementNS (pure svgNS) "g" args
+
+
+
+setCssHidden :: (MonadIO m, IsElement e) => e -> Bool -> m ()
+setCssHidden e h = do
+  st' <- getStyle e
+  flip (maybe (fail "unable to get stlye")) st' $ \st ->
+    let v :: String
+        v = if h then "none" else "initial"
+    in setProperty st ("display" :: String) (pure v) (mempty :: String)
 
 
 --
@@ -408,6 +491,7 @@ instance IsWidget SpeedDial where
     void $ mkSubWidget svg $ MkSpeedIndicatorLines tb
     void $ mkSubWidget svg $ MkSpeedPointer tb pColor
     void $ mkSubWidget svg $ MkDigitalSpeed tb pIsRed
+
     void $ mkSubWidget svg $ MkBasicSpeedHooks tb
     void $ mkSubWidget svg $ MkCircularSpeedGauge tb infs
 
