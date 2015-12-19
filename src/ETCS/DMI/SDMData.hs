@@ -33,7 +33,7 @@ informationStatus td = do
                             , const () <$> updated rsm
                             ]
   statusInf <- sample statusInfB
-  holdDyn statusInf (fst <$> statusInfE)
+  nubDyn <$> holdDyn statusInf (fst <$> statusInfE)
   where switchMode CSM csm _ _ _ = csm
         switchMode PIM _ pim _ _ = pim
         switchMode TSM _ _ tsm _ = tsm
@@ -65,7 +65,7 @@ csmInformationStatus td =
         csmE = attach csmB $
                leftmost [ updated nos, updated ovs, updated was, updated ints]
     csm <- sample csmB
-    holdDyn csm (fst <$> csmE)
+    nubDyn <$> holdDyn csm (fst <$> csmE)
       where status _ _ _ True = IntS
             status _ _ True _ = WaS
             status _ True _ _ = OvS
@@ -110,7 +110,7 @@ tsmInformationStatus td =
                leftmost [ updated nos, updated inds, updated ovs
                         , updated was, updated ints]
     tsm <- sample tsmB
-    holdDyn tsm (fst <$> tsmE)    
+    nubDyn <$> holdDyn tsm (fst <$> tsmE)    
       where status _ _ _ _ True = IntS
             status _ _ _ True _ = WaS
             status _ _ True _ _ = OvS
@@ -134,6 +134,6 @@ rsmInformationStatus td =
     resetInts <- mapDyn not breaks    
     ints <- srFlipFlop setInts resetInts
 
-    combineDyn status inds ints
+    nubDyn <$> combineDyn status inds ints
       where status _ True = IntS
             status _ _    = IndS

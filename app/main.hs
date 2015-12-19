@@ -15,7 +15,7 @@ import           Reflex.Dom
 
 trainb :: (Reflex t) => TrainBehavior t
 trainb = TrainBehavior {
-    _trainVelocity = constDyn (132 *~ kmh),
+    _trainVelocity = constDyn (42.3 *~ kmh),
     _trainMode = constDyn FS,
     _trainNonLeadingInput = constDyn False,
     _trainLevel = constDyn (_UnknownData # ()),

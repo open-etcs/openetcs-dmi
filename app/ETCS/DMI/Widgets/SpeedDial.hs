@@ -30,21 +30,64 @@ speedDial tb = do
 
     _ <- buildSpeedIndicators tb
     _ <- buildSpeedPointer tb pColor
+    _ <- buildDigitalSpeed tb pIsRed
+    
     return ()
 
   return SpeedDial
-     where speedDialWidth = 280 :: Int
-           speedDialHeight = 300 :: Int
-           speedDialViewbox =
-             mconcat [ "0 0 ", show speedDialWidth, " ", show speedDialHeight ]
-           attrs :: AttributeMap
+     where attrs :: AttributeMap
            attrs = Map.fromList $
-                   [ ("viewbox", speedDialViewbox) ] ++
-                   [ ("width", show speedDialWidth ++ "px")
-                   , ("height", show speedDialHeight ++ "px")
+                   [ ("viewbox", "0 0 280 300")
+                   , ("width", "280px")
+                   , ("height", "300px")
                    , ("class", "SpeedDial")
                    ]
                           
+
+
+--
+-- Digital Speed
+--
+
+buildDigitalSpeed ::
+  (MonadHold t m, MonadWidget t m) => TrainBehavior t -> Dynamic t Bool -> m SVGGElement
+buildDigitalSpeed tb isRed =
+  let gAttrs = Map.fromList [("class", "DigitalSpeed")]
+      delta_x :: Double -> Double
+      delta_x j = (P.-) 160 . (P.*) j . (P./) 50 $ 3
+      dAttrs x = Map.fromList [("x", show . delta_x $ x), ("y", "140")]
+      iDigits :: (Integral i, Show i) => i -> (String,String,String)
+      iDigits i =
+        case show $ i `P.mod` 1000 of
+        [c,b,a] -> ([c],[b],[a])
+        [b,a] -> ("",[b],[a])
+        [a] -> ("","",[a])
+        _ -> ("","","")
+  in do 
+    bDigits <- mapDyn (\v -> iDigits ((round $ v /~ kmh) :: Int)) $
+               tb ^. trainVelocity
+    b0 <- nubDyn <$> mapDyn (\(_,_,a) -> a) bDigits
+    b1 <- nubDyn <$> mapDyn (\(_,b,_) -> b) bDigits
+    b2 <- nubDyn <$> mapDyn (\(c,_,_) -> c) bDigits
+
+--    
+    g <- buildSVGGroup gAttrs $
+         let setD _d = liftIO . setTextContent _d . pure
+             buildDigit n bn = do
+               dn <- buildSVGText $ dAttrs n
+               bn' <- sample . current $ bn
+               setD dn bn'
+               performEvent_ $ setD dn <$> updated bn
+         in sequence_ [ buildDigit 0 b0, buildDigit 1 b1, buildDigit 2 b2]
+
+    let setGCol r = setUiColor g $ if r then White else Black
+    isRed' <- sample . current $ isRed
+    setGCol isRed'
+    performEvent_ $ setGCol  <$> updated isRed 
+    
+    return g
+
+
 
 
 --
@@ -79,10 +122,10 @@ speedPointerTransform ::
 speedPointerTransform tb =
   let degDyn = combineDyn speedDialDegree
       spTransformValue a = mconcat
-        [ "translate(35, 115) rotate(", show $ a /~ degree, ",105,25) " ]
+        [ "translate(35, 115) rotate(", show $ (a + (90 *~ degree))  /~ degree, ",105,25) " ]
   in do
-    deg <- degDyn (tb ^. trainSpeedDial) (tb ^. trainVelocity)
-    mapDyn spTransformValue deg
+    deg <- degDyn (tb ^. trainSpeedDial) (tb ^. trainVelocity)    
+    mapDyn spTransformValue (nubDyn deg)
 
 
 setUiColor :: (MonadIO m, IsElement e) => e -> UIColor -> m ()
@@ -372,46 +415,6 @@ instance IsWidget SpeedDial where
     return (SpeedDial, castToElement container)
 
 
-
-pointerColor :: TrainBehavior -> Behavior StatusInformation -> Behavior UIColor
-pointerColor tb infs =
-  let m = tb ^. trainMode
-      st = tb ^. trainSDMstatus
-      v = tb ^. trainVelocity
-      vperm = tb ^. trainSDMVperm
-      vrelease = tb ^. trainSDMVrelease
-      vtarget = tb ^. trainSDMVtarget
-  in pointerColor' <$> m <*> st <*> infs <*> v <*> vperm <*> vrelease <*> vtarget
-  where pointerColor' _ _ OvS _ _ _ _ = Orange
-        pointerColor' _ _ WaS _ _ _ _ = Orange
-        pointerColor' FS s i v p r t = pointerColor' OS s i v p r t
-        pointerColor' _ CSM IntS v p _ _ =
-          if 0 *~ kmh <= v && v <= p then Grey else Red
-        pointerColor' OS PIM NoS v _ _ t  =
-          if 0 *~ kmh <= v && v < t then Grey else White
-        pointerColor' OS PIM IntS v p _ t
-          | 0 *~ kmh <= v && v < t = Grey
-          | t <= v && v <= p = White
-          | otherwise = Red
-        pointerColor' OS TSM NoS v _ _ t  =
-          if 0 *~ kmh <= v && v < t then Grey else White
-        pointerColor' OS TSM IndS _ _ _ _ = Yellow
-        pointerColor' OS TSM IntS v p _ t
-          | 0 *~ kmh <= v && v < t = Grey
-          | t <= v && v <= p = Yellow
-          | otherwise = Red
-        pointerColor' _ RSM IndS _ _ _ _ = Yellow
-        pointerColor' _ RSM IntS v _ (Just r) _ =
-          if 0 *~ kmh <= v && v <= r then Yellow else Red
-        pointerColor' LS CSM s v p r t = pointerColor' OS CSM s v p r t
-        pointerColor' LS PIM IntS v p _ _ = if v <= p then Grey else Red
-        pointerColor' LS TSM IntS v p _ _ = if v <= p then Grey else Red
-        pointerColor' SR s i v p r t = pointerColor' UN s i v p r t
-        pointerColor' UN PIM i v p r t = pointerColor' FS PIM i v p r t
-        pointerColor' UN TSM i v p r t = pointerColor' FS TSM i v p r t
-        pointerColor' SH s i v p r t = pointerColor' FS s i v p r t
-        pointerColor' TR _ _ _ _ _ _  = Red
-        pointerColor' _ _ _ _ _ _ _ = Grey
 
 
 
