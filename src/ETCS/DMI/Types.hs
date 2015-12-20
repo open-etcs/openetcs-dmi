@@ -121,7 +121,7 @@ data TrainCategory =
 makePrisms ''TrainCategory
 
 -- | the used UI colors of DMI
-data UIColor = Grey | Yellow | Orange | Red | White | Black | DarkGrey | MediumGrey | DarkBlue
+data UIColor = Grey | Yellow | Orange | Red | White | Black | DarkGrey | MediumGrey | DarkBlue | Shadow
   deriving (Eq, Ord, Enum, Bounded, Show)
 
 

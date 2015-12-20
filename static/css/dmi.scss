@@ -50,7 +50,28 @@ $G_height: $C_height + $E_height;
 $F_width: $Z_width - $C_width - $D_width;
 $F_height: $D_height + $G_height;
 
+@mixin borderTL($width, $style, $color) {
+  border-top-width:  $width ;
+  border-left-width: $width ;
+  border-top-style:  $style ;
+  border-left-style: $style ;
+  border-top-color:  $color ;
+  border-left-color: $color ;
+}
 
+@mixin borderBR($width, $style, $color) {
+  border-bottom-width:  $width ;
+  border-right-width: $width ;
+  border-bottom-style:  $style ;
+  border-right-style: $style ;
+  border-bottom-color:  $color ;
+  border-right-color: $color ;
+}
+
+.level1 {
+  @include borderTL(1, solid, $ColorBlack);
+  @include borderBR(1, solid, $ColorShadow);
+}
 
 .notSelectable {
   -webkit-touch-callout: none;
@@ -68,9 +89,13 @@ $F_height: $D_height + $G_height;
   
 .clean { clean: all; }
 
+html {
+     height: 100%;
+}
 
 body {
   background-color: $ColorBlack;
+  height: 100%;
   font-size: $fontSize;  
   font-family: $fontStack;
   line-height: 200%;

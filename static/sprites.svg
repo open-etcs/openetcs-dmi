@@ -29,4 +29,14 @@
       <line x1="4" y1="28" x2="28" y2="4" />      
     </g>
   </symbol>
+
+  <symbol id="MO11" viewBox="0 0 32 32" width="36" height="36">
+    <title>Full Supervision</title>
+    <g  style="stroke-width: 2;"> 
+      <line x1="4" y1="4" x2="28" y2="28" />
+      <line x1="4" y1="28" x2="28" y2="4" />      
+    </g>
+  </symbol>
+
+  
 </svg>

@@ -8,15 +8,19 @@ module Main ( main ) where
 
 import           Control.Lens                      hiding ((*~))
 import           Control.Monad
+import           Control.Monad.IO.Class
 import           ETCS.DMI
 import           ETCS.DMI.Widgets.SpeedDial
+import           GHCJS.DOM.Document                (querySelector)
+import           GHCJS.DOM.Element                 hiding (error, querySelector)
+import           GHCJS.DOM.Types
 import           Numeric.Units.Dimensional.Prelude
-import           Prelude                           ()
+import qualified Prelude                           as P
 import           Reflex.Dom
 
 trainb :: (Reflex t) => TrainBehavior t
 trainb = TrainBehavior {
-    _trainVelocity = constDyn (162.3 *~ kmh),
+    _trainVelocity = constDyn (162.8 *~ kmh),
     _trainMode = constDyn FS,
     _trainNonLeadingInput = constDyn False,
     _trainLevel = constDyn (_UnknownData # ()),
@@ -46,10 +50,33 @@ sdmd = SdmData {
 }
 
 
+updateScaling :: (MonadIO m, IsDocument doc, IsElement el) =>
+                 doc -> el -> m ()
+updateScaling doc el' = do
+  let el = castToElement el'
+  w <- getClientWidth el
+  h <- getClientHeight el
+  let f = min ((P./) w 640) ((P./) h 480)
+  m <- querySelector doc ("meta[name=viewport]" :: String)
+  case m of
+    Nothing -> fail "updateScaling: unable to find meta[name=viewport] in document."
+    Just m -> do
+      setAttribute m ("content" :: String) $ mconcat
+        ["width=", show w, ", height=", show h,  ", initial-scale=", show f]
+      return ()
+
 main :: IO ()
 main = mainWidget $ do
-    void $ speedDial trainb
+  doc <- askDocument
+  (resizeE, outerDiv) <- resizeDetectorWithStyle "width: 100%; height: 100%;" $ do
+    speedDial trainb
+    askParent
 
+  let outerDiv' = castToElement outerDiv
+  updateScaling doc outerDiv'
+  performEvent_ $ (const $ updateScaling doc outerDiv') <$> resizeE
+
+  return ()
 
 #else
 

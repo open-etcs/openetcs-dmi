@@ -77,12 +77,15 @@ mkSpriteElement :: (IsNode parent, MonadIO m) =>
 
 mkSpriteElement parent sid = do
     doc <- _getOwnerDocument parent
+
     s <- _createSVGElement doc
     setClassName s ("sprite" :: String)
+
     u <- _createSVGUseElement doc
     let href = maybe mempty (\t' -> mconcat [ spritesFile, "#", t' ]) sid
     void $ setAttribute s ("data-sprite" :: String) . fromMaybe "" $ sid
     setAttributeNS u (pure xlinkNS) ("href" :: String) href
+
     void $ appendChild s $ pure u
     void $ appendChild parent $ pure s
     return s

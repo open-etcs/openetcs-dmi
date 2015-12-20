@@ -9,7 +9,7 @@ import qualified Data.Map as Map
 import           Data.Maybe
 import           ETCS.DMI
 import           GHCJS.DOM.CSSStyleDeclaration (setProperty)
-import           GHCJS.DOM.Element (getStyle)
+import           GHCJS.DOM.Element (getStyle, setAttributeNS)
 import           GHCJS.DOM.Node (setTextContent)
 import           GHCJS.DOM.Types hiding (Event)
 import           Numeric.Units.Dimensional.Prelude
@@ -30,6 +30,7 @@ speedDial tb = do
     void $ buildDigitalSpeed tb pIsRed
     void $ buildBasicSpeedHooks tb
     void $ buildCircularSpeedGauge tb infs
+    void $ buildSupplementary tb
     
   return svg
      where attrs :: AttributeMap
@@ -40,6 +41,62 @@ speedDial tb = do
                    , ("class", "SpeedDial")
                    ]
                           
+
+
+--
+-- Suplementary Information
+--
+
+buildSupplementary ::
+  (MonadHold t m, MonadWidget t m) => TrainBehavior t -> m SVGGElement
+buildSupplementary tb =
+  let attrsSize :: String -> Int -> Int -> AttributeMap
+      attrsSize t x y = Map.fromList [ ("id", t), ("class", "level1")
+                                     , ("x", show x), ("y", show y)
+                                     ]
+      attrsG = Map.fromList [("class", "SupplementaryInformation")]
+  in do
+    
+    buildSVGGroup attrsG $ do
+      b3 <- buildSVGUseSprite (constDyn $ pure "MO11") (attrsSize "B3"  86 256)
+      b4 <- buildSVGUseSprite (constDyn $ pure "MO11") (attrsSize "B4" 122 256)
+      b5 <- buildSVGUseSprite (constDyn $ pure "MO11") (attrsSize "B5" 158 256)
+      b6 <- buildSVGUseSprite (constDyn $ pure "MO11") (attrsSize "B6"   8 256)
+      b7 <- buildSVGUseSprite (constDyn $ pure "MO11") (attrsSize "B7" 236 256)
+
+      let black = uiColorCSS Black
+          shadow = uiColorCSS Shadow
+          
+      bb3 <- buildBorder 86 256 35 35 black shadow
+      bb4 <- buildBorder 122 256 35 35 black shadow
+      bb5 <- buildBorder 158 256 35 35 black shadow
+      bb6 <- buildBorder 8 256 36 35 black shadow
+      bb7 <- buildBorder 236 256 35 35 black shadow
+
+      return ()
+  
+
+buildBorder :: (MonadWidget t m) => Int -> Int -> Int -> Int -> String -> String ->
+               m SVGGElement
+buildBorder x y w h tlc brc = buildSVGGroup (mempty :: AttributeMap) $ do
+  void $ buildSVGLine . Map.fromList $
+    [ ("x1", show x), ("y1", show y)
+    , ("x2", show $ (P.+) x w ), ("y2", show y)
+    , ("stroke", tlc), ("color", tlc)]
+  void $ buildSVGLine . Map.fromList $
+    [ ("x1", show x), ("y1", show $ (P.+) y h)
+    , ("x2", show x), ("y2", show y)                      
+    , ("stroke", tlc), ("color", tlc)]
+  void $ buildSVGLine . Map.fromList $
+    [ ("x1", show $ (P.+) x w), ("y1", show y)
+    , ("x2", show $ (P.+) x w ), ("y2", show $ (P.+) y h)
+    , ("stroke", brc), ("color", brc)]
+  void $ buildSVGLine . Map.fromList $
+    [ ("x1", show $ (P.+) x w ), ("y1", show $ (P.+) y h)
+    , ("x2", show x), ("y2", show  $ (P.+) y h)                      
+    , ("stroke", brc), ("color", brc)]    
+  
+
 
 
 --
@@ -81,7 +138,7 @@ buildBasicSpeedHook tb v c wi =
         in mconcat ["M140,", show a,  " L140,20 L134,20 L134,", show a]
       transformDef a = mconcat [ "rotate(", show (a /~ degree), ", 140, 140)" ]
       pathAttrs' w a =
-         Map.fromList [("d", bshDef w), ("transform", transformDef a)] 
+         Map.fromList [("shape-rendering", "optimizeQuality"), ("d", bshDef w), ("transform", transformDef a)] 
   in do
     g <- buildSVGGroup gattrs $ do
       aD <- combineDyn speedDialDegree (tb ^. trainSpeedDial) v
@@ -194,7 +251,7 @@ buildBasicCircular ::
   (MonadHold t m, MonadWidget t m) =>
   Dynamic t Int -> Dynamic t Int -> Dynamic t (PlaneAngle Double) -> Dynamic t (PlaneAngle Double) -> Dynamic t UIColor -> m SVGPathElement
 buildBasicCircular outer width start end c =
-  let attrs' a b = Map.fromList [("d", circularDef a b)]
+  let attrs' a b = Map.fromList [("d", circularDef a b), ("shape-rendering", "optimizeQuality")]
   in do
     ow <- combineDyn (,) outer width
     se <- combineDyn (,) start end
@@ -274,7 +331,7 @@ buildSpeedPointer tb col = do
   return g
     where cAttributes,pAttributes :: AttributeMap          
           cAttributes = Map.fromList [ ("cx", "105"), ("cy", "25"), ("r", "25") ]
-          pAttributes = Map.fromList [ ("points", pPoints) ]
+          pAttributes = Map.fromList [ ("shape-rendering", "optimizeQuality"), ("points", pPoints) ]
           pPoints = "0,24 15,24 23,20 80,20 80,29 23,29 15,26 0,26"
 
 
@@ -424,6 +481,33 @@ buildSpeedIndicatorLine len d v =
 svgNS :: String
 svgNS = "http://www.w3.org/2000/svg"
 
+xlinkNS :: String
+xlinkNS = "http://www.w3.org/1999/xlink"
+
+spritesFile :: String
+spritesFile = "./sprites.svg"
+
+
+buildSVGElement :: (MonadWidget t m, Attributes m attrs) =>
+                   attrs -> m () ->  m SVGElement
+buildSVGElement args =
+  liftM (castToSVGElement . fst) . buildElementNS (pure svgNS) "svg" args
+
+
+buildSVGUseSprite ::
+  (MonadWidget t m, Attributes m attrs) =>
+  Dynamic t (Maybe String) -> attrs -> m SVGUseElement
+buildSVGUseSprite sidD attrs =
+  let href = maybe mempty (\t' -> mconcat [ spritesFile, "#", t' ])
+  in do
+    u <- liftM castToSVGUseElement . buildEmptyElementNS (pure svgNS) "use" $ attrs    
+    let setUHref = setAttributeNS u (pure xlinkNS) ("href" :: String) . href
+    sid' <- sample . current $ sidD
+    liftIO $ setUHref sid'
+    performEvent_ $ liftIO . setUHref <$> updated sidD
+    
+    return u
+
 buildSVGLine :: (MonadWidget t m, Attributes m attrs) => attrs -> m SVGLineElement
 buildSVGLine =
   liftM castToSVGLineElement . buildEmptyElementNS (pure svgNS) "line"
@@ -446,11 +530,6 @@ buildSVGCircle :: (MonadWidget t m, Attributes m attrs) => attrs -> m SVGCircleE
 buildSVGCircle =
   liftM castToSVGCircleElement . buildEmptyElementNS (pure svgNS) "circle"
 
-
-buildSVGElement :: (MonadWidget t m, Attributes m attrs) =>
-                   attrs -> m () ->  m SVGElement
-buildSVGElement args =
-  liftM (castToSVGElement . fst) . buildElementNS (pure svgNS) "svg" args
 
 
 buildSVGGroup :: (MonadWidget t m, Attributes m attrs) =>
@@ -537,7 +616,7 @@ uiColorCSS Black = "rgb(0,0,0)"
 uiColorCSS DarkGrey = "rgb(85,85,85)"
 uiColorCSS MediumGrey = "rgb(150,150,150)"
 uiColorCSS DarkBlue = "rgb(3, 17, 34)"
-
+uiColorCSS Shadow = "rgb(8, 24, 57)"
 
 speedDialDegree :: SpeedDialType -> Velocity Double -> Dimensionless Double
 speedDialDegree d v
