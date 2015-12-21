@@ -55,23 +55,41 @@ buildSupplementary tb =
                                      , ("x", show x), ("y", show y)
                                      ]
       attrsG = Map.fromList [("class", "SupplementaryInformation")]
-  in do
-    
+      black = uiColorCSS Black
+      shadow = uiColorCSS Shadow          
+  in do    
     buildSVGGroup attrsG $ do
-      b3 <- buildSVGUseSprite (constDyn $ pure "MO11") (attrsSize "B3"  86 256)
-      b4 <- buildSVGUseSprite (constDyn $ pure "MO11") (attrsSize "B4" 122 256)
-      b5 <- buildSVGUseSprite (constDyn $ pure "MO11") (attrsSize "B5" 158 256)
-      b6 <- buildSVGUseSprite (constDyn $ pure "MO11") (attrsSize "B6"   8 256)
-      b7 <- buildSVGUseSprite (constDyn $ pure "MO11") (attrsSize "B7" 236 256)
+      
+      b3d <- return (constDyn $ pure "MO11")
+      b4d <- return (constDyn $ pure "MO11")
+      b5d <- return (constDyn $ pure "MO11")
+      b6d <- return (constDyn $ pure "MO11")
+      b7d <- return (constDyn $ pure "MO11")
 
-      let black = uiColorCSS Black
-          shadow = uiColorCSS Shadow
-          
-      bb3 <- buildBorder 86 256 35 35 black shadow
-      bb4 <- buildBorder 122 256 35 35 black shadow
-      bb5 <- buildBorder 158 256 35 35 black shadow
-      bb6 <- buildBorder 8 256 36 35 black shadow
-      bb7 <- buildBorder 236 256 35 35 black shadow
+      void $ buildSVGGroup (Map.fromList [] :: AttributeMap) $ do
+        void $ buildSVGUseSprite b6d (attrsSize "B6"   8 256)
+        void $ buildBorder 8 256 36 35 black shadow
+
+      void $ buildSVGGroup (Map.fromList [] :: AttributeMap) $ do
+        void $ buildSVGUseSprite b3d (attrsSize "B3"  86 256)
+        void $ buildBorder 86 256 35 35 black shadow
+
+      void $ buildSVGGroup (Map.fromList [] :: AttributeMap) $ do
+        void $ buildSVGUseSprite b4d (attrsSize "B4" 122 256)
+        void $ buildBorder 122 256 35 35 black shadow
+      
+      void $ buildSVGGroup (Map.fromList [] :: AttributeMap) $ do      
+        void $ buildSVGUseSprite b5d (attrsSize "B5" 158 256)
+        void $ buildBorder 158 256 35 35 black shadow
+      
+      void $ buildSVGGroup (Map.fromList [] :: AttributeMap) $ do
+        void $ buildSVGUseSprite b7d (attrsSize "B7" 236 256)
+        void $ buildBorder 236 256 35 35 black shadow
+        
+
+      
+
+
 
       return ()
   
