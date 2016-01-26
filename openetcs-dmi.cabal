@@ -33,7 +33,9 @@ library
 --                       ETCS.DMI.StartupSequence,
 --                       Reactive.Banana.DOM,
 --                       Reactive.Banana.DOM.Widget
-                       ETCS.DMI.Types                       
+                       ETCS.DMI.SerializedData,
+                       ETCS.DMI.Types
+                       
   other-modules:       ETCS.DMI.Helpers
 
   
@@ -44,6 +46,7 @@ library
                        lens,
                        dimensional,
                        transformers,
+                       aeson,
                        reflex
 
   other-extensions:    FlexibleContexts,
@@ -59,9 +62,12 @@ library
 
 
 executable openetcs-dmi
+    buildable: True
+    main-is: main.hs
+    default-language:  Haskell2010
+    ghc-options: -threaded -Wall
 
     if impl(ghcjs)
-        buildable: True
         hs-source-dirs: app
         build-depends: mtl,
                        base,
@@ -75,20 +81,31 @@ executable openetcs-dmi
                        openetcs-dmi
 
     else
+        hs-source-dirs: server
         build-depends: base,
+                       openetcs-dmi,
+                       containers,
+                       text,
+                       transformers,
+                       stm,
+                       mtl,
                        lens,
+                       aeson,
+                       network,
+                       async,
                        dimensional,
                        transformers,
-                       reflex,
-                       openetcs-dmi
-        buildable: True
-        hs-source-dirs: server
+                       reflex,                       
+                       wai,
+                       warp,
+                       wai-extra,                       
+                       servant-server,
+                       servant,
+                       bytestring,
+                       http-types,
+                       socket-io,
+                       engine-io,
+                       engine-io-wai
       
-    main-is: main.hs
-
-
-    default-language:  Haskell2010
-    ghc-options: -threaded -Wall
-
 
 

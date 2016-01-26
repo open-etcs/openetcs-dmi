@@ -1,16 +1,29 @@
-{-# LANGUAGE FlexibleInstances      #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE MultiParamTypeClasses  #-}
-{-# LANGUAGE Rank2Types             #-}
-{-# LANGUAGE TemplateHaskell        #-}
-{-# LANGUAGE Trustworthy            #-}
+{-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE FunctionalDependencies     #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE Rank2Types                 #-}
+{-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE Trustworthy                #-}
 
 module ETCS.DMI.Types where
 
 import           Control.Lens                      hiding ((*~))
+import           Data.Aeson
+import qualified Data.Aeson.Types                  as Aeson
+
 import           Data.Text                         (Text)
+import           Data.Typeable
+import           GHC.Generics
 import           Numeric.Units.Dimensional.Prelude
+import qualified Prelude                           ()
 import           Reflex
+
+
+etcsJSONEncoding :: Aeson.Options
+etcsJSONEncoding = defaultOptions
 
 
 data ETCSMode
@@ -31,9 +44,16 @@ data ETCSMode
   | NL -- ^ Non Leading (NL)
   | SN -- ^ National System (SN)
   | RV -- ^ Reversing (RV)
-  deriving (Eq, Show, Ord, Enum, Bounded)
+  deriving (Eq, Show, Ord, Enum, Bounded, Typeable, Generic)
 
 makePrisms ''ETCSMode
+
+instance ToJSON ETCSMode where
+  toJSON = toJSON
+  toEncoding = genericToEncoding etcsJSONEncoding
+
+instance FromJSON ETCSMode where
+  parseJSON = genericParseJSON etcsJSONEncoding
 
 data ETCSLevel
   = Level0
@@ -41,14 +61,29 @@ data ETCSLevel
   | Level1
   | Level2
   | Level3
-  deriving (Eq, Show, Ord, Enum, Bounded)
+  deriving (Eq, Show, Ord, Enum, Bounded, Typeable, Generic)
 
 makePrisms ''ETCSLevel
 
+instance ToJSON ETCSLevel where
+  toJSON = toJSON
+  toEncoding = genericToEncoding etcsJSONEncoding
+
+instance FromJSON ETCSLevel where
+  parseJSON = genericParseJSON etcsJSONEncoding
+
+
 data RadioSafeConnection = ConnectionUp | NoConnection | ConnectionLost
-               deriving (Eq, Show, Ord, Enum, Bounded)
+               deriving (Eq, Show, Ord, Enum, Bounded, Typeable, Generic)
 
 makePrisms ''RadioSafeConnection
+
+instance ToJSON RadioSafeConnection where
+  toJSON = toJSON
+  toEncoding = genericToEncoding etcsJSONEncoding
+
+instance FromJSON RadioSafeConnection where
+  parseJSON = genericParseJSON etcsJSONEncoding
 
 
 -- | Describes onboard data validity. Data is either '_UnknownData',
@@ -58,7 +93,7 @@ data OnBoardData a
   = ValidData a   -- ^ The stored value is known to be correct.
   | InvalidData a -- ^ The stored value may be wrong.
   | UnknownData   -- ^ No stored value stored.
-
+  deriving (Typeable, Generic, Eq, Show)
 makePrisms ''OnBoardData
 
 instance Functor OnBoardData where
@@ -75,7 +110,6 @@ instance Applicative OnBoardData where
   UnknownData <*> _ = _UnknownData # ()
   _ <*> UnknownData = _UnknownData # ()
 
-
 -- | predicate if given 'OnBoardData' is '_ValidData'
 onBoardIsValid :: OnBoardData a -> Bool
 onBoardIsValid (ValidData _) = True
@@ -91,8 +125,26 @@ onBoardDataWithDefault a  UnknownData    = a
 type DriverId = Text
 type DriverIdData = OnBoardData DriverId
 
+
+instance ToJSON (OnBoardData DriverId) where
+  toJSON = toJSON
+  toEncoding = genericToEncoding etcsJSONEncoding
+
+instance FromJSON (OnBoardData DriverId) where
+  parseJSON = genericParseJSON etcsJSONEncoding
+
+
 -- | The trains 'ETCSLevel'
 type TrainLevelData = OnBoardData ETCSLevel
+
+
+instance ToJSON (OnBoardData ETCSLevel) where
+  toJSON = toJSON
+  toEncoding = genericToEncoding etcsJSONEncoding
+
+instance FromJSON (OnBoardData ETCSLevel) where
+  parseJSON = genericParseJSON etcsJSONEncoding
+
 
 -- | A RBC identifier
 type RBCId = Text
@@ -104,11 +156,27 @@ data RBCRecord =
   RBCRecord {
   _rbcId          :: RBCId,
   _rbcPhoneNumber :: RBCPhoneNumber
-}
+} deriving (Eq, Show, Generic, Typeable)
+
 makePrisms ''RBCRecord
 makeLenses ''RBCRecord
 
+instance ToJSON RBCRecord where
+  toJSON = toJSON
+  toEncoding = genericToEncoding etcsJSONEncoding
+
+instance FromJSON RBCRecord where
+  parseJSON = genericParseJSON etcsJSONEncoding
+
 type RBCData = OnBoardData RBCRecord
+
+instance ToJSON (OnBoardData RBCRecord) where
+  toJSON = toJSON
+  toEncoding = genericToEncoding etcsJSONEncoding
+
+instance FromJSON (OnBoardData RBCRecord) where
+  parseJSON = genericParseJSON etcsJSONEncoding
+
 
 -- | Train Category
 data TrainCategory =
@@ -116,25 +184,41 @@ data TrainCategory =
   TILT1 | TILT2 | TILT3 | TILT4 | TILT5 | TILT6 | TILT7 |
   FP1 | FP2 | FP3 | FP4 |
   FG1 | FG2 | FG3 | FG4
-  deriving (Eq, Ord, Enum, Bounded, Show)
+  deriving (Eq, Ord, Enum, Bounded, Show, Generic, Typeable)
 
 makePrisms ''TrainCategory
 
+instance ToJSON TrainCategory where
+  toJSON = toJSON
+  toEncoding = genericToEncoding etcsJSONEncoding
+
+instance FromJSON TrainCategory where
+  parseJSON = genericParseJSON etcsJSONEncoding
+
+
 -- | the used UI colors of DMI
 data UIColor = Grey | Yellow | Orange | Red | White | Black | DarkGrey | MediumGrey | DarkBlue | Shadow
-  deriving (Eq, Ord, Enum, Bounded, Show)
+  deriving (Eq, Ord, Enum, Bounded, Show, Generic, Typeable)
 
 
 -- | ETCS defines 4 types of speed dials with different Vmax.
 data SpeedDialType =
   SpeedDial140 | SpeedDial180 | SpeedDial250 | SpeedDial400
-  deriving (Eq, Ord, Enum, Bounded, Show)
+  deriving (Eq, Ord, Enum, Bounded, Show, Generic, Typeable)
+
+
+instance ToJSON SpeedDialType where
+  toJSON = toJSON
+  toEncoding = genericToEncoding etcsJSONEncoding
+
+instance FromJSON SpeedDialType where
+  parseJSON = genericParseJSON etcsJSONEncoding
 
 
 data LoadingGauge
   = LoadingGauge1 | LoadingGaugeA | LoadingGaugeB | LoadingGaugeC
   | LoadingGaugeOutOfGC
-  deriving (Eq, Ord, Enum, Bounded, Show)
+  deriving (Eq, Ord, Enum, Bounded, Show, Generic, Typeable)
 
 
 data AxleLoadCategory
@@ -143,7 +227,16 @@ data AxleLoadCategory
   | AxleLoadC2 | AxleLoadC3 | AxleLoadC4
   | AxleLoadD2 | AxleLoadD3 | AxleLoadD4 | AxleLoadD4XL
   | AxleLoadE4 | AxleLoadE5
-  deriving (Eq, Ord, Enum, Bounded, Show)
+  deriving (Eq, Ord, Enum, Bounded, Show, Generic, Typeable)
+
+
+instance ToJSON AxleLoadCategory where
+  toJSON = toJSON
+  toEncoding = genericToEncoding etcsJSONEncoding
+
+instance FromJSON AxleLoadCategory where
+  parseJSON = genericParseJSON etcsJSONEncoding
+
 
 -- | a record storing train data
 data TrainDataRecord =
@@ -155,17 +248,21 @@ data TrainDataRecord =
     _trainAxleLoadCategory :: AxleLoadCategory,
     _trainAirTight         :: Bool,
     _trainLoadingGauge     :: LoadingGauge
-    } deriving (Eq, Show)
+    } deriving (Eq, Show, Generic, Typeable)
 
 makeLenses ''TrainDataRecord
 
-type TrainData = OnBoardData TrainDataRecord
+
+type TrainData =
+  OnBoardData TrainDataRecord
 
 type RunningNumber = Int
-type RunningNumberData = OnBoardData RunningNumber
+type RunningNumberData =
+  OnBoardData RunningNumber
 
 type TrainPosition = Length Double
-data TrainPositionData = OnBoardData TrainPosition
+type TrainPositionData =
+  OnBoardData TrainPosition
 
 
 data StatusInformation
@@ -174,7 +271,7 @@ data StatusInformation
   | OvS  -- | Over-speed Status information (OvS)
   | WaS  -- | Warning Status information (WaS)
   | IntS -- | Intervention Status information (IntS)
-  deriving (Eq, Ord, Enum, Bounded, Show)
+  deriving (Eq, Ord, Enum, Bounded, Show, Typeable, Generic)
 
 
 data SuperVisionStatus
@@ -182,7 +279,8 @@ data SuperVisionStatus
   | PIM -- | Pre-Indication Monitoring (PIM)
   | TSM -- | Target Speed Monitoring (TSM)
   | RSM -- | Release Speed Monitoring (RSM)
-  deriving (Eq, Ord, Enum, Bounded, Show)
+  deriving (Eq, Ord, Enum, Bounded, Show, Typeable, Generic)
+
 
 
 data SdmData t =
@@ -197,6 +295,7 @@ data SdmData t =
       }
 
 makeClassy ''SdmData
+
 
 data TrainBehavior t =
   TrainBehavior {
@@ -223,3 +322,25 @@ makeClassy ''TrainBehavior
 instance (Reflex t) => HasSdmData (TrainBehavior t) t where
   sdmData = trainSdmData
 
+
+
+
+--
+-- Helper
+--
+
+
+
+{-
+logScale :: (Floating a, Ord a) => Dimensionless a -> Dimensionless a
+logScale x
+  | x > _1000 = logScale _1000
+  | x <= _100 = _185 - ((x / _100) * (33 *~ one))
+  | otherwise = _152 - (_scale * (log (x)))
+  where _1000 = 1000 *~ one
+        _100 = 100  *~ one
+--        _900 = 900 *~ one
+        _185 = 185 *~ one
+        _152 = 152 *~ one
+        _scale = (_152 / log _1000)
+-}
