@@ -12,7 +12,7 @@ import           Reflex
 
 trainBreaksActive :: (Reflex t, MonadHold t m) => TrainBehavior t -> m (Dynamic t Bool)
 trainBreaksActive td =
-  combineDyn (||) (td ^. trainServiceBreakActive) (td ^. trainEmergencyBreakActive)
+  combineDyn (||) (td ^. lokoServiceBreakActive) (td ^. lokoEmergencyBreakActive)
 
 
 trainInMode :: (Reflex t, MonadHold t m) =>

@@ -21,9 +21,14 @@ import           Numeric.Units.Dimensional.Prelude
 import qualified Prelude                           ()
 import           Reflex
 
-
 etcsJSONEncoding :: Aeson.Options
-etcsJSONEncoding = defaultOptions
+etcsJSONEncoding = defaultOptions {
+  Aeson.fieldLabelModifier = drop 1,
+  Aeson.sumEncoding = Aeson.defaultTaggedObject
+  { Aeson.tagFieldName = "type"
+  , Aeson.contentsFieldName = "data"
+  }}
+
 
 
 data ETCSMode
@@ -283,8 +288,8 @@ data SuperVisionStatus
 
 
 
-data SdmData t =
-  SdmData {
+data SdmDynamic t =
+  SdmDynamic {
       _sdmVperm       :: Dynamic t (Velocity Double),
       _sdmVrelease    :: Dynamic t (Maybe (Velocity Double)),
       _sdmVtarget     :: Dynamic t (Velocity Double),
@@ -294,34 +299,42 @@ data SdmData t =
       _sdmStatus      :: Dynamic t SuperVisionStatus
       }
 
-makeClassy ''SdmData
+makeClassy ''SdmDynamic
 
+data LokoDynamic t =
+  LokoDynamic {
+    _lokoVelocity             :: Dynamic t (Velocity Double),
+    _lokoNonLeadingInput      :: Dynamic t Bool,
+--    _lokoIsNonLeading         :: Dynamic t Bool,
+    _lokoEmergencyBreakActive :: Dynamic t Bool,
+    _lokoServiceBreakActive   :: Dynamic t Bool,
+    _lokoPassiveShuntingInput :: Dynamic t Bool,
+    _lokoSpeedDial            :: Dynamic t SpeedDialType
+    }
+
+makeClassy ''LokoDynamic
 
 data TrainBehavior t =
   TrainBehavior {
-    _trainVelocity                    :: Dynamic t (Velocity Double),
-    _trainNonLeadingInput             :: Dynamic t Bool,
-    _trainEmergencyBreakActive        :: Dynamic t Bool,
-    _trainServiceBreakActive          :: Dynamic t Bool,
-    _trainIsNonLeading                :: Dynamic t Bool,
-    _trainPassiveShuntingInput        :: Dynamic t Bool,
+    _trainLocoDynamic                 :: LokoDynamic t,
     _trainMode                        :: Dynamic t ETCSMode,
     _trainRadioSafeConnection         :: Dynamic t RadioSafeConnection,
     _trainCommunicationSessionPending :: Dynamic t Bool,
     _trainModDriverIDAllowed          :: Dynamic t Bool,
-    _trainSpeedDial                   :: Dynamic t SpeedDialType,
     _trainLevel                       :: Dynamic t TrainLevelData,
     _trainDriverID                    :: Dynamic t DriverIdData,
     _trainData                        :: Dynamic t TrainData,
     _trainRunningNumber               :: Dynamic t RunningNumberData,
-    _trainSdmData                     :: SdmData t
+    _trainSdmDynamic                  :: SdmDynamic t
     }
 
 makeClassy ''TrainBehavior
 
-instance (Reflex t) => HasSdmData (TrainBehavior t) t where
-  sdmData = trainSdmData
+instance (Reflex t) => HasSdmDynamic (TrainBehavior t) t where
+  sdmDynamic = trainSdmDynamic
 
+instance (Reflex t) => HasLokoDynamic (TrainBehavior t) t where
+  lokoDynamic = trainLocoDynamic
 
 
 

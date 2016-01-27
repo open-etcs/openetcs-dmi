@@ -35,6 +35,7 @@ library
 --                       Reactive.Banana.DOM.Widget
                        ETCS.DMI.SerializedData,
                        ETCS.DMI.Types
+                       ETCS.Bindings
                        
   other-modules:       ETCS.DMI.Helpers
 

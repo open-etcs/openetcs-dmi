@@ -44,7 +44,7 @@ csmInformationStatus :: (Reflex t, MonadSample t m, MonadHold t m, MonadFix m) =
                         TrainBehavior t -> m (Dynamic t StatusInformation)
 csmInformationStatus td =
   let p = td ^. sdmVperm
-      v = td ^. trainVelocity
+      v = td ^. lokoVelocity
       w = td ^. sdmVwarn
       sbi = td ^. sdmVsbi
   in do
@@ -79,7 +79,7 @@ tsmInformationStatus :: (Reflex t, MonadSample t m, MonadHold t m, MonadFix m) =
                         TrainBehavior t -> m (Dynamic t StatusInformation)
 tsmInformationStatus td =
   let p = td ^. sdmVperm
-      v = td ^. trainVelocity
+      v = td ^. lokoVelocity
       t = td ^. sdmVtarget
       i = td ^. sdmVindication
       w = td ^. sdmVwarn
@@ -122,7 +122,7 @@ rsmInformationStatus :: (Reflex t, MonadSample t m, MonadHold t m, MonadFix m) =
                         TrainBehavior t -> m (Dynamic t StatusInformation)
 rsmInformationStatus td =
   let rM = td ^. sdmVrelease
-      v = td ^. trainVelocity
+      v = td ^. lokoVelocity
   in do
     r <- mapDyn (maybe ((-1) *~ kmh) id) rM
     breaks <- trainBreaksActive td
