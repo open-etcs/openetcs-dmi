@@ -105,7 +105,40 @@ body {
   overflow: hidden;
 }
 
+
+
+#ABCE {
+  display: flex;
+  width: $A_width + $B_width;
+  height: $B_height + $C_height + $E_height;
   
+  #A {
+    display: flex;
+    width: $A_width;
+    height: $A_height;    
+  }
+    
+  #B {
+    display: flex;
+    width: $B_width;
+    height: $B_height;    
+  }
+
+  #C {
+    display: flex;
+    width: $C_width;
+    height: $C_height;
+  }
+
+  #E {
+    display: flex;
+    width: $E_width;
+    height: $E_height;
+  }
+    
+    
+}
+
 
 svg.SpeedDial {
   @extend .notSelectable;

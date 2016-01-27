@@ -2,6 +2,7 @@
 
 module ETCS.DMI.Widgets.SpeedDial (speedDial)  where
 
+import           ETCS.DMI.Widgets.SVG
 import           Control.Lens hiding ((*~))
 import           Control.Monad
 import           Control.Monad.IO.Class
@@ -9,7 +10,7 @@ import qualified Data.Map as Map
 import           Data.Maybe
 import           ETCS.DMI
 import           GHCJS.DOM.CSSStyleDeclaration (setProperty)
-import           GHCJS.DOM.Element (getStyle, setAttributeNS)
+import           GHCJS.DOM.Element (getStyle)
 import           GHCJS.DOM.Node (setTextContent)
 import           GHCJS.DOM.Types hiding (Event)
 import           Numeric.Units.Dimensional.Prelude
@@ -18,10 +19,10 @@ import           Reflex.Dom
 
 
 -- | build a SpeedDial widget
-speedDial :: (MonadHold t m, MonadWidget t m) => TrainBehavior t -> m SVGElement
-speedDial tb = do
+speedDial :: (MonadHold t m, MonadWidget t m) =>
+             TrainBehavior t -> Dynamic t StatusInformation -> m SVGElement
+speedDial tb infs = do
   svg <- buildSVGElement attrs $ do
-    infs <- informationStatus tb
     pColor <- pointerColor tb (current infs)
     pIsRed <- mapDyn (== Red) pColor
 
@@ -39,6 +40,7 @@ speedDial tb = do
                    , ("width", "280px")
                    , ("height", "300px")
                    , ("class", "SpeedDial")
+                   , ("id", "B")
                    ]
                           
 
@@ -132,11 +134,13 @@ buildBasicSpeedHooks tb =
     visi_perm <- nubDyn <$> dynAnd inCSM inSHRV >>= dynOr inOSSR
     visi_target <- nubDyn <$> mapDyn not inCSM >>= dynAnd inOSSR
     buildSVGGroup gattrs $ do
-      vperm <- buildBasicSpeedHook tb (tb ^. sdmVperm) (constDyn White) (constDyn 20)
+      vperm <- buildBasicSpeedHook tb (tb ^. sdmVperm)
+               (constDyn White) (constDyn 20)
       visi_perm' <- sample . current $ visi_perm
       liftIO . setCssHidden vperm . not $ visi_perm'      
       performEvent_ $ setCssHidden vperm . not <$> updated visi_perm
-      vtarget <- buildBasicSpeedHook tb (tb ^. sdmVtarget) (constDyn MediumGrey) (constDyn 20)
+      vtarget <- buildBasicSpeedHook tb (tb ^. sdmVtarget)
+                 (constDyn MediumGrey) (constDyn 20)
       visi_target' <- sample . current $ visi_target
       liftIO . setCssHidden vtarget . not $ visi_target'      
       performEvent_ $ setCssHidden vtarget . not <$> updated visi_target
@@ -496,74 +500,6 @@ buildSpeedIndicatorLine len d v =
 -- svg helpers - TODO: move away
 --
     
-svgNS :: String
-svgNS = "http://www.w3.org/2000/svg"
-
-xlinkNS :: String
-xlinkNS = "http://www.w3.org/1999/xlink"
-
-spritesFile :: String
-spritesFile = "./sprites.svg"
-
-
-buildSVGElement :: (MonadWidget t m, Attributes m attrs) =>
-                   attrs -> m () ->  m SVGElement
-buildSVGElement args =
-  liftM (castToSVGElement . fst) . buildElementNS (pure svgNS) "svg" args
-
-
-buildSVGUseSprite ::
-  (MonadWidget t m, Attributes m attrs) =>
-  Dynamic t (Maybe String) -> attrs -> m SVGUseElement
-buildSVGUseSprite sidD attrs =
-  let href = maybe mempty (\t' -> mconcat [ spritesFile, "#", t' ])
-  in do
-    u <- liftM castToSVGUseElement . buildEmptyElementNS (pure svgNS) "use" $ attrs    
-    let setUHref = setAttributeNS u (pure xlinkNS) ("href" :: String) . href
-    sid' <- sample . current $ sidD
-    liftIO $ setUHref sid'
-    performEvent_ $ liftIO . setUHref <$> updated sidD
-    
-    return u
-
-buildSVGLine :: (MonadWidget t m, Attributes m attrs) => attrs -> m SVGLineElement
-buildSVGLine =
-  liftM castToSVGLineElement . buildEmptyElementNS (pure svgNS) "line"
-
-buildSVGText :: (MonadWidget t m, Attributes m attrs) => attrs -> m SVGTextElement
-buildSVGText =
-  liftM castToSVGTextElement . buildEmptyElementNS (pure svgNS) "text"
-
-
-buildSVGPolygon :: (MonadWidget t m, Attributes m attrs) => attrs -> m SVGPolygonElement
-buildSVGPolygon =
-  liftM castToSVGPolygonElement . buildEmptyElementNS (pure svgNS) "polygon"
-
-buildSVGPath :: (MonadWidget t m, Attributes m attrs) => attrs -> m SVGPathElement
-buildSVGPath =
-  liftM castToSVGPathElement . buildEmptyElementNS (pure svgNS) "path"
-
-
-buildSVGCircle :: (MonadWidget t m, Attributes m attrs) => attrs -> m SVGCircleElement
-buildSVGCircle =
-  liftM castToSVGCircleElement . buildEmptyElementNS (pure svgNS) "circle"
-
-
-
-buildSVGGroup :: (MonadWidget t m, Attributes m attrs) =>
-                   attrs -> m () ->  m SVGGElement
-buildSVGGroup args =
-  liftM (castToSVGGElement . fst) . buildElementNS (pure svgNS) "g" args
-
-
-
-setCssHidden :: (MonadIO m, IsElement e) => e -> Bool -> m ()
-setCssHidden e h = do
-  st' <- getStyle e
-  flip (maybe (fail "unable to get stlye")) st' $ \st ->
-    let v :: String
-        v = if h then "none" else "initial"
-    in setProperty st ("display" :: String) (pure v) (mempty :: String)
 
 
 --
